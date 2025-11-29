@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// Authentication Models (Phase 2)
+// ============================================
+
+model User {
+  id            String    @id @default(uuid())
+  username      String    @unique @db.VarChar(50)
+  email         String    @unique @db.VarChar(255)
+  passwordHash  String?   @map("password_hash") @db.VarChar(255)
+  displayName   String?   @map("display_name") @db.VarChar(100)
+  avatarUrl     String?   @map("avatar_url")
+  bio           String?
+  emailVerified Boolean   @default(false) @map("email_verified")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  oauthAccounts          OAuthAccount[]
+  sessions               Session[]
+  emailVerificationTokens EmailVerificationToken[]
+  passwordResetTokens    PasswordResetToken[]
+
+  @@index([username])
+  @@index([email])
+  @@map("users")
+}
+
+model OAuthAccount {
+  id                String    @id @default(uuid())
+  userId            String    @map("user_id")
+  provider          String    @db.VarChar(50)
+  providerAccountId String    @map("provider_account_id") @db.VarChar(255)
+  accessToken       String?   @map("access_token")
+  refreshToken      String?   @map("refresh_token")
+  expiresAt         DateTime? @map("expires_at")
+  providerData      Json?     @map("provider_data")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@index([provider])
+  @@map("oauth_accounts")
+}
+
+model Session {
+  id           String    @id @default(uuid())
+  userId       String    @map("user_id")
+  token        String    @unique @db.VarChar(255)
+  refreshToken String?   @unique @map("refresh_token") @db.VarChar(255)
+  expiresAt    DateTime  @map("expires_at")
+  ipAddress   String?   @map("ip_address") @db.VarChar(45)
+  userAgent    String?   @map("user_agent")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([refreshToken])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique @db.VarChar(255)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@map("email_verification_tokens")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique @db.VarChar(255)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
