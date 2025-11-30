@@ -6,9 +6,10 @@ import { getOAuthAuthorizationUrl } from '@/lib/auth/oauth/providers';
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { provider: string } }
+  { params }: { params: Promise<{ provider: string }> }
 ) {
-  const provider = params.provider as
+  const { provider: providerParam } = await params;
+  const provider = providerParam as
     | 'google'
     | 'github'
     | 'mastodon'

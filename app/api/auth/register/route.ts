@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { hashPassword } from '@/lib/auth/password';
+import { hashPassword, validatePasswordStrength } from '@/lib/auth/password';
 import { generateRandomToken, getExpirationDate } from '@/lib/auth/jwt';
-import {
-  validateRegistrationInput,
-  validatePasswordStrength,
-} from '@/lib/auth/validation';
+import { validateRegistrationInput } from '@/lib/auth/validation';
 
 export async function POST(req: NextRequest) {
   try {

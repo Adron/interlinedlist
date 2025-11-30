@@ -12,6 +12,12 @@ export interface User {
   emailVerified: boolean;
 }
 
+interface RegisterResponse {
+  message: string;
+  user: User;
+  verificationToken?: string;
+}
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -20,7 +26,7 @@ interface AuthContextType {
     username: string,
     email: string,
     password: string
-  ) => Promise<void>;
+  ) => Promise<RegisterResponse>;
   logout: () => Promise<void>;
   refreshToken: () => Promise<void>;
   updateProfile: (data: Partial<User>) => Promise<void>;

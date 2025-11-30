@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Get client info
-    const headersList = headers();
+    const headersList = await headers();
     const ipAddress =
       headersList.get('x-forwarded-for') ||
       headersList.get('x-real-ip') ||

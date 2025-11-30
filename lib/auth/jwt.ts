@@ -1,11 +1,11 @@
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import { randomBytes } from 'crypto';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-production';
-const JWT_REFRESH_SECRET =
+const JWT_SECRET: string = process.env.JWT_SECRET || 'change-me-in-production';
+const JWT_REFRESH_SECRET: string =
   process.env.JWT_REFRESH_SECRET || 'change-me-in-production-refresh';
-const JWT_ACCESS_EXPIRES_IN = process.env.JWT_ACCESS_EXPIRES_IN || '15m';
-const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
+const JWT_ACCESS_EXPIRES_IN: string = process.env.JWT_ACCESS_EXPIRES_IN || '15m';
+const JWT_REFRESH_EXPIRES_IN: string = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 
 export interface JWTPayload {
   userId: string;
@@ -24,7 +24,7 @@ export interface TokenPair {
 export function generateAccessToken(payload: JWTPayload): string {
   return jwt.sign(payload, JWT_SECRET, {
     expiresIn: JWT_ACCESS_EXPIRES_IN,
-  });
+  } as SignOptions);
 }
 
 /**
@@ -33,7 +33,7 @@ export function generateAccessToken(payload: JWTPayload): string {
 export function generateRefreshToken(payload: JWTPayload): string {
   return jwt.sign(payload, JWT_REFRESH_SECRET, {
     expiresIn: JWT_REFRESH_EXPIRES_IN,
-  });
+  } as SignOptions);
 }
 
 /**
