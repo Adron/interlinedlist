@@ -40,11 +40,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Load user from token on mount
   useEffect(() => {
-    loadUser();
+    // Only run on client side
+    if (typeof window !== 'undefined') {
+      loadUser();
+    } else {
+      setLoading(false);
+    }
   }, []);
 
   async function loadUser() {
     try {
+      // Check if we're in the browser
+      if (typeof window === 'undefined') {
+        return;
+      }
       const accessToken = localStorage.getItem('accessToken');
       if (!accessToken) {
         setLoading(false);
@@ -72,6 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function refreshToken() {
+    if (typeof window === 'undefined') return;
     try {
       const refreshTokenValue = localStorage.getItem('refreshToken');
       if (!refreshTokenValue) {
@@ -96,8 +106,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error('Token refresh error:', error);
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+      }
       setUser(null);
     }
   }
@@ -117,8 +129,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const data = await response.json();
-    localStorage.setItem('accessToken', data.tokens.accessToken);
-    localStorage.setItem('refreshToken', data.tokens.refreshToken);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('accessToken', data.tokens.accessToken);
+      localStorage.setItem('refreshToken', data.tokens.refreshToken);
+    }
     setUser(data.user);
   }
 
@@ -142,6 +156,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function logout() {
+    if (typeof window === 'undefined') return;
     try {
       const accessToken = localStorage.getItem('accessToken');
       if (accessToken) {
@@ -155,13 +170,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+      }
       setUser(null);
     }
   }
 
   async function updateProfile(data: Partial<User>) {
+    if (typeof window === 'undefined') {
+      throw new Error('Not authenticated');
+    }
     const accessToken = localStorage.getItem('accessToken');
     if (!accessToken) {
       throw new Error('Not authenticated');
