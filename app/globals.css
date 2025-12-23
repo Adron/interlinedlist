@@ -16,5 +16,85 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  color: #333;
+  line-height: 1.6;
+}
+
+a {
+  color: #0070f3;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  font-family: inherit;
+}
+
+input,
+textarea {
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+input:focus,
+textarea:focus {
+  outline: 2px solid #0070f3;
+  outline-offset: 2px;
+}
+
+.nav-link {
+  transition: background-color 0.2s;
+}
+
+.nav-link:hover {
+  background-color: #f5f5f5;
+}
+
+.nav-link-primary {
+  transition: background-color 0.2s;
+}
+
+.nav-link-primary:hover {
+  background-color: #0051cc;
+}
+
+.btn {
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.btn-primary {
+  transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+  background-color: #0051cc;
+}
+
+.btn-secondary {
+  transition: background-color 0.2s;
+}
+
+.btn-secondary:hover {
+  background-color: #5a6268;
+}
+
+.btn-hero-primary {
+  transition: transform 0.2s;
+}
+
+.btn-hero-primary:hover {
+  transform: scale(1.05);
+}
+
+.btn-hero-secondary {
+  transition: background-color 0.2s;
+}
+
+.btn-hero-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
