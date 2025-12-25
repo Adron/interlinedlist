@@ -45,13 +45,13 @@ export async function POST(request: NextRequest) {
 
     // Return user data (without password hash)
     const userData = {
-      id: user.id,
+        id: user.id,
       email: user.email,
-      username: user.username,
-      displayName: user.displayName,
+        username: user.username,
+        displayName: user.displayName,
       avatar: user.avatar,
       bio: user.bio,
-      emailVerified: user.emailVerified,
+        emailVerified: user.emailVerified,
       createdAt: user.createdAt,
     };
 
