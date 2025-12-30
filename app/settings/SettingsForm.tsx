@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import { Avatar } from '@/components/Avatar';
 
 interface User {
   id: string;
@@ -26,12 +27,86 @@ export default function SettingsForm({ user }: SettingsFormProps) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [avatarValidation, setAvatarValidation] = useState<{
+    status: 'idle' | 'validating' | 'valid' | 'invalid';
+    message: string;
+  }>({ status: 'idle', message: '' });
+  const [validatedAvatarUrl, setValidatedAvatarUrl] = useState<string | null>(user.avatar);
+
+  const validateAvatarUrl = async (url: string): Promise<boolean> => {
+    if (!url || url.trim() === '') {
+      return true; // Empty URL is valid (will clear avatar)
+    }
+
+    return new Promise((resolve) => {
+      const img = new Image();
+      let timeoutId: NodeJS.Timeout;
+      let resolved = false;
+
+      const cleanup = () => {
+        if (timeoutId) clearTimeout(timeoutId);
+      };
+
+      img.onload = () => {
+        if (!resolved) {
+          resolved = true;
+          cleanup();
+          resolve(true);
+        }
+      };
+
+      img.onerror = () => {
+        if (!resolved) {
+          resolved = true;
+          cleanup();
+          resolve(false);
+        }
+      };
+
+      img.src = url;
+      
+      // Timeout after 5 seconds
+      timeoutId = setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          resolve(false);
+        }
+      }, 5000);
+    });
+  };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
     setSuccess('');
+    setAvatarValidation({ status: 'idle', message: '' });
     setLoading(true);
+
+    // Validate avatar URL if provided
+    if (formData.avatar && formData.avatar.trim() !== '') {
+      setAvatarValidation({ status: 'validating', message: 'Validating avatar URL...' });
+      
+      const isValid = await validateAvatarUrl(formData.avatar);
+      
+      if (!isValid) {
+        setAvatarValidation({
+          status: 'invalid',
+          message: 'Avatar URL did not render successfully. Please check the URL and try again.',
+        });
+        setError('Avatar URL validation failed. Please fix the avatar URL before saving.');
+        setLoading(false);
+        return;
+      }
+      
+      setAvatarValidation({
+        status: 'valid',
+        message: 'Avatar URL validated successfully!',
+      });
+      setValidatedAvatarUrl(formData.avatar);
+    } else {
+      // Clear avatar if URL is empty
+      setValidatedAvatarUrl(null);
+    }
 
     try {
       const response = await fetch('/api/user/update', {
@@ -95,9 +170,63 @@ export default function SettingsForm({ user }: SettingsFormProps) {
           id="avatar"
           type="url"
           value={formData.avatar}
-          onChange={(e) => setFormData({ ...formData, avatar: e.target.value })}
+          onChange={(e) => {
+            const newValue = e.target.value;
+            setFormData({ ...formData, avatar: newValue });
+            setAvatarValidation({ status: 'idle', message: '' });
+            // If user reverts to original avatar, show it again
+            if (newValue === user.avatar) {
+              setValidatedAvatarUrl(user.avatar);
+            } else if (newValue !== validatedAvatarUrl) {
+              // Clear preview if URL changed from validated one
+              setValidatedAvatarUrl(null);
+            }
+          }}
           style={{ width: '100%', padding: '8px', boxSizing: 'border-box', maxWidth: '400px' }}
         />
+        {avatarValidation.status === 'validating' && (
+          <p style={{ color: '#666', fontSize: '0.9rem', marginTop: '5px' }}>
+            {avatarValidation.message}
+          </p>
+        )}
+        {avatarValidation.status === 'valid' && (
+          <div style={{ marginTop: '15px' }}>
+            <p style={{ color: 'green', fontSize: '0.9rem', marginBottom: '10px' }}>
+              ✓ {avatarValidation.message}
+            </p>
+            {validatedAvatarUrl && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                <Avatar
+                  src={validatedAvatarUrl}
+                  alt={`${formData.displayName || user.username}'s avatar`}
+                  size={80}
+                />
+                <p style={{ color: '#666', fontSize: '0.9rem' }}>
+                  Preview of your avatar
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+        {avatarValidation.status === 'invalid' && (
+          <div style={{ color: 'red', fontSize: '0.9rem', marginTop: '5px', padding: '8px', backgroundColor: '#ffe6e6', borderRadius: '5px' }}>
+            {avatarValidation.message}
+          </div>
+        )}
+        {validatedAvatarUrl && avatarValidation.status === 'idle' && (
+          <div style={{ marginTop: '15px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+              <Avatar
+                src={validatedAvatarUrl}
+                alt={`${formData.displayName || user.username}'s avatar`}
+                size={80}
+              />
+              <p style={{ color: '#666', fontSize: '0.9rem' }}>
+                {formData.avatar === validatedAvatarUrl ? 'Current avatar preview' : 'Previous avatar preview'}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {error && (
