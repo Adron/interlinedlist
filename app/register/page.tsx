@@ -1,11 +1,9 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function RegisterPage() {
-  const router = useRouter();
   const [formData, setFormData] = useState({
     email: '',
     username: '',
@@ -38,7 +36,8 @@ export default function RegisterPage() {
       }
 
       // Redirect to dashboard on success
-      router.push('/dashboard');
+      // Use window.location for a full page reload to ensure cookies are read
+      window.location.href = '/dashboard';
     } catch (err) {
       setError('An error occurred. Please try again.');
       setLoading(false);
