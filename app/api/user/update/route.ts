@@ -16,7 +16,18 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { displayName, bio, avatar, theme } = body;
+    const { displayName, bio, avatar, theme, maxMessageLength } = body;
+
+    // Validate maxMessageLength if provided
+    if (maxMessageLength !== undefined) {
+      const maxLength = parseInt(maxMessageLength, 10);
+      if (isNaN(maxLength) || maxLength < 1 || maxLength > 10000) {
+        return NextResponse.json(
+          { error: 'maxMessageLength must be a positive integer between 1 and 10000' },
+          { status: 400 }
+        );
+      }
+    }
 
     // Update user
     const updatedUser = await prisma.user.update({
@@ -26,6 +37,7 @@ export async function PATCH(request: NextRequest) {
         ...(bio !== undefined && { bio }),
         ...(avatar !== undefined && { avatar }),
         ...(theme !== undefined && { theme }),
+        ...(maxMessageLength !== undefined && { maxMessageLength: parseInt(maxMessageLength, 10) }),
       },
       select: {
         id: true,
@@ -36,6 +48,7 @@ export async function PATCH(request: NextRequest) {
         bio: true,
         theme: true,
         emailVerified: true,
+        maxMessageLength: true,
         createdAt: true,
       },
     });

@@ -22,8 +22,26 @@ model User {
   emailVerified         Boolean   @default(false)
   passwordResetToken    String?
   passwordResetExpires  DateTime?
+  maxMessageLength      Int       @default(666)
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
+  messages              Message[]
+
   @@map("users")
+}
+
+model Message {
+  id            String   @id @default(uuid())
+  content       String
+  publiclyVisible Boolean @default(true)
+  userId        String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([publiclyVisible])
+  @@map("messages")
 }

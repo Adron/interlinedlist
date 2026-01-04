@@ -41,6 +41,7 @@ export async function getCurrentUser() {
         bio: true,
         theme: true,
         emailVerified: true,
+        maxMessageLength: true,
         createdAt: true,
       },
     });
