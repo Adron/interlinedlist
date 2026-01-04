@@ -47,10 +47,10 @@ export default function RegisterPage() {
 
   return (
     <div style={{ maxWidth: '500px', margin: '3rem auto', padding: '2rem' }}>
-      <h1 style={{ fontSize: '2rem', marginBottom: '1.5rem', color: '#333', textAlign: 'center' }}>Create Account</h1>
+      <h1 style={{ fontSize: '2rem', marginBottom: '1.5rem', color: 'var(--color-text)', textAlign: 'center' }}>Create Account</h1>
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="email" style={{ display: 'block', marginBottom: '5px' }}>
+          <label htmlFor="email" style={{ display: 'block', marginBottom: '5px', color: 'var(--color-text)' }}>
             Email
           </label>
           <input
@@ -64,7 +64,7 @@ export default function RegisterPage() {
         </div>
 
         <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="username" style={{ display: 'block', marginBottom: '5px' }}>
+          <label htmlFor="username" style={{ display: 'block', marginBottom: '5px', color: 'var(--color-text)' }}>
             Username
           </label>
           <input
@@ -78,7 +78,7 @@ export default function RegisterPage() {
         </div>
 
         <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="displayName" style={{ display: 'block', marginBottom: '5px' }}>
+          <label htmlFor="displayName" style={{ display: 'block', marginBottom: '5px', color: 'var(--color-text)' }}>
             Display Name (optional)
           </label>
           <input
@@ -91,7 +91,7 @@ export default function RegisterPage() {
         </div>
 
         <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="password" style={{ display: 'block', marginBottom: '5px' }}>
+          <label htmlFor="password" style={{ display: 'block', marginBottom: '5px', color: 'var(--color-text)' }}>
             Password
           </label>
           <input
@@ -106,7 +106,7 @@ export default function RegisterPage() {
         </div>
 
         {error && (
-          <div style={{ color: 'red', marginBottom: '15px' }}>{error}</div>
+          <div style={{ color: 'var(--color-error)', marginBottom: '15px', padding: '10px', backgroundColor: 'var(--color-error-bg)', borderRadius: '5px' }}>{error}</div>
         )}
 
         <button
@@ -115,8 +115,8 @@ export default function RegisterPage() {
           style={{
             width: '100%',
             padding: '10px',
-            backgroundColor: '#0070f3',
-            color: 'white',
+            backgroundColor: 'var(--color-button-primary)',
+            color: 'var(--color-button-text)',
             border: 'none',
             borderRadius: '5px',
             cursor: loading ? 'not-allowed' : 'pointer',
@@ -126,8 +126,8 @@ export default function RegisterPage() {
         </button>
       </form>
 
-      <p style={{ marginTop: '20px', textAlign: 'center' }}>
-        Already have an account? <Link href="/login">Login</Link>
+      <p style={{ marginTop: '20px', textAlign: 'center', color: 'var(--color-text)' }}>
+        Already have an account? <Link href="/login" style={{ color: 'var(--color-link)' }}>Login</Link>
       </p>
     </div>
   );

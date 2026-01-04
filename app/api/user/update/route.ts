@@ -16,7 +16,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { displayName, bio, avatar } = body;
+    const { displayName, bio, avatar, theme } = body;
 
     // Update user
     const updatedUser = await prisma.user.update({
@@ -25,6 +25,7 @@ export async function PATCH(request: NextRequest) {
         ...(displayName !== undefined && { displayName }),
         ...(bio !== undefined && { bio }),
         ...(avatar !== undefined && { avatar }),
+        ...(theme !== undefined && { theme }),
       },
       select: {
         id: true,
@@ -33,6 +34,7 @@ export async function PATCH(request: NextRequest) {
         displayName: true,
         avatar: true,
         bio: true,
+        theme: true,
         emailVerified: true,
         createdAt: true,
       },

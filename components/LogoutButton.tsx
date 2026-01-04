@@ -25,8 +25,8 @@ export default function LogoutButton() {
       onClick={handleLogout}
       style={{
         padding: '0.5rem 1rem',
-        backgroundColor: '#dc3545',
-        color: 'white',
+        backgroundColor: 'var(--color-error)',
+        color: 'var(--color-button-text)',
         border: 'none',
         borderRadius: '5px',
         cursor: 'pointer',
@@ -34,10 +34,10 @@ export default function LogoutButton() {
         transition: 'background-color 0.2s',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundColor = '#c82333';
+        e.currentTarget.style.opacity = '0.9';
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.backgroundColor = '#dc3545';
+        e.currentTarget.style.opacity = '1';
       }}
     >
       Logout

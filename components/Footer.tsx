@@ -4,8 +4,8 @@ export default function Footer() {
   return (
     <footer
       style={{
-        backgroundColor: '#f8f9fa',
-        borderTop: '1px solid #e5e5e5',
+        backgroundColor: 'var(--color-bg-secondary)',
+        borderTop: '1px solid var(--color-border)',
         padding: '2rem',
         marginTop: '4rem',
       }}
@@ -22,7 +22,7 @@ export default function Footer() {
         }}
       >
         <div>
-          <p style={{ color: '#666', margin: 0 }}>
+          <p style={{ color: 'var(--color-text-secondary)', margin: 0 }}>
             © {new Date().getFullYear()} InterlinedList. All rights reserved.
           </p>
         </div>
@@ -30,7 +30,7 @@ export default function Footer() {
           <Link
             href="/"
             style={{
-              color: '#666',
+              color: 'var(--color-text-secondary)',
               textDecoration: 'none',
             }}
           >
@@ -39,7 +39,7 @@ export default function Footer() {
           <Link
             href="/dashboard"
             style={{
-              color: '#666',
+              color: 'var(--color-text-secondary)',
               textDecoration: 'none',
             }}
           >
@@ -48,7 +48,7 @@ export default function Footer() {
           <Link
             href="/settings"
             style={{
-              color: '#666',
+              color: 'var(--color-text-secondary)',
               textDecoration: 'none',
             }}
           >

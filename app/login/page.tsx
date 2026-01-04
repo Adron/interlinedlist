@@ -45,10 +45,10 @@ export default function LoginPage() {
 
   return (
     <div style={{ maxWidth: '500px', margin: '3rem auto', padding: '2rem' }}>
-      <h1 style={{ fontSize: '2rem', marginBottom: '1.5rem', color: '#333', textAlign: 'center' }}>Login</h1>
+      <h1 style={{ fontSize: '2rem', marginBottom: '1.5rem', color: 'var(--color-text)', textAlign: 'center' }}>Login</h1>
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="email" style={{ display: 'block', marginBottom: '5px' }}>
+          <label htmlFor="email" style={{ display: 'block', marginBottom: '5px', color: 'var(--color-text)' }}>
             Email
           </label>
           <input
@@ -62,7 +62,7 @@ export default function LoginPage() {
         </div>
 
         <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="password" style={{ display: 'block', marginBottom: '5px' }}>
+          <label htmlFor="password" style={{ display: 'block', marginBottom: '5px', color: 'var(--color-text)' }}>
             Password
           </label>
           <input
@@ -76,7 +76,7 @@ export default function LoginPage() {
         </div>
 
         {error && (
-          <div style={{ color: 'red', marginBottom: '15px' }}>{error}</div>
+          <div style={{ color: 'var(--color-error)', marginBottom: '15px', padding: '10px', backgroundColor: 'var(--color-error-bg)', borderRadius: '5px' }}>{error}</div>
         )}
 
         <button
@@ -85,8 +85,8 @@ export default function LoginPage() {
           style={{
             width: '100%',
             padding: '10px',
-            backgroundColor: '#0070f3',
-            color: 'white',
+            backgroundColor: 'var(--color-button-primary)',
+            color: 'var(--color-button-text)',
             border: 'none',
             borderRadius: '5px',
             cursor: loading ? 'not-allowed' : 'pointer',
@@ -96,8 +96,8 @@ export default function LoginPage() {
         </button>
       </form>
 
-      <p style={{ marginTop: '20px', textAlign: 'center' }}>
-        Don't have an account? <Link href="/register">Create one</Link>
+      <p style={{ marginTop: '20px', textAlign: 'center', color: 'var(--color-text)' }}>
+        Don't have an account? <Link href="/register" style={{ color: 'var(--color-link)' }}>Create one</Link>
       </p>
     </div>
   );

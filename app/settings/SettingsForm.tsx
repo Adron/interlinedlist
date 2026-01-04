@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Avatar } from '@/components/Avatar';
 
@@ -11,6 +11,7 @@ interface User {
   displayName: string | null;
   avatar: string | null;
   bio: string | null;
+  theme: string | null;
 }
 
 interface SettingsFormProps {
@@ -23,6 +24,7 @@ export default function SettingsForm({ user }: SettingsFormProps) {
     displayName: user.displayName || '',
     bio: user.bio || '',
     avatar: user.avatar || '',
+    theme: user.theme || 'system',
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -32,6 +34,23 @@ export default function SettingsForm({ user }: SettingsFormProps) {
     message: string;
   }>({ status: 'idle', message: '' });
   const [validatedAvatarUrl, setValidatedAvatarUrl] = useState<string | null>(user.avatar);
+
+  // Apply theme immediately when changed
+  useEffect(() => {
+    const applyTheme = (themeValue: string) => {
+      const root = document.documentElement;
+      let effectiveTheme = themeValue;
+
+      if (themeValue === 'system' || !themeValue) {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        effectiveTheme = prefersDark ? 'dark' : 'light';
+      }
+
+      root.setAttribute('data-theme', effectiveTheme);
+    };
+
+    applyTheme(formData.theme);
+  }, [formData.theme]);
 
   const validateAvatarUrl = async (url: string): Promise<boolean> => {
     if (!url || url.trim() === '') {
@@ -137,7 +156,7 @@ export default function SettingsForm({ user }: SettingsFormProps) {
   return (
     <form onSubmit={handleSubmit}>
       <div style={{ marginBottom: '20px' }}>
-        <label htmlFor="displayName" style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+        <label htmlFor="displayName" style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: 'var(--color-text)' }}>
           Display Name
         </label>
         <input
@@ -150,7 +169,7 @@ export default function SettingsForm({ user }: SettingsFormProps) {
       </div>
 
       <div style={{ marginBottom: '20px' }}>
-        <label htmlFor="bio" style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+        <label htmlFor="bio" style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: 'var(--color-text)' }}>
           Bio
         </label>
         <textarea
@@ -163,7 +182,48 @@ export default function SettingsForm({ user }: SettingsFormProps) {
       </div>
 
       <div style={{ marginBottom: '20px' }}>
-        <label htmlFor="avatar" style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+        <label htmlFor="theme" style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: 'var(--color-text)' }}>
+          Theme
+        </label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '400px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+            <input
+              type="radio"
+              name="theme"
+              value="system"
+              checked={formData.theme === 'system'}
+              onChange={(e) => setFormData({ ...formData, theme: e.target.value })}
+              style={{ marginRight: '8px' }}
+            />
+            <span>System (follow OS preference)</span>
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+            <input
+              type="radio"
+              name="theme"
+              value="light"
+              checked={formData.theme === 'light'}
+              onChange={(e) => setFormData({ ...formData, theme: e.target.value })}
+              style={{ marginRight: '8px' }}
+            />
+            <span>Light</span>
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+            <input
+              type="radio"
+              name="theme"
+              value="dark"
+              checked={formData.theme === 'dark'}
+              onChange={(e) => setFormData({ ...formData, theme: e.target.value })}
+              style={{ marginRight: '8px' }}
+            />
+            <span>Dark</span>
+          </label>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: '20px' }}>
+        <label htmlFor="avatar" style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: 'var(--color-text)' }}>
           Avatar URL
         </label>
         <input
@@ -185,13 +245,13 @@ export default function SettingsForm({ user }: SettingsFormProps) {
           style={{ width: '100%', padding: '8px', boxSizing: 'border-box', maxWidth: '400px' }}
         />
         {avatarValidation.status === 'validating' && (
-          <p style={{ color: '#666', fontSize: '0.9rem', marginTop: '5px' }}>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', marginTop: '5px' }}>
             {avatarValidation.message}
           </p>
         )}
         {avatarValidation.status === 'valid' && (
           <div style={{ marginTop: '15px' }}>
-            <p style={{ color: 'green', fontSize: '0.9rem', marginBottom: '10px' }}>
+            <p style={{ color: 'var(--color-success)', fontSize: '0.9rem', marginBottom: '10px' }}>
               ✓ {avatarValidation.message}
             </p>
             {validatedAvatarUrl && (
@@ -201,7 +261,7 @@ export default function SettingsForm({ user }: SettingsFormProps) {
                   alt={`${formData.displayName || user.username}'s avatar`}
                   size={80}
                 />
-                <p style={{ color: '#666', fontSize: '0.9rem' }}>
+                <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
                   Preview of your avatar
                 </p>
               </div>
@@ -209,7 +269,7 @@ export default function SettingsForm({ user }: SettingsFormProps) {
           </div>
         )}
         {avatarValidation.status === 'invalid' && (
-          <div style={{ color: 'red', fontSize: '0.9rem', marginTop: '5px', padding: '8px', backgroundColor: '#ffe6e6', borderRadius: '5px' }}>
+          <div style={{ color: 'var(--color-error)', fontSize: '0.9rem', marginTop: '5px', padding: '8px', backgroundColor: 'var(--color-error-bg)', borderRadius: '5px' }}>
             {avatarValidation.message}
           </div>
         )}
@@ -221,7 +281,7 @@ export default function SettingsForm({ user }: SettingsFormProps) {
                 alt={`${formData.displayName || user.username}'s avatar`}
                 size={80}
               />
-              <p style={{ color: '#666', fontSize: '0.9rem' }}>
+              <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
                 {formData.avatar === validatedAvatarUrl ? 'Current avatar preview' : 'Previous avatar preview'}
               </p>
             </div>
@@ -230,13 +290,13 @@ export default function SettingsForm({ user }: SettingsFormProps) {
       </div>
 
       {error && (
-        <div style={{ color: 'red', marginBottom: '15px', padding: '10px', backgroundColor: '#ffe6e6', borderRadius: '5px' }}>
+        <div style={{ color: 'var(--color-error)', marginBottom: '15px', padding: '10px', backgroundColor: 'var(--color-error-bg)', borderRadius: '5px' }}>
           {error}
         </div>
       )}
 
       {success && (
-        <div style={{ color: 'green', marginBottom: '15px', padding: '10px', backgroundColor: '#e6ffe6', borderRadius: '5px' }}>
+        <div style={{ color: 'var(--color-success)', marginBottom: '15px', padding: '10px', backgroundColor: 'var(--color-success-bg)', borderRadius: '5px' }}>
           {success}
         </div>
       )}
@@ -246,8 +306,8 @@ export default function SettingsForm({ user }: SettingsFormProps) {
         disabled={loading}
         style={{
           padding: '10px 20px',
-          backgroundColor: '#0070f3',
-          color: 'white',
+          backgroundColor: 'var(--color-button-primary)',
+          color: 'var(--color-button-text)',
           border: 'none',
           borderRadius: '5px',
           cursor: loading ? 'not-allowed' : 'pointer',

@@ -39,6 +39,7 @@ export async function getCurrentUser() {
         displayName: true,
         avatar: true,
         bio: true,
+        theme: true,
         emailVerified: true,
         createdAt: true,
       },

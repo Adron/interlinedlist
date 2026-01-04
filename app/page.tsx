@@ -11,17 +11,17 @@ export default async function Home() {
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '3rem 2rem' }}>
           <div
             style={{
-              backgroundColor: '#f8f9fa',
+              backgroundColor: 'var(--color-bg-secondary)',
               padding: '3rem',
               borderRadius: '12px',
               marginBottom: '3rem',
               textAlign: 'center',
             }}
           >
-            <h1 style={{ fontSize: '2.5rem', marginBottom: '1rem', color: '#333' }}>
+            <h1 style={{ fontSize: '2.5rem', marginBottom: '1rem', color: 'var(--color-text)' }}>
               Welcome back, {user.displayName || user.username}!
             </h1>
-            <p style={{ fontSize: '1.2rem', color: '#666', marginBottom: '2rem' }}>
+            <p style={{ fontSize: '1.2rem', color: 'var(--color-text-secondary)', marginBottom: '2rem' }}>
               Continue your micro-blogging journey on InterlinedList
             </p>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
@@ -31,8 +31,8 @@ export default async function Home() {
                 style={{
                   display: 'inline-block',
                   padding: '1rem 2rem',
-                  backgroundColor: '#0070f3',
-                  color: 'white',
+                  backgroundColor: 'var(--color-button-primary)',
+                  color: 'var(--color-button-text)',
                   textDecoration: 'none',
                   borderRadius: '8px',
                   fontSize: '1.1rem',
@@ -47,8 +47,8 @@ export default async function Home() {
                 style={{
                   display: 'inline-block',
                   padding: '1rem 2rem',
-                  backgroundColor: '#6c757d',
-                  color: 'white',
+                  backgroundColor: 'var(--color-button-secondary)',
+                  color: 'var(--color-button-text)',
                   textDecoration: 'none',
                   borderRadius: '8px',
                   fontSize: '1.1rem',
@@ -61,21 +61,21 @@ export default async function Home() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
-            <div style={{ backgroundColor: '#fff', padding: '2rem', borderRadius: '8px', border: '1px solid #e5e5e5' }}>
-              <h2 style={{ marginTop: 0, color: '#333' }}>Your Profile</h2>
-              <p style={{ color: '#666' }}>Email: {user.email}</p>
-              <p style={{ color: '#666' }}>Username: {user.username}</p>
-              {user.bio && <p style={{ color: '#666' }}>Bio: {user.bio}</p>}
+            <div style={{ backgroundColor: 'var(--color-bg)', padding: '2rem', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
+              <h2 style={{ marginTop: 0, color: 'var(--color-text)' }}>Your Profile</h2>
+              <p style={{ color: 'var(--color-text-secondary)' }}>Email: {user.email}</p>
+              <p style={{ color: 'var(--color-text-secondary)' }}>Username: {user.username}</p>
+              {user.bio && <p style={{ color: 'var(--color-text-secondary)' }}>Bio: {user.bio}</p>}
             </div>
-            <div style={{ backgroundColor: '#fff', padding: '2rem', borderRadius: '8px', border: '1px solid #e5e5e5' }}>
-              <h2 style={{ marginTop: 0, color: '#333' }}>Quick Actions</h2>
-              <p style={{ color: '#666', marginBottom: '1rem' }}>
+            <div style={{ backgroundColor: 'var(--color-bg)', padding: '2rem', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
+              <h2 style={{ marginTop: 0, color: 'var(--color-text)' }}>Quick Actions</h2>
+              <p style={{ color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
                 Manage your account and explore the platform
               </p>
               <Link
                 href="/settings"
                 style={{
-                  color: '#0070f3',
+                  color: 'var(--color-link)',
                   textDecoration: 'none',
                   fontWeight: '500',
                 }}
@@ -142,7 +142,7 @@ export default async function Home() {
 
           {/* Features Section */}
           <section style={{ maxWidth: '1200px', margin: '4rem auto', padding: '0 2rem' }}>
-            <h2 style={{ textAlign: 'center', fontSize: '2.5rem', marginBottom: '3rem', color: '#333' }}>
+            <h2 style={{ textAlign: 'center', fontSize: '2.5rem', marginBottom: '3rem', color: 'var(--color-text)' }}>
               Why InterlinedList?
             </h2>
             <div
@@ -161,10 +161,10 @@ export default async function Home() {
                 >
                   📝
                 </div>
-                <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: '#333' }}>
+                <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--color-text)' }}>
                   Micro-blogging
                 </h3>
-                <p style={{ color: '#666', lineHeight: '1.6' }}>
+                <p style={{ color: 'var(--color-text-secondary)', lineHeight: '1.6' }}>
                   Share your thoughts and ideas in a clean, focused micro-blogging environment
                 </p>
               </div>
@@ -177,10 +177,10 @@ export default async function Home() {
                 >
                   📊
                 </div>
-                <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: '#333' }}>
+                <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--color-text)' }}>
                   Time-series Data
                 </h3>
-                <p style={{ color: '#666', lineHeight: '1.6' }}>
+                <p style={{ color: 'var(--color-text-secondary)', lineHeight: '1.6' }}>
                   Built for time-series data, perfect for tracking and visualizing trends over time
                 </p>
               </div>
@@ -193,10 +193,10 @@ export default async function Home() {
                 >
                   🔧
                 </div>
-                <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: '#333' }}>
+                <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--color-text)' }}>
                   Interactive Lists
                 </h3>
-                <p style={{ color: '#666', lineHeight: '1.6' }}>
+                <p style={{ color: 'var(--color-text-secondary)', lineHeight: '1.6' }}>
                   Create interactive lists with embedded DSL scripts for dynamic content
                 </p>
               </div>
@@ -206,15 +206,15 @@ export default async function Home() {
           {/* Call to Action Section */}
           <section
             style={{
-              backgroundColor: '#f8f9fa',
+              backgroundColor: 'var(--color-bg-secondary)',
               padding: '4rem 2rem',
               textAlign: 'center',
             }}
           >
-            <h2 style={{ fontSize: '2.5rem', marginBottom: '1rem', color: '#333' }}>
+            <h2 style={{ fontSize: '2.5rem', marginBottom: '1rem', color: 'var(--color-text)' }}>
               Ready to get started?
             </h2>
-            <p style={{ fontSize: '1.2rem', color: '#666', marginBottom: '2rem', maxWidth: '600px', margin: '0 auto 2rem' }}>
+            <p style={{ fontSize: '1.2rem', color: 'var(--color-text-secondary)', marginBottom: '2rem', maxWidth: '600px', margin: '0 auto 2rem' }}>
               Join InterlinedList today and start sharing your ideas with the community
             </p>
             <Link
@@ -223,8 +223,8 @@ export default async function Home() {
               style={{
                 display: 'inline-block',
                 padding: '1rem 2.5rem',
-                backgroundColor: '#0070f3',
-                color: 'white',
+                backgroundColor: 'var(--color-button-primary)',
+                color: 'var(--color-button-text)',
                 textDecoration: 'none',
                 borderRadius: '8px',
                 fontSize: '1.1rem',

@@ -11,7 +11,7 @@ export default async function SettingsPage() {
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '3rem 2rem' }}>
-      <h1 style={{ fontSize: '2.5rem', marginBottom: '2rem', color: '#333' }}>Settings</h1>
+      <h1 style={{ fontSize: '2.5rem', marginBottom: '2rem', color: 'var(--color-text)' }}>Settings</h1>
       <SettingsForm user={user} />
     </div>
   );

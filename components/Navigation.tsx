@@ -8,8 +8,8 @@ export default async function Navigation() {
   return (
     <nav
       style={{
-        backgroundColor: '#fff',
-        borderBottom: '1px solid #e5e5e5',
+        backgroundColor: 'var(--color-nav-bg)',
+        borderBottom: '1px solid var(--color-nav-border)',
         padding: '1rem 2rem',
         display: 'flex',
         justifyContent: 'space-between',
@@ -22,7 +22,7 @@ export default async function Navigation() {
           style={{
             fontSize: '1.5rem',
             fontWeight: 'bold',
-            color: '#0070f3',
+            color: 'var(--color-link)',
             textDecoration: 'none',
           }}
         >
@@ -36,7 +36,7 @@ export default async function Navigation() {
             <Link
               href="/dashboard"
               style={{
-                color: '#333',
+                color: 'var(--color-text)',
                 textDecoration: 'none',
                 padding: '0.5rem 1rem',
                 borderRadius: '5px',
@@ -48,7 +48,7 @@ export default async function Navigation() {
             <Link
               href="/settings"
               style={{
-                color: '#333',
+                color: 'var(--color-text)',
                 textDecoration: 'none',
                 padding: '0.5rem 1rem',
                 borderRadius: '5px',
@@ -59,7 +59,7 @@ export default async function Navigation() {
             </Link>
             <span
               style={{
-                color: '#666',
+                color: 'var(--color-text-secondary)',
                 fontSize: '0.9rem',
                 padding: '0.5rem 1rem',
               }}
@@ -73,7 +73,7 @@ export default async function Navigation() {
             <Link
               href="/login"
               style={{
-                color: '#333',
+                color: 'var(--color-text)',
                 textDecoration: 'none',
                 padding: '0.5rem 1rem',
                 borderRadius: '5px',
@@ -85,8 +85,8 @@ export default async function Navigation() {
             <Link
               href="/register"
               style={{
-                backgroundColor: '#0070f3',
-                color: 'white',
+                backgroundColor: 'var(--color-button-primary)',
+                color: 'var(--color-button-text)',
                 textDecoration: 'none',
                 padding: '0.5rem 1.5rem',
                 borderRadius: '5px',

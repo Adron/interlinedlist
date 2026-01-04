@@ -10,22 +10,76 @@ body {
   overflow-x: hidden;
 }
 
+/* Light theme (default) */
+:root {
+  --color-bg: #ffffff;
+  --color-bg-secondary: #f8f9fa;
+  --color-bg-tertiary: #f5f5f5;
+  --color-text: #333333;
+  --color-text-secondary: #666666;
+  --color-text-tertiary: #999999;
+  --color-border: #e5e5e5;
+  --color-link: #0070f3;
+  --color-link-hover: #0051cc;
+  --color-button-primary: #0070f3;
+  --color-button-primary-hover: #0051cc;
+  --color-button-secondary: #6c757d;
+  --color-button-secondary-hover: #5a6268;
+  --color-button-text: #ffffff;
+  --color-nav-bg: #ffffff;
+  --color-nav-border: #e5e5e5;
+  --color-success: #28a745;
+  --color-success-bg: #e6ffe6;
+  --color-error: #dc3545;
+  --color-error-bg: #ffe6e6;
+  --color-hero-gradient-start: #667eea;
+  --color-hero-gradient-end: #764ba2;
+}
+
+/* Dark theme */
+[data-theme="dark"] {
+  --color-bg: #1a1a1a;
+  --color-bg-secondary: #2d2d2d;
+  --color-bg-tertiary: #333333;
+  --color-text: #ffffff;
+  --color-text-secondary: #b3b3b3;
+  --color-text-tertiary: #808080;
+  --color-border: #404040;
+  --color-link: #4a9eff;
+  --color-link-hover: #6bb3ff;
+  --color-button-primary: #4a9eff;
+  --color-button-primary-hover: #6bb3ff;
+  --color-button-secondary: #6c757d;
+  --color-button-secondary-hover: #7d8489;
+  --color-button-text: #ffffff;
+  --color-nav-bg: #1a1a1a;
+  --color-nav-border: #404040;
+  --color-success: #4ade80;
+  --color-success-bg: #1a3a2a;
+  --color-error: #f87171;
+  --color-error-bg: #3a1a1a;
+  --color-hero-gradient-start: #667eea;
+  --color-hero-gradient-end: #764ba2;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  color: #333;
+  color: var(--color-text);
+  background-color: var(--color-bg);
   line-height: 1.6;
 }
 
 a {
-  color: #0070f3;
+  color: var(--color-link);
   text-decoration: none;
 }
 
 a:hover {
+  color: var(--color-link-hover);
   text-decoration: underline;
 }
 
@@ -50,7 +104,7 @@ textarea:focus {
 }
 
 .nav-link:hover {
-  background-color: #f5f5f5;
+  background-color: var(--color-bg-tertiary);
 }
 
 .nav-link-primary {
