@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,35 +8,33 @@ datasource db {
 }
 
 model User {
-  id                    String    @id @default(uuid())
-  email                 String    @unique
-  username              String    @unique
-  passwordHash          String
-  displayName           String?
-  avatar                String?
-  bio                   String?
-  theme                 String    @default("system")
-  emailVerified         Boolean   @default(false)
-  passwordResetToken    String?
-  passwordResetExpires  DateTime?
-  maxMessageLength      Int       @default(666)
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-
-  messages              Message[]
+  id                   String    @id @default(uuid())
+  email                String    @unique
+  username             String    @unique
+  passwordHash         String
+  displayName          String?
+  avatar               String?
+  bio                  String?
+  emailVerified        Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  theme                String    @default("system")
+  passwordResetExpires DateTime?
+  passwordResetToken   String?
+  maxMessageLength     Int       @default(666)
+  messages             Message[]
 
   @@map("users")
 }
 
 model Message {
-  id            String   @id @default(uuid())
-  content       String
-  publiclyVisible Boolean @default(true)
-  userId        String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String   @id @default(uuid())
+  content         String
+  publiclyVisible Boolean  @default(true)
+  userId          String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([createdAt])
   @@index([publiclyVisible])
