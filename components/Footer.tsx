@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Logo from './Logo';
 
 export default function Footer() {
   return (
@@ -21,7 +22,8 @@ export default function Footer() {
           gap: '1rem',
         }}
       >
-        <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <Logo size="small" iconOnly={true} />
           <p style={{ color: 'var(--color-text-secondary)', margin: 0 }}>
             © {new Date().getFullYear()} InterlinedList. All rights reserved.
           </p>

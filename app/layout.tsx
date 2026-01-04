@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
@@ -8,6 +8,23 @@ import { getCurrentUser } from '@/lib/auth/session';
 export const metadata: Metadata = {
   title: 'InterlinedList',
   description: 'Time-series based micro-blogging platform',
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/logo-icon-light.svg', type: 'image/svg+xml' },
+    ],
+    apple: [
+      { url: '/logo-icon-light.svg', type: 'image/svg+xml' },
+    ],
+  },
+  manifest: '/manifest.json',
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#1a1a1a' },
+  ],
 };
 
 export default async function RootLayout({

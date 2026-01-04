@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { getCurrentUser } from '@/lib/auth/session';
 import LogoutButton from './LogoutButton';
+import Logo from './Logo';
 
 export default async function Navigation() {
   const user = await getCurrentUser();
@@ -20,13 +21,12 @@ export default async function Navigation() {
         <Link
           href="/"
           style={{
-            fontSize: '1.5rem',
-            fontWeight: 'bold',
-            color: 'var(--color-link)',
             textDecoration: 'none',
+            display: 'flex',
+            alignItems: 'center',
           }}
         >
-          InterlinedList
+          <Logo size="medium" showText={true} />
         </Link>
       </div>
 
