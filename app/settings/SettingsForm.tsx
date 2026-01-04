@@ -2,6 +2,7 @@
 
 import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Avatar } from '@/components/Avatar';
 
 interface User {
@@ -154,7 +155,8 @@ export default function SettingsForm({ user }: SettingsFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <>
+      <form onSubmit={handleSubmit}>
       <div style={{ marginBottom: '20px' }}>
         <label htmlFor="displayName" style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: 'var(--color-text)' }}>
           Display Name
@@ -315,7 +317,40 @@ export default function SettingsForm({ user }: SettingsFormProps) {
       >
         {loading ? 'Saving...' : 'Save Changes'}
       </button>
-    </form>
+      </form>
+
+      <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid var(--color-border)' }}>
+        <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--color-text)' }}>Security</h2>
+        <div style={{ 
+          backgroundColor: 'var(--color-bg-secondary)', 
+          padding: '1.5rem', 
+          borderRadius: '8px',
+          maxWidth: '400px'
+        }}>
+          <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem', color: 'var(--color-text)' }}>
+            Change Password
+          </h3>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', marginBottom: '1rem', lineHeight: '1.6' }}>
+            If you want to change your password, we'll send you a secure link to reset it via email.
+          </p>
+          <Link
+            href="/forgot-password"
+            style={{
+              display: 'inline-block',
+              padding: '10px 20px',
+              backgroundColor: 'var(--color-button-secondary)',
+              color: 'var(--color-button-text)',
+              textDecoration: 'none',
+              borderRadius: '5px',
+              fontSize: '0.9rem',
+              fontWeight: '500',
+            }}
+          >
+            Reset Password
+          </Link>
+        </div>
+      </div>
+    </>
   );
 }
 

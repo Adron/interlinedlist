@@ -1,19 +1,31 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 export default function LoginPage() {
+  const searchParams = useSearchParams();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('reset') === 'success') {
+      setSuccess(true);
+      // Clear the URL parameter
+      window.history.replaceState({}, '', '/login');
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
+    setSuccess(false);
     setLoading(true);
 
     try {
@@ -61,9 +73,14 @@ export default function LoginPage() {
         </div>
 
         <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="password" style={{ display: 'block', marginBottom: '5px', color: 'var(--color-text)' }}>
-            Password
-          </label>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+            <label htmlFor="password" style={{ color: 'var(--color-text)' }}>
+              Password
+            </label>
+            <Link href="/forgot-password" style={{ color: 'var(--color-link)', fontSize: '0.9rem', textDecoration: 'none' }}>
+              Forgot Password?
+            </Link>
+          </div>
           <input
             id="password"
             type="password"
@@ -73,6 +90,12 @@ export default function LoginPage() {
             style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
           />
         </div>
+
+        {success && (
+          <div style={{ color: 'var(--color-success)', marginBottom: '15px', padding: '10px', backgroundColor: 'var(--color-success-bg)', borderRadius: '5px' }}>
+            Password reset successful! Please login with your new password.
+          </div>
+        )}
 
         {error && (
           <div style={{ color: 'var(--color-error)', marginBottom: '15px', padding: '10px', backgroundColor: 'var(--color-error-bg)', borderRadius: '5px' }}>{error}</div>
