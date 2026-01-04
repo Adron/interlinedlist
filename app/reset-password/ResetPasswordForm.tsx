@@ -66,60 +66,44 @@ export default function ResetPasswordForm() {
 
   return (
     <form onSubmit={handleSubmit}>
-      <div style={{ marginBottom: '15px' }}>
-        <label htmlFor="password" style={{ display: 'block', marginBottom: '5px', color: 'var(--color-text)' }}>
+      <div className="mb-3">
+        <label htmlFor="password" className="form-label">
           New Password
         </label>
         <input
           id="password"
           type="password"
+          className="form-control"
           value={formData.password}
           onChange={(e) => setFormData({ ...formData, password: e.target.value })}
           required
           minLength={8}
-          style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
         />
       </div>
 
-      <div style={{ marginBottom: '15px' }}>
-        <label htmlFor="confirmPassword" style={{ display: 'block', marginBottom: '5px', color: 'var(--color-text)' }}>
+      <div className="mb-3">
+        <label htmlFor="confirmPassword" className="form-label">
           Confirm Password
         </label>
         <input
           id="confirmPassword"
           type="password"
+          className="form-control"
           value={formData.confirmPassword}
           onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
           required
           minLength={8}
-          style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
         />
       </div>
 
       {error && (
-        <div style={{ 
-          color: 'var(--color-error)', 
-          marginBottom: '15px', 
-          padding: '10px', 
-          backgroundColor: 'var(--color-error-bg)', 
-          borderRadius: '5px' 
-        }}>
-          {error}
-        </div>
+        <div className="alert alert-danger" role="alert">{error}</div>
       )}
 
       <button
         type="submit"
+        className="btn btn-primary w-100"
         disabled={loading}
-        style={{
-          width: '100%',
-          padding: '10px',
-          backgroundColor: 'var(--color-button-primary)',
-          color: 'var(--color-button-text)',
-          border: 'none',
-          borderRadius: '5px',
-          cursor: loading ? 'not-allowed' : 'pointer',
-        }}
       >
         {loading ? 'Resetting Password...' : 'Reset Password'}
       </button>

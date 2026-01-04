@@ -13,22 +13,22 @@ export default async function ResetPasswordPage({ searchParams }: PageProps) {
 
   if (!token) {
     return (
-      <div style={{ maxWidth: '500px', margin: '3rem auto', padding: '2rem' }}>
-        <h1 style={{ fontSize: '2rem', marginBottom: '1.5rem', color: 'var(--color-text)', textAlign: 'center' }}>
-          Invalid Reset Link
-        </h1>
-        <div style={{ 
-          color: 'var(--color-error)', 
-          padding: '15px', 
-          backgroundColor: 'var(--color-error-bg)', 
-          borderRadius: '5px',
-          marginBottom: '20px'
-        }}>
-          The password reset link is invalid or missing. Please request a new password reset.
+      <div className="container">
+        <div className="row justify-content-center">
+          <div className="col-md-6 col-lg-5">
+            <div className="card">
+              <div className="card-body p-4">
+                <h1 className="card-title text-center mb-4">Invalid Reset Link</h1>
+                <div className="alert alert-danger" role="alert">
+                  The password reset link is invalid or missing. Please request a new password reset.
+                </div>
+                <p className="text-center mb-0">
+                  <Link href="/forgot-password" className="text-decoration-none">Request New Reset Link</Link>
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
-        <p style={{ textAlign: 'center', color: 'var(--color-text)' }}>
-          <Link href="/forgot-password" style={{ color: 'var(--color-link)' }}>Request New Reset Link</Link>
-        </p>
       </div>
     );
   }
@@ -42,22 +42,22 @@ export default async function ResetPasswordPage({ searchParams }: PageProps) {
 
   if (!user) {
     return (
-      <div style={{ maxWidth: '500px', margin: '3rem auto', padding: '2rem' }}>
-        <h1 style={{ fontSize: '2rem', marginBottom: '1.5rem', color: 'var(--color-text)', textAlign: 'center' }}>
-          Invalid Reset Link
-        </h1>
-        <div style={{ 
-          color: 'var(--color-error)', 
-          padding: '15px', 
-          backgroundColor: 'var(--color-error-bg)', 
-          borderRadius: '5px',
-          marginBottom: '20px'
-        }}>
-          The password reset link is invalid or has already been used.
+      <div className="container">
+        <div className="row justify-content-center">
+          <div className="col-md-6 col-lg-5">
+            <div className="card">
+              <div className="card-body p-4">
+                <h1 className="card-title text-center mb-4">Invalid Reset Link</h1>
+                <div className="alert alert-danger" role="alert">
+                  The password reset link is invalid or has already been used.
+                </div>
+                <p className="text-center mb-0">
+                  <Link href="/forgot-password" className="text-decoration-none">Request New Reset Link</Link>
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
-        <p style={{ textAlign: 'center', color: 'var(--color-text)' }}>
-          <Link href="/forgot-password" style={{ color: 'var(--color-link)' }}>Request New Reset Link</Link>
-        </p>
       </div>
     );
   }
@@ -74,36 +74,42 @@ export default async function ResetPasswordPage({ searchParams }: PageProps) {
     });
 
     return (
-      <div style={{ maxWidth: '500px', margin: '3rem auto', padding: '2rem' }}>
-        <h1 style={{ fontSize: '2rem', marginBottom: '1.5rem', color: 'var(--color-text)', textAlign: 'center' }}>
-          Reset Link Expired
-        </h1>
-        <div style={{ 
-          color: 'var(--color-error)', 
-          padding: '15px', 
-          backgroundColor: 'var(--color-error-bg)', 
-          borderRadius: '5px',
-          marginBottom: '20px'
-        }}>
-          This password reset link has expired. Please request a new password reset link.
+      <div className="container">
+        <div className="row justify-content-center">
+          <div className="col-md-6 col-lg-5">
+            <div className="card">
+              <div className="card-body p-4">
+                <h1 className="card-title text-center mb-4">Reset Link Expired</h1>
+                <div className="alert alert-danger" role="alert">
+                  This password reset link has expired. Please request a new password reset link.
+                </div>
+                <p className="text-center mb-0">
+                  <Link href="/forgot-password" className="text-decoration-none">Request New Reset Link</Link>
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
-        <p style={{ textAlign: 'center', color: 'var(--color-text)' }}>
-          <Link href="/forgot-password" style={{ color: 'var(--color-link)' }}>Request New Reset Link</Link>
-        </p>
       </div>
     );
   }
 
   // Token is valid, show reset form
   return (
-    <div style={{ maxWidth: '500px', margin: '3rem auto', padding: '2rem' }}>
-      <h1 style={{ fontSize: '2rem', marginBottom: '1.5rem', color: 'var(--color-text)', textAlign: 'center' }}>
-        Reset Your Password
-      </h1>
-      <p style={{ marginBottom: '20px', color: 'var(--color-text-secondary)', textAlign: 'center' }}>
-        Enter your new password below.
-      </p>
-      <ResetPasswordForm />
+    <div className="container">
+      <div className="row justify-content-center">
+        <div className="col-md-6 col-lg-5">
+          <div className="card">
+            <div className="card-body p-4">
+              <h1 className="card-title text-center mb-4">Reset Your Password</h1>
+              <p className="text-muted text-center mb-4">
+                Enter your new password below.
+              </p>
+              <ResetPasswordForm />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

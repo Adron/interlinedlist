@@ -156,7 +156,7 @@ export default function SettingsForm({ user }: SettingsFormProps) {
 
   return (
     <>
-      <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit}>
       <div style={{ marginBottom: '20px' }}>
         <label htmlFor="displayName" style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: 'var(--color-text)' }}>
           Display Name
@@ -317,7 +317,7 @@ export default function SettingsForm({ user }: SettingsFormProps) {
       >
         {loading ? 'Saving...' : 'Save Changes'}
       </button>
-      </form>
+    </form>
 
       <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid var(--color-border)' }}>
         <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--color-text)' }}>Security</h2>

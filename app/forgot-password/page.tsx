@@ -41,82 +41,65 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div style={{ maxWidth: '500px', margin: '3rem auto', padding: '2rem' }}>
-      <h1 style={{ fontSize: '2rem', marginBottom: '1.5rem', color: 'var(--color-text)', textAlign: 'center' }}>
-        Forgot Password
-      </h1>
+    <div className="container">
+      <div className="row justify-content-center">
+        <div className="col-md-6 col-lg-5">
+          <div className="card">
+            <div className="card-body p-4">
+              <h1 className="card-title text-center mb-4">Forgot Password</h1>
 
-      {success ? (
-        <div style={{ marginBottom: '20px' }}>
-          <div style={{ 
-            color: 'var(--color-success)', 
-            padding: '15px', 
-            backgroundColor: 'var(--color-success-bg)', 
-            borderRadius: '5px',
-            marginBottom: '20px'
-          }}>
-            If an account with that email exists, a password reset link has been sent. Please check your email.
-          </div>
-          <p style={{ textAlign: 'center', color: 'var(--color-text)' }}>
-            <Link href="/login" style={{ color: 'var(--color-link)' }}>Back to Login</Link>
-          </p>
-        </div>
-      ) : (
-        <>
-          <p style={{ marginBottom: '20px', color: 'var(--color-text-secondary)', textAlign: 'center' }}>
-            Enter your email address and we'll send you a link to reset your password.
-          </p>
+              {success ? (
+                <div>
+                  <div className="alert alert-success" role="alert">
+                    If an account with that email exists, a password reset link has been sent. Please check your email.
+                  </div>
+                  <p className="text-center mb-0">
+                    <Link href="/login" className="text-decoration-none">Back to Login</Link>
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <p className="text-muted text-center mb-4">
+                    Enter your email address and we'll send you a link to reset your password.
+                  </p>
 
-          <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom: '15px' }}>
-              <label htmlFor="email" style={{ display: 'block', marginBottom: '5px', color: 'var(--color-text)' }}>
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-              />
+                  <form onSubmit={handleSubmit}>
+                    <div className="mb-3">
+                      <label htmlFor="email" className="form-label">
+                        Email
+                      </label>
+                      <input
+                        id="email"
+                        type="email"
+                        className="form-control"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    {error && (
+                      <div className="alert alert-danger" role="alert">{error}</div>
+                    )}
+
+                    <button
+                      type="submit"
+                      className="btn btn-primary w-100 mb-3"
+                      disabled={loading}
+                    >
+                      {loading ? 'Sending...' : 'Send Reset Link'}
+                    </button>
+                  </form>
+
+                  <p className="text-center mb-0">
+                    Remember your password? <Link href="/login" className="text-decoration-none">Login</Link>
+                  </p>
+                </>
+              )}
             </div>
-
-            {error && (
-              <div style={{ 
-                color: 'var(--color-error)', 
-                marginBottom: '15px', 
-                padding: '10px', 
-                backgroundColor: 'var(--color-error-bg)', 
-                borderRadius: '5px' 
-              }}>
-                {error}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                width: '100%',
-                padding: '10px',
-                backgroundColor: 'var(--color-button-primary)',
-                color: 'var(--color-button-text)',
-                border: 'none',
-                borderRadius: '5px',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                marginBottom: '15px',
-              }}
-            >
-              {loading ? 'Sending...' : 'Send Reset Link'}
-            </button>
-          </form>
-
-          <p style={{ marginTop: '20px', textAlign: 'center', color: 'var(--color-text)' }}>
-            Remember your password? <Link href="/login" style={{ color: 'var(--color-link)' }}>Login</Link>
-          </p>
-        </>
-      )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

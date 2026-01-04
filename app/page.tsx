@@ -24,37 +24,11 @@ export default async function Home() {
             <p style={{ fontSize: '1.2rem', color: 'var(--color-text-secondary)', marginBottom: '2rem' }}>
               Continue your micro-blogging journey on InterlinedList
             </p>
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-              <Link
-                href="/dashboard"
-                className="btn btn-primary"
-                style={{
-                  display: 'inline-block',
-                  padding: '1rem 2rem',
-                  backgroundColor: 'var(--color-button-primary)',
-                  color: 'var(--color-button-text)',
-                  textDecoration: 'none',
-                  borderRadius: '8px',
-                  fontSize: '1.1rem',
-                  fontWeight: '600',
-                }}
-              >
+            <div className="d-flex gap-2 justify-content-center flex-wrap">
+              <Link href="/dashboard" className="btn btn-primary">
                 Go to Dashboard
               </Link>
-              <Link
-                href="/settings"
-                className="btn btn-secondary"
-                style={{
-                  display: 'inline-block',
-                  padding: '1rem 2rem',
-                  backgroundColor: 'var(--color-button-secondary)',
-                  color: 'var(--color-button-text)',
-                  textDecoration: 'none',
-                  borderRadius: '8px',
-                  fontSize: '1.1rem',
-                  fontWeight: '600',
-                }}
-              >
+              <Link href="/settings" className="btn btn-secondary">
                 Settings
               </Link>
             </div>
@@ -103,38 +77,11 @@ export default async function Home() {
             <p style={{ fontSize: '1.5rem', marginBottom: '2rem', maxWidth: '600px', margin: '0 auto 2rem' }}>
               A time-series based micro-blogging platform with embedded DSL scripts for creating interactive lists
             </p>
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Link
-                href="/register"
-                className="btn btn-hero-primary"
-                style={{
-                  display: 'inline-block',
-                  padding: '1rem 2.5rem',
-                  backgroundColor: 'white',
-                  color: '#667eea',
-                  textDecoration: 'none',
-                  borderRadius: '8px',
-                  fontSize: '1.1rem',
-                  fontWeight: '600',
-                }}
-              >
+            <div className="d-flex gap-2 justify-content-center flex-wrap">
+              <Link href="/register" className="btn btn-light">
                 Get Started
               </Link>
-              <Link
-                href="/login"
-                className="btn btn-hero-secondary"
-                style={{
-                  display: 'inline-block',
-                  padding: '1rem 2.5rem',
-                  backgroundColor: 'transparent',
-                  color: 'white',
-                  textDecoration: 'none',
-                  borderRadius: '8px',
-                  fontSize: '1.1rem',
-                  fontWeight: '600',
-                  border: '2px solid white',
-                }}
-              >
+              <Link href="/login" className="btn btn-outline-light">
                 Login
               </Link>
             </div>
@@ -217,20 +164,7 @@ export default async function Home() {
             <p style={{ fontSize: '1.2rem', color: 'var(--color-text-secondary)', marginBottom: '2rem', maxWidth: '600px', margin: '0 auto 2rem' }}>
               Join InterlinedList today and start sharing your ideas with the community
             </p>
-            <Link
-              href="/register"
-              className="btn btn-primary"
-              style={{
-                display: 'inline-block',
-                padding: '1rem 2.5rem',
-                backgroundColor: 'var(--color-button-primary)',
-                color: 'var(--color-button-text)',
-                textDecoration: 'none',
-                borderRadius: '8px',
-                fontSize: '1.1rem',
-                fontWeight: '600',
-              }}
-            >
+            <Link href="/register" className="btn btn-primary">
               Create Your Account
             </Link>
           </section>

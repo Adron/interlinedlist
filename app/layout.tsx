@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import '../styles/darkone.scss';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import ThemeProvider from '@/components/ThemeProvider';
+import ThemeBridgeInit from '@/components/ThemeBridgeInit';
 import { getCurrentUser } from '@/lib/auth/session';
 
 export const metadata: Metadata = {
@@ -36,11 +38,17 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Play:wght@400;700&display=swap" rel="stylesheet" />
+      </head>
       <body style={{ margin: 0, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <ThemeBridgeInit />
         <ThemeProvider theme={user?.theme || 'system'}>
-          <Navigation />
-          <main style={{ flex: 1 }}>{children}</main>
-          <Footer />
+        <Navigation />
+        <main style={{ flex: 1 }}>{children}</main>
+        <Footer />
         </ThemeProvider>
       </body>
     </html>

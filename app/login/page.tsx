@@ -55,72 +55,72 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ maxWidth: '500px', margin: '3rem auto', padding: '2rem' }}>
-      <h1 style={{ fontSize: '2rem', marginBottom: '1.5rem', color: 'var(--color-text)', textAlign: 'center' }}>Login</h1>
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="email" style={{ display: 'block', marginBottom: '5px', color: 'var(--color-text)' }}>
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            required
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-          />
-        </div>
+    <div className="container">
+      <div className="row justify-content-center">
+        <div className="col-md-6 col-lg-5">
+          <div className="card">
+            <div className="card-body p-4">
+              <h1 className="card-title text-center mb-4">Login</h1>
+              <form onSubmit={handleSubmit}>
+                <div className="mb-3">
+                  <label htmlFor="email" className="form-label">
+                    Email
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    className="form-control"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    required
+                  />
+                </div>
 
-        <div style={{ marginBottom: '15px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-            <label htmlFor="password" style={{ color: 'var(--color-text)' }}>
-              Password
-            </label>
-            <Link href="/forgot-password" style={{ color: 'var(--color-link)', fontSize: '0.9rem', textDecoration: 'none' }}>
-              Forgot Password?
-            </Link>
+                <div className="mb-3">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <label htmlFor="password" className="form-label mb-0">
+                      Password
+                    </label>
+                    <Link href="/forgot-password" className="text-decoration-none small">
+                      Forgot Password?
+                    </Link>
+                  </div>
+                  <input
+                    id="password"
+                    type="password"
+                    className="form-control"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    required
+                  />
+                </div>
+
+                {success && (
+                  <div className="alert alert-success" role="alert">
+                    Password reset successful! Please login with your new password.
+                  </div>
+                )}
+
+                {error && (
+                  <div className="alert alert-danger" role="alert">{error}</div>
+                )}
+
+                <button
+                  type="submit"
+                  className="btn btn-primary w-100"
+                  disabled={loading}
+                >
+                  {loading ? 'Logging in...' : 'Login'}
+                </button>
+              </form>
+
+              <p className="text-center mt-3 mb-0">
+                Don't have an account? <Link href="/register" className="text-decoration-none">Create one</Link>
+              </p>
+            </div>
           </div>
-          <input
-            id="password"
-            type="password"
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            required
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-          />
         </div>
-
-        {success && (
-          <div style={{ color: 'var(--color-success)', marginBottom: '15px', padding: '10px', backgroundColor: 'var(--color-success-bg)', borderRadius: '5px' }}>
-            Password reset successful! Please login with your new password.
-          </div>
-        )}
-
-        {error && (
-          <div style={{ color: 'var(--color-error)', marginBottom: '15px', padding: '10px', backgroundColor: 'var(--color-error-bg)', borderRadius: '5px' }}>{error}</div>
-        )}
-
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            width: '100%',
-            padding: '10px',
-            backgroundColor: 'var(--color-button-primary)',
-            color: 'var(--color-button-text)',
-            border: 'none',
-            borderRadius: '5px',
-            cursor: loading ? 'not-allowed' : 'pointer',
-          }}
-        >
-          {loading ? 'Logging in...' : 'Login'}
-        </button>
-      </form>
-
-      <p style={{ marginTop: '20px', textAlign: 'center', color: 'var(--color-text)' }}>
-        Don't have an account? <Link href="/register" style={{ color: 'var(--color-link)' }}>Create one</Link>
-      </p>
+      </div>
     </div>
   );
 }

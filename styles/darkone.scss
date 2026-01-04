@@ -1,0 +1,64 @@
+// Darkone Theme Integration
+// Import Bootstrap functions and variables first
+@import "~bootstrap/scss/functions";
+@import "~bootstrap/scss/variables";
+
+// Import Darkone SCSS configuration (overrides Bootstrap variables)
+@import "./darkone/scss/config/variables";
+@import "./darkone/scss/config/variables-dark";
+@import "./darkone/scss/config/theme-mode";
+
+// Import Bootstrap (full import after variable overrides)
+@import "~bootstrap/scss/bootstrap";
+
+// Import Darkone Structure
+@import "./darkone/scss/structure/general";
+@import "./darkone/scss/structure/topbar";
+@import "./darkone/scss/structure/sidebar";
+@import "./darkone/scss/structure/footer";
+@import "./darkone/scss/structure/page-title";
+
+// Import Darkone Components
+@import "./darkone/scss/components/accordion";
+@import "./darkone/scss/components/alerts";
+@import "./darkone/scss/components/avatar";
+@import "./darkone/scss/components/backgrounds";
+@import "./darkone/scss/components/badge";
+@import "./darkone/scss/components/breadcrumb";
+@import "./darkone/scss/components/buttons";
+@import "./darkone/scss/components/card";
+@import "./darkone/scss/components/dropdown";
+@import "./darkone/scss/components/forms";
+@import "./darkone/scss/components/helper";
+@import "./darkone/scss/components/list-group";
+@import "./darkone/scss/components/modal";
+@import "./darkone/scss/components/nav";
+@import "./darkone/scss/components/pagination";
+@import "./darkone/scss/components/popover";
+@import "./darkone/scss/components/print";
+@import "./darkone/scss/components/progress";
+@import "./darkone/scss/components/reboot";
+@import "./darkone/scss/components/switch";
+@import "./darkone/scss/components/tables";
+@import "./darkone/scss/components/type";
+@import "./darkone/scss/components/tooltip";
+@import "./darkone/scss/components/widgets";
+
+// Import Darkone Icons (commented out - too large, use CDN or load separately if needed)
+// @import "./darkone/scss/icons/boxicons";
+// @import "./darkone/scss/icons";
+
+// Import Darkone Plugins (only include what's actually used)
+// @import "./darkone/scss/plugins/simplebar";
+// @import "./darkone/scss/plugins/dropzone";
+// @import "./darkone/scss/plugins/editors";
+// @import "./darkone/scss/plugins/gridjs";
+// @import "./darkone/scss/plugins/apexcharts";
+// @import "./darkone/scss/plugins/google-map";
+// @import "./darkone/scss/plugins/vector-map";
+// @import "./darkone/scss/plugins/flatpicker";
+
+// Import Darkone Pages (only include what's actually used)
+// @import "./darkone/scss/pages/icon-demo";
+@import "./darkone/scss/pages/authentication";
+

@@ -45,89 +45,89 @@ export default function RegisterPage() {
   };
 
   return (
-    <div style={{ maxWidth: '500px', margin: '3rem auto', padding: '2rem' }}>
-      <h1 style={{ fontSize: '2rem', marginBottom: '1.5rem', color: 'var(--color-text)', textAlign: 'center' }}>Create Account</h1>
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="email" style={{ display: 'block', marginBottom: '5px', color: 'var(--color-text)' }}>
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            required
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-          />
+    <div className="container">
+      <div className="row justify-content-center">
+        <div className="col-md-6 col-lg-5">
+          <div className="card">
+            <div className="card-body p-4">
+              <h1 className="card-title text-center mb-4">Create Account</h1>
+              <form onSubmit={handleSubmit}>
+                <div className="mb-3">
+                  <label htmlFor="email" className="form-label">
+                    Email
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    className="form-control"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label htmlFor="username" className="form-label">
+                    Username
+                  </label>
+                  <input
+                    id="username"
+                    type="text"
+                    className="form-control"
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label htmlFor="displayName" className="form-label">
+                    Display Name (optional)
+                  </label>
+                  <input
+                    id="displayName"
+                    type="text"
+                    className="form-control"
+                    value={formData.displayName}
+                    onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label htmlFor="password" className="form-label">
+                    Password
+                  </label>
+                  <input
+                    id="password"
+                    type="password"
+                    className="form-control"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    required
+                    minLength={8}
+                  />
+                </div>
+
+                {error && (
+                  <div className="alert alert-danger" role="alert">{error}</div>
+                )}
+
+                <button
+                  type="submit"
+                  className="btn btn-primary w-100"
+                  disabled={loading}
+                >
+                  {loading ? 'Creating Account...' : 'Create Account'}
+                </button>
+              </form>
+
+              <p className="text-center mt-3 mb-0">
+                Already have an account? <Link href="/login" className="text-decoration-none">Login</Link>
+              </p>
+            </div>
+          </div>
         </div>
-
-        <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="username" style={{ display: 'block', marginBottom: '5px', color: 'var(--color-text)' }}>
-            Username
-          </label>
-          <input
-            id="username"
-            type="text"
-            value={formData.username}
-            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-            required
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-          />
-        </div>
-
-        <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="displayName" style={{ display: 'block', marginBottom: '5px', color: 'var(--color-text)' }}>
-            Display Name (optional)
-          </label>
-          <input
-            id="displayName"
-            type="text"
-            value={formData.displayName}
-            onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-          />
-        </div>
-
-        <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="password" style={{ display: 'block', marginBottom: '5px', color: 'var(--color-text)' }}>
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            required
-            minLength={8}
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-          />
-        </div>
-
-        {error && (
-          <div style={{ color: 'var(--color-error)', marginBottom: '15px', padding: '10px', backgroundColor: 'var(--color-error-bg)', borderRadius: '5px' }}>{error}</div>
-        )}
-
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            width: '100%',
-            padding: '10px',
-            backgroundColor: 'var(--color-button-primary)',
-            color: 'var(--color-button-text)',
-            border: 'none',
-            borderRadius: '5px',
-            cursor: loading ? 'not-allowed' : 'pointer',
-          }}
-        >
-          {loading ? 'Creating Account...' : 'Create Account'}
-        </button>
-      </form>
-
-      <p style={{ marginTop: '20px', textAlign: 'center', color: 'var(--color-text)' }}>
-        Already have an account? <Link href="/login" style={{ color: 'var(--color-link)' }}>Login</Link>
-      </p>
+      </div>
     </div>
   );
 }

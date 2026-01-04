@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { syncThemeAttributes } from '@/lib/theme/darkone-bridge';
 
 interface ThemeProviderProps {
   theme?: string | null;
@@ -9,31 +10,14 @@ interface ThemeProviderProps {
 
 export default function ThemeProvider({ theme = 'system', children }: ThemeProviderProps) {
   useEffect(() => {
-    const applyTheme = () => {
-      const root = document.documentElement;
-      const themeValue = theme || 'system';
-      let effectiveTheme: string;
-
-      // If theme is 'system', detect OS preference
-      if (themeValue === 'system') {
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        effectiveTheme = prefersDark ? 'dark' : 'light';
-      } else {
-        effectiveTheme = themeValue;
-      }
-
-      // Apply theme via data attribute
-      root.setAttribute('data-theme', effectiveTheme);
-    };
-
-    // Apply theme immediately
-    applyTheme();
+    // Use the bridge system to sync both theme attributes
+    syncThemeAttributes(theme || 'system');
 
     // Listen for system preference changes if theme is 'system'
     const themeValue = theme || 'system';
     if (themeValue === 'system') {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const handleChange = () => applyTheme();
+      const handleChange = () => syncThemeAttributes('system');
       
       // Modern browsers
       if (mediaQuery.addEventListener) {
