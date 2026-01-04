@@ -61,39 +61,39 @@ export default function LoginPage() {
           <div className="card">
             <div className="card-body p-4">
               <h1 className="card-title text-center mb-4">Login</h1>
-              <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit}>
                 <div className="mb-3">
                   <label htmlFor="email" className="form-label">
-                    Email
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
                     className="form-control"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    required
-                  />
-                </div>
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            required
+          />
+        </div>
 
                 <div className="mb-3">
                   <div className="d-flex justify-content-between align-items-center mb-2">
                     <label htmlFor="password" className="form-label mb-0">
-                      Password
-                    </label>
+            Password
+          </label>
                     <Link href="/forgot-password" className="text-decoration-none small">
                       Forgot Password?
                     </Link>
                   </div>
-                  <input
-                    id="password"
-                    type="password"
+          <input
+            id="password"
+            type="password"
                     className="form-control"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    required
-                  />
-                </div>
+            value={formData.password}
+            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            required
+          />
+        </div>
 
                 {success && (
                   <div className="alert alert-success" role="alert">
@@ -101,22 +101,22 @@ export default function LoginPage() {
                   </div>
                 )}
 
-                {error && (
+        {error && (
                   <div className="alert alert-danger" role="alert">{error}</div>
-                )}
+        )}
 
-                <button
-                  type="submit"
+        <button
+          type="submit"
                   className="btn btn-primary w-100"
-                  disabled={loading}
-                >
-                  {loading ? 'Logging in...' : 'Login'}
-                </button>
-              </form>
+          disabled={loading}
+        >
+          {loading ? 'Logging in...' : 'Login'}
+        </button>
+      </form>
 
               <p className="text-center mt-3 mb-0">
                 Don't have an account? <Link href="/register" className="text-decoration-none">Create one</Link>
-              </p>
+      </p>
             </div>
           </div>
         </div>

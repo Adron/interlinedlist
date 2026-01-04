@@ -30,22 +30,49 @@ export async function getCurrentUser() {
   }
 
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        displayName: true,
-        avatar: true,
-        bio: true,
-        theme: true,
-        emailVerified: true,
-        createdAt: true,
-      },
-    });
+    // First try to get user with maxMessageLength
+    // If column doesn't exist, fall back to query without it
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          displayName: true,
+          avatar: true,
+          bio: true,
+          theme: true,
+          emailVerified: true,
+          maxMessageLength: true,
+          createdAt: true,
+        },
+      });
 
-    return user;
+      return user;
+    } catch (error: any) {
+      // If maxMessageLength column doesn't exist, query without it
+      if (error?.message?.includes('maxMessageLength') || error?.code === 'P2021') {
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: {
+            id: true,
+            email: true,
+            username: true,
+            displayName: true,
+            avatar: true,
+            bio: true,
+            theme: true,
+            emailVerified: true,
+            createdAt: true,
+          },
+        });
+
+        // Add default maxMessageLength if not in database
+        return user ? { ...user, maxMessageLength: 666 } : null;
+      }
+      throw error;
+    }
   } catch (error) {
     return null;
   }

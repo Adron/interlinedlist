@@ -51,79 +51,79 @@ export default function RegisterPage() {
           <div className="card">
             <div className="card-body p-4">
               <h1 className="card-title text-center mb-4">Create Account</h1>
-              <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit}>
                 <div className="mb-3">
                   <label htmlFor="email" className="form-label">
-                    Email
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
                     className="form-control"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    required
-                  />
-                </div>
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            required
+          />
+        </div>
 
                 <div className="mb-3">
                   <label htmlFor="username" className="form-label">
-                    Username
-                  </label>
-                  <input
-                    id="username"
-                    type="text"
+            Username
+          </label>
+          <input
+            id="username"
+            type="text"
                     className="form-control"
-                    value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    required
-                  />
-                </div>
+            value={formData.username}
+            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+            required
+          />
+        </div>
 
                 <div className="mb-3">
                   <label htmlFor="displayName" className="form-label">
-                    Display Name (optional)
-                  </label>
-                  <input
-                    id="displayName"
-                    type="text"
+            Display Name (optional)
+          </label>
+          <input
+            id="displayName"
+            type="text"
                     className="form-control"
-                    value={formData.displayName}
-                    onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
-                  />
-                </div>
+            value={formData.displayName}
+            onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
+          />
+        </div>
 
                 <div className="mb-3">
                   <label htmlFor="password" className="form-label">
-                    Password
-                  </label>
-                  <input
-                    id="password"
-                    type="password"
+            Password
+          </label>
+          <input
+            id="password"
+            type="password"
                     className="form-control"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    required
-                    minLength={8}
-                  />
-                </div>
+            value={formData.password}
+            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            required
+            minLength={8}
+          />
+        </div>
 
-                {error && (
+        {error && (
                   <div className="alert alert-danger" role="alert">{error}</div>
-                )}
+        )}
 
-                <button
-                  type="submit"
+        <button
+          type="submit"
                   className="btn btn-primary w-100"
-                  disabled={loading}
-                >
-                  {loading ? 'Creating Account...' : 'Create Account'}
-                </button>
-              </form>
+          disabled={loading}
+        >
+          {loading ? 'Creating Account...' : 'Create Account'}
+        </button>
+      </form>
 
               <p className="text-center mt-3 mb-0">
                 Already have an account? <Link href="/login" className="text-decoration-none">Login</Link>
-              </p>
+      </p>
             </div>
           </div>
         </div>

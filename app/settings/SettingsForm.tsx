@@ -13,6 +13,7 @@ interface User {
   avatar: string | null;
   bio: string | null;
   theme: string | null;
+  maxMessageLength: number | null;
 }
 
 interface SettingsFormProps {
@@ -26,6 +27,7 @@ export default function SettingsForm({ user }: SettingsFormProps) {
     bio: user.bio || '',
     avatar: user.avatar || '',
     theme: user.theme || 'system',
+    maxMessageLength: user.maxMessageLength || 666,
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -222,6 +224,29 @@ export default function SettingsForm({ user }: SettingsFormProps) {
             <span>Dark</span>
           </label>
         </div>
+      </div>
+
+      <div style={{ marginBottom: '20px' }}>
+        <label htmlFor="maxMessageLength" style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: 'var(--color-text)' }}>
+          Maximum Message Length
+        </label>
+        <input
+          id="maxMessageLength"
+          type="number"
+          min="1"
+          max="10000"
+          value={formData.maxMessageLength}
+          onChange={(e) => {
+            const value = parseInt(e.target.value, 10);
+            if (!isNaN(value) && value > 0) {
+              setFormData({ ...formData, maxMessageLength: value });
+            }
+          }}
+          style={{ width: '100%', padding: '8px', boxSizing: 'border-box', maxWidth: '400px' }}
+        />
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', marginTop: '5px' }}>
+          Maximum number of characters allowed per message (default: 666)
+        </p>
       </div>
 
       <div style={{ marginBottom: '20px' }}>
