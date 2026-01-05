@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import MessageCard from './MessageCard';
 
 interface MessageUser {
@@ -20,25 +20,40 @@ interface Message {
 
 interface MessageGridProps {
   initialMessages: Message[];
+  initialTotal?: number;
   currentUserId?: string;
   itemsPerPage?: number;
 }
 
 export default function MessageGrid({ 
   initialMessages, 
+  initialTotal,
   currentUserId,
   itemsPerPage = 10 
 }: MessageGridProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalMessages, setTotalMessages] = useState(initialMessages.length);
+  const [totalMessages, setTotalMessages] = useState(initialTotal ?? initialMessages.length);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(initialMessages.length >= itemsPerPage);
+  
+  // Track if this is the initial mount to prevent unnecessary fetch
+  const isInitialMount = useRef(true);
+  // Track the last page we fetched to avoid duplicate fetches
+  const lastFetchedPage = useRef<number | null>(null);
 
   const totalPages = Math.ceil(totalMessages / itemsPerPage);
 
-  const fetchMessages = useCallback(async (page: number) => {
-    setIsLoading(true);
+  const fetchMessages = useCallback(async (page: number, skipLoadingState = false) => {
+    // Skip if we're fetching the same page again
+    if (lastFetchedPage.current === page) {
+      return;
+    }
+    
+    if (!skipLoadingState) {
+      setIsLoading(true);
+    }
+    
     try {
       const offset = (page - 1) * itemsPerPage;
       const response = await fetch(`/api/messages?limit=${itemsPerPage}&offset=${offset}`);
@@ -55,39 +70,57 @@ export default function MessageGrid({
         setMessages(serializedMessages);
         setTotalMessages(data.pagination?.total || serializedMessages.length);
         setHasMore(data.pagination?.hasMore || false);
+        lastFetchedPage.current = page;
       } else {
         console.error('Failed to fetch messages:', response.statusText);
       }
     } catch (error) {
       console.error('Error fetching messages:', error);
     } finally {
-      setIsLoading(false);
+      if (!skipLoadingState) {
+        setIsLoading(false);
+      }
     }
   }, [itemsPerPage]);
 
+  // Only fetch when page changes, not on initial mount
   useEffect(() => {
-    fetchMessages(currentPage);
+    // Skip fetch on initial mount since we already have initialMessages
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      // Initialize lastFetchedPage to 1 since that's what we have from server
+      lastFetchedPage.current = 1;
+      return;
+    }
+    
+    // Only fetch if page actually changed
+    if (currentPage !== lastFetchedPage.current) {
+      fetchMessages(currentPage);
+    }
   }, [currentPage, fetchMessages]);
 
   const handleDelete = useCallback((deletedMessageId: string) => {
-    setMessages((prevMessages) => prevMessages.filter((msg) => msg.id !== deletedMessageId));
+    setMessages((prevMessages) => {
+      const updated = prevMessages.filter((msg) => msg.id !== deletedMessageId);
+      // If current page becomes empty and not on first page, go to previous page
+      if (updated.length === 0 && currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+      } else {
+        // Refresh current page to maintain pagination
+        lastFetchedPage.current = null; // Reset to allow refetch
+        fetchMessages(currentPage);
+      }
+      return updated;
+    });
     setTotalMessages((prev) => Math.max(0, prev - 1));
-    
-    // If current page becomes empty and not on first page, go to previous page
-    const remainingOnPage = messages.filter((msg) => msg.id !== deletedMessageId).length;
-    if (remainingOnPage === 0 && currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    } else {
-      // Refresh current page to maintain pagination
-      fetchMessages(currentPage);
-    }
-  }, [messages, currentPage, fetchMessages]);
+  }, [currentPage, fetchMessages]);
 
   // Listen for new messages
   useEffect(() => {
     const handleMessageAdded = () => {
       // If on first page, refresh to show new message
       if (currentPage === 1) {
+        lastFetchedPage.current = null; // Reset to allow refetch
         fetchMessages(1);
       }
     };
@@ -97,6 +130,24 @@ export default function MessageGrid({
       window.removeEventListener('messageAdded', handleMessageAdded);
     };
   }, [currentPage, fetchMessages]);
+  
+  // Sync with prop changes (e.g., when navigating back to page 1)
+  const prevInitialMessagesRef = useRef<string>(JSON.stringify(initialMessages));
+  useEffect(() => {
+    // Only update if we're on page 1, not initial mount, and props actually changed
+    if (currentPage === 1 && !isInitialMount.current) {
+      const currentInitialMessagesStr = JSON.stringify(initialMessages);
+      if (currentInitialMessagesStr !== prevInitialMessagesRef.current) {
+        setMessages(initialMessages);
+        if (initialTotal !== undefined) {
+          setTotalMessages(initialTotal);
+        }
+        setHasMore(initialMessages.length >= itemsPerPage);
+        lastFetchedPage.current = 1;
+        prevInitialMessagesRef.current = currentInitialMessagesStr;
+      }
+    }
+  }, [initialMessages, initialTotal, itemsPerPage, currentPage]);
 
   const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages) {
