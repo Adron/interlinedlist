@@ -162,6 +162,71 @@ interlinedlist/
 
 The application uses Prisma as the ORM with PostgreSQL. The database schema is defined in `prisma/schema.prisma`.
 
+### Database Schema
+
+The application includes the following models:
+
+- **User**: User accounts with authentication, profile, and preferences
+- **Message**: Time-series messages posted by users
+
+### Database Migrations
+
+#### Local Development
+
+To create and apply migrations locally:
+
+```bash
+# Create a new migration (after modifying schema.prisma)
+npm run db:migrate
+
+# This will:
+# 1. Create a new migration file in prisma/migrations/
+# 2. Apply it to your local database
+# 3. Regenerate the Prisma Client
+```
+
+**Note**: The `db:migrate` script uses `prisma migrate dev`, which:
+- Creates new migration files based on schema changes
+- Applies migrations to your local database
+- Regenerates the Prisma Client automatically
+
+#### Production Deployment
+
+To apply migrations to production:
+
+```bash
+# Apply pending migrations to production database
+npm run db:migrate:deploy
+
+# Or directly:
+npx prisma migrate deploy
+```
+
+**Important**: `prisma migrate deploy`:
+- Only applies existing migrations (doesn't create new ones)
+- Safe to run in production
+- Reads from `DATABASE_URL` environment variable
+- Does NOT regenerate Prisma Client (use `prisma generate` separately if needed)
+
+**For Vercel Deployments**: Migrations run automatically during build via the `vercel-build` script:
+```json
+"vercel-build": "prisma migrate deploy && next build"
+```
+
+#### Migration Workflow
+
+1. **Make schema changes** in `prisma/schema.prisma`
+2. **Create migration locally**:
+   ```bash
+   npm run db:migrate
+   ```
+   This creates a migration file with a timestamp (e.g., `20260104235810_add_email_verification_fields`)
+3. **Test locally** to ensure everything works
+4. **Commit migration files** to git (they're in `prisma/migrations/`)
+5. **Deploy to production**:
+   - Vercel: Migrations run automatically during build
+   - Manual: Run `npm run db:migrate:deploy` with production `DATABASE_URL`
+
 ### Viewing the Database
 
 To open Prisma Studio and browse your database:
@@ -347,11 +412,40 @@ Or ensure your `package.json` has a `postinstall` script:
 }
 ```
 
-#### 4. Run Migrations on Vercel
+#### 4. Configure Email Environment Variables
 
-After deployment, you'll need to run migrations on your production database. You have several options:
+Add the following environment variables in Vercel:
 
-**Option A: Using Vercel CLI (Recommended)**
+**`RESEND_API_KEY`** (Required)
+- **Key:** `RESEND_API_KEY`
+- **Value:** Your Resend API key from https://resend.com
+- **Environment:** All environments (Production, Preview, Development)
+
+**`RESEND_FROM_EMAIL`** (Optional)
+- **Key:** `RESEND_FROM_EMAIL`
+- **Value:** Your verified sender email (e.g., `noreply@yourdomain.com`)
+- **Environment:** All environments
+- **Note:** Defaults to `onboarding@resend.dev` if not set
+
+**`NEXT_PUBLIC_APP_URL`** (Optional for Vercel)
+- **Key:** `NEXT_PUBLIC_APP_URL`
+- **Value:** Your production domain (e.g., `https://yourdomain.com`)
+- **Environment:** Production only
+- **Note:** Automatically detected on Vercel via `VERCEL_URL`, but you can override for custom domains
+
+#### 5. Run Migrations on Vercel
+
+Migrations run automatically during Vercel deployments via the `vercel-build` script:
+
+```json
+"vercel-build": "prisma migrate deploy && next build"
+```
+
+This ensures your production database is always up-to-date with the latest schema changes.
+
+**Manual Migration (if needed):**
+
+If you need to run migrations manually:
 
 1. **Install Vercel CLI**:
    ```bash
@@ -375,29 +469,10 @@ After deployment, you'll need to run migrations on your production database. You
 
 5. **Run migrations**:
    ```bash
-   npm run db:migrate
+   npm run db:migrate:deploy
    ```
 
-**Option B: Using Vercel Environment Variables Directly**
-
-```bash
-DATABASE_URL="your_production_database_url" npm run db:migrate
-```
-
-**Option C: Using Vercel's Postinstall Hook**
-
-Add to your `package.json`:
-
-```json
-{
-  "scripts": {
-    "postinstall": "prisma generate",
-    "vercel-build": "prisma migrate deploy && next build"
-  }
-}
-```
-
-This will automatically run migrations during each Vercel deployment.
+**Note**: Use `db:migrate:deploy` (not `db:migrate`) for production, as it only applies existing migrations without creating new ones.
 
 #### 5. Verify Deployment
 
