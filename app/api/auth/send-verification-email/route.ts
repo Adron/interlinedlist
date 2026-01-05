@@ -31,21 +31,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Rate limiting: Check if a verification email was sent recently (within last hour)
-    // If expiration exists and is in the future, check if token was created recently
+    // Rate limiting: Check if a verification email was sent recently (within last 10 minutes)
+    // Token expiration is 24 hours from creation, so we can calculate when it was created
     if (userWithStatus?.emailVerificationExpires) {
       const expirationTime = userWithStatus.emailVerificationExpires.getTime();
       const now = Date.now();
       
-      // If token hasn't expired yet, it was created recently (within 24 hours)
-      // Check if it was created within the last hour
+      // Only check rate limit if token hasn't expired yet
       if (expirationTime > now) {
-        // Token expiration is 24 hours from creation, so if expiration is more than 23 hours away,
-        // it was created less than 1 hour ago
-        const hoursUntilExpiration = (expirationTime - now) / (1000 * 60 * 60);
-        if (hoursUntilExpiration > 23) {
+        // Calculate when the token was created (24 hours before expiration)
+        const tokenCreatedAt = expirationTime - (24 * 60 * 60 * 1000); // 24 hours in milliseconds
+        const tenMinutesAgo = now - (10 * 60 * 1000); // 10 minutes in milliseconds
+        
+        // If token was created less than 10 minutes ago, rate limit
+        if (tokenCreatedAt > tenMinutesAgo) {
+          const minutesSinceCreation = Math.ceil((now - tokenCreatedAt) / (1000 * 60));
+          const minutesToWait = 10 - minutesSinceCreation;
+          
           return NextResponse.json(
-            { error: 'Please wait before requesting another verification email. You can request a new one in 1 hour.' },
+            { error: `Please wait before requesting another verification email. You can request a new one in ${minutesToWait} minute${minutesToWait !== 1 ? 's' : ''}.` },
             { status: 429 }
           );
         }
