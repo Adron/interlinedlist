@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
 import { Avatar } from '@/components/Avatar';
 import EmailVerificationBanner from '@/components/EmailVerificationBanner';
+import DashboardMessageFeed from '@/components/DashboardMessageFeed';
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
@@ -11,42 +12,99 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '3rem 2rem' }}>
-      <h1 style={{ fontSize: '2.5rem', marginBottom: '2rem', color: 'var(--color-text)' }}>Dashboard</h1>
-
-      <EmailVerificationBanner emailVerified={user.emailVerified} />
-
-      <div style={{ backgroundColor: 'var(--color-bg-tertiary)', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '15px' }}>
-          {user.avatar && (
-            <Avatar
-              src={user.avatar}
-              alt={`${user.displayName || user.username}'s avatar`}
-              size={80}
-            />
-          )}
-          <div>
-            <h2 style={{ margin: 0, color: 'var(--color-text)' }}>Welcome, {user.displayName || user.username}!</h2>
-            <p style={{ margin: '5px 0 0 0', color: 'var(--color-text-secondary)' }}>Email: {user.email}</p>
-            <p style={{ margin: '5px 0 0 0', color: 'var(--color-text-secondary)' }}>Username: {user.username}</p>
-          </div>
+    <div className="container-fluid py-4">
+      <div className="row mb-3">
+        <div className="col-12">
+          <h1 className="h2 mb-0">Dashboard</h1>
         </div>
-        {user.bio && <p style={{ marginTop: '15px', color: 'var(--color-text)' }}>Bio: {user.bio}</p>}
       </div>
 
-      <div style={{ marginTop: '30px' }}>
-        <h3 style={{ color: 'var(--color-text)' }}>Your Profile</h3>
-        <ul style={{ listStyle: 'none', padding: 0 }}>
-          <li style={{ marginBottom: '10px', color: 'var(--color-text)' }}>
-            <strong>Display Name:</strong> {user.displayName || 'Not set'}
-          </li>
-          <li style={{ marginBottom: '10px', color: 'var(--color-text)' }}>
-            <strong>Email Verified:</strong> {user.emailVerified ? 'Yes' : 'No'}
-          </li>
-          <li style={{ marginBottom: '10px', color: 'var(--color-text)' }}>
-            <strong>Member Since:</strong> {new Date(user.createdAt).toLocaleDateString()}
-          </li>
-        </ul>
+      <div className="row mb-3">
+        <div className="col-12">
+          <EmailVerificationBanner emailVerified={user.emailVerified} />
+        </div>
+      </div>
+
+      <div className="row">
+        {/* Left Column - Messages Grid */}
+        <div className="col-lg-8 mb-4">
+          <div className="mb-3">
+            <h2 className="h4 mb-0">Recent Messages</h2>
+            <p className="text-muted small mb-0">Latest updates from the community</p>
+          </div>
+          <DashboardMessageFeed />
+        </div>
+
+        {/* Right Column - Profile Information */}
+        <div className="col-lg-4">
+          <div className="card mb-3">
+            <div className="card-body">
+              <div className="d-flex align-items-center gap-3 mb-3">
+                {user.avatar ? (
+                  <Avatar
+                    src={user.avatar}
+                    alt={`${user.displayName || user.username}'s avatar`}
+                    size={80}
+                  />
+                ) : (
+                  <div
+                    className="rounded-circle d-flex align-items-center justify-content-center"
+                    style={{
+                      width: '80px',
+                      height: '80px',
+                      backgroundColor: 'var(--bs-secondary)',
+                      color: 'white',
+                      fontSize: '2rem',
+                      fontWeight: 'bold',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {(user.displayName || user.username)[0].toUpperCase()}
+                  </div>
+                )}
+                <div>
+                  <h3 className="h5 mb-0">Welcome, {user.displayName || user.username}!</h3>
+                  <p className="text-muted small mb-0">@{user.username}</p>
+                </div>
+              </div>
+              {user.bio && (
+                <p className="mb-0" style={{ whiteSpace: 'pre-wrap' }}>
+                  {user.bio}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-body">
+              <h4 className="h6 mb-3">Profile Information</h4>
+              <ul className="list-unstyled mb-0">
+                <li className="mb-2">
+                  <strong>Display Name:</strong>
+                  <br />
+                  <span className="text-muted">{user.displayName || 'Not set'}</span>
+                </li>
+                <li className="mb-2">
+                  <strong>Email:</strong>
+                  <br />
+                  <span className="text-muted">{user.email}</span>
+                </li>
+                <li className="mb-2">
+                  <strong>Email Verified:</strong>
+                  <br />
+                  <span className={user.emailVerified ? 'text-success' : 'text-warning'}>
+                    {user.emailVerified ? '✓ Yes' : '✗ No'}
+                  </span>
+                </li>
+                <li className="mb-0">
+                  <strong>Member Since:</strong>
+                  <br />
+                  <span className="text-muted">{new Date(user.createdAt).toLocaleDateString()}</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
