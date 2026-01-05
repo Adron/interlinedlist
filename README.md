@@ -488,6 +488,29 @@ If you need to run migrations manually:
 - **Set up database backups** through your provider
 - **Monitor database performance** and scale as needed
 - **Use connection pooling** for better performance (most managed providers handle this)
+- **Verify your Resend sender email** before deploying to production
+- **Set `NEXT_PUBLIC_APP_URL`** for custom domains (or rely on Vercel's auto-detection)
+
+## Recent Updates
+
+### Email Verification System
+- Complete email verification workflow with token-based verification
+- Rate-limited resend functionality (10 minutes between requests)
+- Email verification required to post messages
+- Verification banners and settings integration
+
+### Message Posting Feature
+- Time-series message feed (Mastodon-like)
+- Customizable character limits per user (default: 666)
+- Public/private message visibility
+- Three-column responsive layout
+
+### Database Migrations
+- `20251223015038_init_user` - Initial user schema
+- `20260104005203_add_theme_to_user` - Theme preferences
+- `20260104035743_add_password_reset_fields` - Password reset functionality
+- `20260104140926_add_messages_and_max_length` - Messages table and character limits
+- `20260104235810_add_email_verification_fields` - Email verification tokens
 
 ## License
 
