@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
 export async function middleware(request: NextRequest) {
-  const session = request.cookies.get('session');
+  const sessionCookie = request.cookies.get('session');
   const { pathname } = request.nextUrl;
 
   // Protected routes
@@ -15,12 +16,33 @@ export async function middleware(request: NextRequest) {
   const authRoutes = ['/login', '/register'];
   const isAuthRoute = authRoutes.includes(pathname);
 
-  if (isProtectedRoute && !session) {
-    // Redirect to login if trying to access protected route without session
+  // Validate session if cookie exists
+  let isValidSession = false;
+  if (sessionCookie?.value) {
+    try {
+      // Quick validation: check if user exists
+      const user = await prisma.user.findUnique({
+        where: { id: sessionCookie.value },
+        select: { id: true },
+      });
+      isValidSession = !!user;
+    } catch (error) {
+      // If database error, treat as invalid session
+      isValidSession = false;
+    }
+  }
+
+  if (isProtectedRoute && !isValidSession) {
+    // Clear invalid session cookie if it exists
+    if (sessionCookie) {
+      const response = NextResponse.redirect(new URL('/login', request.url));
+      response.cookies.delete('session');
+      return response;
+    }
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  if (isAuthRoute && session) {
+  if (isAuthRoute && isValidSession) {
     // Redirect to dashboard if trying to access auth routes while logged in
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }

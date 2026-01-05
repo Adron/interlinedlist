@@ -19,8 +19,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Find user by email
+    // Explicitly select only fields we need to avoid migration issues
     const user = await prisma.user.findUnique({
       where: { email },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        passwordHash: true,
+        displayName: true,
+        avatar: true,
+        bio: true,
+        emailVerified: true,
+        createdAt: true,
+      },
     });
 
     if (!user) {

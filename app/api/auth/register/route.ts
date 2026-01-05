@@ -29,9 +29,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already exists
+    // Explicitly select only fields that definitely exist to avoid migration issues
     const existingUser = await prisma.user.findFirst({
       where: {
         OR: [{ email }, { username }],
+      },
+      select: {
+        id: true,
+        email: true,
+        username: true,
       },
     });
 

@@ -30,6 +30,10 @@ export async function POST(request: NextRequest) {
       where: {
         passwordResetToken: token,
       },
+      select: {
+        id: true,
+        passwordResetExpires: true,
+      },
     });
 
     if (!user) {
