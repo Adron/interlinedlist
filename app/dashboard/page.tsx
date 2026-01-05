@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
 import { Avatar } from '@/components/Avatar';
+import EmailVerificationBanner from '@/components/EmailVerificationBanner';
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
@@ -12,6 +13,8 @@ export default async function DashboardPage() {
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '3rem 2rem' }}>
       <h1 style={{ fontSize: '2.5rem', marginBottom: '2rem', color: 'var(--color-text)' }}>Dashboard</h1>
+
+      <EmailVerificationBanner emailVerified={user.emailVerified} />
 
       <div style={{ backgroundColor: 'var(--color-bg-tertiary)', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '15px' }}>

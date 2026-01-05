@@ -1,12 +1,20 @@
 import { getCurrentUser } from '@/lib/auth/session';
 import MessageFeed from '@/components/MessageFeed';
 import LeftSidebar from '@/components/LeftSidebar';
+import EmailVerificationBanner from '@/components/EmailVerificationBanner';
 
 export default async function Home() {
   const user = await getCurrentUser();
 
   return (
     <div className="container-fluid py-4">
+      {user && !user.emailVerified && (
+        <div className="row mb-3">
+          <div className="col-12">
+            <EmailVerificationBanner emailVerified={user.emailVerified} />
+          </div>
+        </div>
+      )}
       <div className="row">
         {/* Left Column - Sidebar */}
         <div className="col-lg-3 col-md-4 mb-4">

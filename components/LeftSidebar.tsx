@@ -7,6 +7,7 @@ interface LeftSidebarProps {
   user?: {
     id: string;
     maxMessageLength: number | null;
+    emailVerified: boolean;
   } | null;
 }
 
@@ -25,7 +26,24 @@ export default function LeftSidebar({ user }: LeftSidebarProps) {
 
       {user && (
         <>
-          {!showMessageInput ? (
+          {!user.emailVerified ? (
+            <div className="card mb-3">
+              <div className="card-body">
+                <div className="alert alert-warning mb-0" role="alert">
+                  <h6 className="alert-heading">
+                    <i className="bx bx-error-circle me-2"></i>
+                    Email Verification Required
+                  </h6>
+                  <p className="mb-2 small">
+                    Please verify your email address to post messages.
+                  </p>
+                  <a href="/settings" className="btn btn-sm btn-warning">
+                    Verify Email
+                  </a>
+                </div>
+              </div>
+            </div>
+          ) : !showMessageInput ? (
             <button
               className="btn btn-primary w-100"
               onClick={() => setShowMessageInput(true)}

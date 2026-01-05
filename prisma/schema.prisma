@@ -18,10 +18,12 @@ model User {
   emailVerified        Boolean   @default(false)
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
-  theme                String    @default("system")
-  passwordResetExpires DateTime?
-  passwordResetToken   String?
-  maxMessageLength     Int       @default(666)
+  theme                      String    @default("system")
+  passwordResetExpires       DateTime?
+  passwordResetToken         String?
+  emailVerificationToken     String?
+  emailVerificationExpires   DateTime?
+  maxMessageLength           Int       @default(666)
   messages             Message[]
 
   @@map("users")

@@ -32,3 +32,23 @@ export function getTokenExpiration(): Date {
   return expiration;
 }
 
+/**
+ * Generate a cryptographically secure random token for email verification
+ * @returns A URL-safe base64 encoded token
+ */
+export function generateEmailVerificationToken(): string {
+  // Generate 32 random bytes (256 bits) and convert to base64url
+  const token = crypto.randomBytes(32).toString('base64url');
+  return token;
+}
+
+/**
+ * Get expiration date for an email verification token (24 hours from now)
+ * @returns Date object representing expiration time
+ */
+export function getEmailVerificationExpiration(): Date {
+  const expiration = new Date();
+  expiration.setHours(expiration.getHours() + 24); // 24 hours from now
+  return expiration;
+}
+

@@ -15,6 +15,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if email is verified
+    if (!user.emailVerified) {
+      return NextResponse.json(
+        { error: 'Email verification required. Please verify your email address before posting messages.' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const { content, publiclyVisible } = body;
 

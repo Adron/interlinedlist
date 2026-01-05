@@ -4,6 +4,7 @@ import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Avatar } from '@/components/Avatar';
+import EmailVerificationResend from './EmailVerificationResend';
 
 interface User {
   id: string;
@@ -14,6 +15,7 @@ interface User {
   bio: string | null;
   theme: string | null;
   maxMessageLength: number | null;
+  emailVerified: boolean;
 }
 
 interface SettingsFormProps {
@@ -345,6 +347,33 @@ export default function SettingsForm({ user }: SettingsFormProps) {
     </form>
 
       <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid var(--color-border)' }}>
+        <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--color-text)' }}>Email Verification</h2>
+        <div style={{ 
+          backgroundColor: 'var(--color-bg-secondary)', 
+          padding: '1.5rem', 
+          borderRadius: '8px',
+          maxWidth: '400px',
+          marginBottom: '2rem'
+        }}>
+          <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem', color: 'var(--color-text)' }}>
+            Verification Status
+          </h3>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', marginBottom: '1rem', lineHeight: '1.6' }}>
+            {user.emailVerified ? (
+              <>
+                <span style={{ color: 'var(--color-success)' }}>✓</span> Your email address is verified.
+              </>
+            ) : (
+              <>
+                <span style={{ color: 'var(--color-error)' }}>✗</span> Your email address is not verified. Please verify your email to access all features.
+              </>
+            )}
+          </p>
+          {!user.emailVerified && (
+            <EmailVerificationResend />
+          )}
+        </div>
+
         <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--color-text)' }}>Security</h2>
         <div style={{ 
           backgroundColor: 'var(--color-bg-secondary)', 

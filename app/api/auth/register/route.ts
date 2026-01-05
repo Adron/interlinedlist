@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { hashPassword } from '@/lib/auth/password';
 import { createSession } from '@/lib/auth/session';
+import { generateEmailVerificationToken, getEmailVerificationExpiration } from '@/lib/auth/tokens';
+import { resend, FROM_EMAIL } from '@/lib/email/resend';
+import { getEmailVerificationEmailHtml, getEmailVerificationEmailText } from '@/lib/email/templates/email-verification';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,6 +45,10 @@ export async function POST(request: NextRequest) {
     // Hash password
     const passwordHash = await hashPassword(password);
 
+    // Generate email verification token and expiration
+    const verificationToken = generateEmailVerificationToken();
+    const expiration = getEmailVerificationExpiration();
+
     // Create user
     const user = await prisma.user.create({
       data: {
@@ -49,6 +56,8 @@ export async function POST(request: NextRequest) {
         username,
         passwordHash,
         displayName: displayName || username,
+        emailVerificationToken: verificationToken,
+        emailVerificationExpires: expiration,
       },
       select: {
         id: true,
@@ -64,6 +73,21 @@ export async function POST(request: NextRequest) {
 
     // Create session
     await createSession(user.id);
+
+    // Send verification email (don't fail registration if email fails)
+    try {
+      await resend.emails.send({
+        from: FROM_EMAIL,
+        to: user.email,
+        subject: 'Verify Your Email - InterlinedList',
+        html: getEmailVerificationEmailHtml(verificationToken, user.displayName || user.username),
+        text: getEmailVerificationEmailText(verificationToken, user.displayName || user.username),
+      });
+    } catch (emailError) {
+      console.error('Failed to send verification email:', emailError);
+      // Don't fail the request if email fails - log it
+      // In production, you might want to use a queue system
+    }
 
     return NextResponse.json(
       { message: 'User created successfully', user },
