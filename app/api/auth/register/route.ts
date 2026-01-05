@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { hashPassword } from '@/lib/auth/password';
-import { createSession } from '@/lib/auth/session';
 import { generateEmailVerificationToken, getEmailVerificationExpiration } from '@/lib/auth/tokens';
 import { resend, FROM_EMAIL } from '@/lib/email/resend';
 import { getEmailVerificationEmailHtml, getEmailVerificationEmailText } from '@/lib/email/templates/email-verification';
@@ -107,8 +106,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create session
-    await createSession(user.id);
+    // Session will be set on the response below
 
     // Send verification email only if email verification fields exist
     // (don't fail registration if email fails)
@@ -128,10 +126,26 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json(
+    // Create response
+    const response = NextResponse.json(
       { message: 'User created successfully', user },
       { status: 201 }
     );
+
+    // Set cookie directly on the response
+    // This ensures the cookie is included in the response headers
+    const SESSION_COOKIE_NAME = 'session';
+    const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
+    
+    response.cookies.set(SESSION_COOKIE_NAME, user.id, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: SESSION_MAX_AGE,
+      path: '/',
+    });
+
+    return response;
   } catch (error) {
     console.error('Registration error:', error);
     return NextResponse.json(

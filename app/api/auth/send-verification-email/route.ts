@@ -61,27 +61,45 @@ export async function POST(request: NextRequest) {
     const expiration = getEmailVerificationExpiration();
 
     // Store token and expiration in database
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        emailVerificationToken: verificationToken,
-        emailVerificationExpires: expiration,
-      },
-    });
-
-    // Send email
+    // Handle case where email verification columns might not exist
+    let hasEmailVerificationFields = false;
     try {
-      await resend.emails.send({
-        from: FROM_EMAIL,
-        to: user.email,
-        subject: 'Verify Your Email - InterlinedList',
-        html: getEmailVerificationEmailHtml(verificationToken, user.displayName || user.username),
-        text: getEmailVerificationEmailText(verificationToken, user.displayName || user.username),
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          emailVerificationToken: verificationToken,
+          emailVerificationExpires: expiration,
+        },
       });
-    } catch (emailError) {
-      console.error('Failed to send verification email:', emailError);
-      // Don't fail the request if email fails - log it
-      // In production, you might want to use a queue system
+      hasEmailVerificationFields = true;
+    } catch (updateError: any) {
+      // If email verification columns don't exist, we can't store the token
+      // but we can still try to send the email (though it won't be verifiable)
+      if (updateError?.code === 'P2022' && updateError?.meta?.column?.includes('emailVerification')) {
+        console.warn('Email verification columns do not exist in database. Email verification feature disabled.');
+        return NextResponse.json(
+          { error: 'Email verification is not available. Please contact support.' },
+          { status: 503 }
+        );
+      }
+      throw updateError;
+    }
+
+    // Send email only if we successfully stored the token
+    if (hasEmailVerificationFields) {
+      try {
+        await resend.emails.send({
+          from: FROM_EMAIL,
+          to: user.email,
+          subject: 'Verify Your Email - InterlinedList',
+          html: getEmailVerificationEmailHtml(verificationToken, user.displayName || user.username),
+          text: getEmailVerificationEmailText(verificationToken, user.displayName || user.username),
+        });
+      } catch (emailError) {
+        console.error('Failed to send verification email:', emailError);
+        // Don't fail the request if email fails - log it
+        // In production, you might want to use a queue system
+      }
     }
 
     return NextResponse.json(

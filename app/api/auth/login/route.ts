@@ -52,9 +52,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create session
-    await createSession(user.id);
-
     // Return user data (without password hash)
     const userData = {
         id: user.id,
@@ -67,10 +64,32 @@ export async function POST(request: NextRequest) {
       createdAt: user.createdAt,
     };
 
-    return NextResponse.json(
+    // Create response first
+    const response = NextResponse.json(
       { message: 'Login successful', user: userData },
       { status: 200 }
     );
+
+    // Set cookie directly on the response
+    // This ensures the cookie is included in the response headers
+    const SESSION_COOKIE_NAME = 'session';
+    const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
+    
+    response.cookies.set(SESSION_COOKIE_NAME, user.id, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: SESSION_MAX_AGE,
+      path: '/',
+    });
+
+    console.log('[Login API] Cookie set on response:', {
+      'set-cookie': response.headers.get('set-cookie'),
+      'cookie-name': SESSION_COOKIE_NAME,
+      'cookie-value': user.id,
+    });
+
+    return response;
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json(

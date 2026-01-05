@@ -13,6 +13,12 @@ export default function LoginForm() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [debugLog, setDebugLog] = useState<string[]>([]);
+
+  const addDebugLog = (message: string) => {
+    console.log(`[Login Debug] ${message}`);
+    setDebugLog((prev) => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
+  };
 
   useEffect(() => {
     if (searchParams.get('reset') === 'success') {
@@ -27,8 +33,12 @@ export default function LoginForm() {
     setError('');
     setSuccess(false);
     setLoading(true);
+    setDebugLog([]);
+
+    addDebugLog('Starting login process...');
 
     try {
+      addDebugLog('Sending login request to /api/auth/login');
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
@@ -38,9 +48,14 @@ export default function LoginForm() {
         credentials: 'include', // Ensure cookies are included in the request
       });
 
+      addDebugLog(`Response status: ${response.status}`);
+      addDebugLog(`Response headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`);
+
       const data = await response.json();
+      addDebugLog(`Response data: ${JSON.stringify(data)}`);
 
       if (!response.ok) {
+        addDebugLog(`Login failed: ${data.error || 'Unknown error'}`);
         setError(data.error || 'Login failed');
         setLoading(false);
         return;
@@ -48,17 +63,24 @@ export default function LoginForm() {
 
       // Verify login was successful
       if (data.message === 'Login successful') {
-        // Small delay to ensure cookie is set, then navigate to dashboard
-        // The cookie is set in the API response, so we need a moment for it to be processed
+        addDebugLog('Login successful! Cookie should be set in response.');
+        addDebugLog('Note: HttpOnly cookies cannot be read by JavaScript.');
+        addDebugLog('Waiting 500ms for browser to process Set-Cookie header...');
+        
+        // Use a longer delay to ensure browser fully processes the Set-Cookie header
+        // The cookie needs to be stored before we navigate
         setTimeout(() => {
-          // Direct navigation to dashboard - middleware will validate the cookie
+          addDebugLog('Navigating to /dashboard now (cookie should be sent automatically)...');
+          // Use window.location.href for full navigation - ensures cookie is sent
           window.location.href = '/dashboard';
-        }, 200);
+        }, 500);
       } else {
+        addDebugLog(`Unexpected response message: ${data.message}`);
         setError('Login failed. Please try again.');
         setLoading(false);
       }
     } catch (err) {
+      addDebugLog(`Error occurred: ${err}`);
       console.error('Login error:', err);
       setError('An error occurred. Please try again.');
       setLoading(false);
@@ -114,6 +136,18 @@ export default function LoginForm() {
 
                 {error && (
                   <div className="alert alert-danger" role="alert">{error}</div>
+                )}
+
+                {/* Debug log - visible during development */}
+                {debugLog.length > 0 && (
+                  <div className="alert alert-info" role="alert" style={{ fontSize: '0.875rem', maxHeight: '200px', overflowY: 'auto' }}>
+                    <strong>Debug Log:</strong>
+                    <ul className="mb-0 mt-2" style={{ paddingLeft: '20px' }}>
+                      {debugLog.map((log, index) => (
+                        <li key={index}>{log}</li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
 
                 <button
