@@ -55,6 +55,7 @@ export default async function DashboardMessageFeed() {
     return (
       <MessageGrid
         initialMessages={serializedMessages}
+        initialTotal={total}
         currentUserId={user?.id}
         itemsPerPage={10}
       />
