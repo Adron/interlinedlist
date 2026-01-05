@@ -22,6 +22,11 @@ export async function POST(request: NextRequest) {
       where: {
         emailVerificationToken: token,
       },
+      select: {
+        id: true,
+        emailVerified: true,
+        emailVerificationExpires: true,
+      },
     });
 
     if (!user) {
