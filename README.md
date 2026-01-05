@@ -140,7 +140,8 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
-- `npm run db:migrate` - Run database migrations
+- `npm run db:migrate` - Run database migrations locally (creates new migrations)
+- `npm run db:migrate:deploy` - Apply migrations to production database
 - `npm run db:generate` - Generate Prisma Client
 - `npm run db:studio` - Open Prisma Studio (database GUI)
 
@@ -161,6 +162,71 @@ interlinedlist/
 
 The application uses Prisma as the ORM with PostgreSQL. The database schema is defined in `prisma/schema.prisma`.
 
+### Database Schema
+
+The application includes the following models:
+
+- **User**: User accounts with authentication, profile, and preferences
+- **Message**: Time-series messages posted by users
+
+### Database Migrations
+
+#### Local Development
+
+To create and apply migrations locally:
+
+```bash
+# Create a new migration (after modifying schema.prisma)
+npm run db:migrate
+
+# This will:
+# 1. Create a new migration file in prisma/migrations/
+# 2. Apply it to your local database
+# 3. Regenerate the Prisma Client
+```
+
+**Note**: The `db:migrate` script uses `prisma migrate dev`, which:
+- Creates new migration files based on schema changes
+- Applies migrations to your local database
+- Regenerates the Prisma Client automatically
+
+#### Production Deployment
+
+To apply migrations to production:
+
+```bash
+# Apply pending migrations to production database
+npm run db:migrate:deploy
+
+# Or directly:
+npx prisma migrate deploy
+```
+
+**Important**: `prisma migrate deploy`:
+- Only applies existing migrations (doesn't create new ones)
+- Safe to run in production
+- Reads from `DATABASE_URL` environment variable
+- Does NOT regenerate Prisma Client (use `prisma generate` separately if needed)
+
+**For Vercel Deployments**: Migrations run automatically during build via the `vercel-build` script:
+```json
+"vercel-build": "prisma migrate deploy && next build"
+```
+
+#### Migration Workflow
+
+1. **Make schema changes** in `prisma/schema.prisma`
+2. **Create migration locally**:
+   ```bash
+   npm run db:migrate
+   ```
+   This creates a migration file with a timestamp (e.g., `20260104235810_add_email_verification_fields`)
+3. **Test locally** to ensure everything works
+4. **Commit migration files** to git (they're in `prisma/migrations/`)
+5. **Deploy to production**:
+   - Vercel: Migrations run automatically during build
+   - Manual: Run `npm run db:migrate:deploy` with production `DATABASE_URL`
+
 ### Viewing the Database
 
 To open Prisma Studio and browse your database:
@@ -175,11 +241,36 @@ This will open a web interface at `http://localhost:5555` where you can view and
 
 A test API endpoint is available at `/api/test-db` to verify your database connection is working correctly.
 
+## Features
+
+### Core Features
+
+- **User Authentication**: Registration, login, and session management
+- **Email Verification**: Email verification workflow with resend capability (rate limited to 10 minutes)
+- **Password Reset**: Secure password reset via email
+- **Theme Management**: System, light, and dark theme support
+- **Message Posting**: Time-series based micro-blogging (Mastodon-like)
+  - Customizable character limits per user (default: 666 characters)
+  - Public/private message visibility
+  - Email verification required to post messages
+- **User Profiles**: Customizable display names, avatars, and bios
+
+### Security Features
+
+- Password hashing with bcrypt
+- Email verification required for posting messages
+- Rate limiting on email resend (10 minutes)
+- Secure token generation for password resets and email verification
+- Session-based authentication with httpOnly cookies
+
 ## Environment Variables
 
 Required environment variables:
 
 - `DATABASE_URL` - PostgreSQL connection string
+- `RESEND_API_KEY` - Resend API key for sending emails
+- `RESEND_FROM_EMAIL` - Email address to send from (optional, defaults to onboarding@resend.dev)
+- `NEXT_PUBLIC_APP_URL` - Application URL for email links (optional, auto-detected on Vercel)
 - `NODE_ENV` - Node environment (development/production)
 
 These should be set in `.env` or `.env.local` (both are gitignored).
@@ -190,8 +281,23 @@ Create a `.env.local` file in the project root:
 
 ```env
 DATABASE_URL="postgresql://interlinedlist:interlinedlist_dev_password@localhost:5432/interlinedlist?schema=public"
+RESEND_API_KEY="your_resend_api_key"
+RESEND_FROM_EMAIL="noreply@yourdomain.com"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
 NODE_ENV="development"
 ```
+
+### Email Configuration
+
+The application uses [Resend](https://resend.com) for sending emails. To set up:
+
+1. **Create a Resend account** at https://resend.com
+2. **Get your API key** from the Resend dashboard
+3. **Add it to your environment variables**:
+   - Local: Add to `.env.local`
+   - Production: Add to Vercel environment variables
+
+**Note**: The `NEXT_PUBLIC_APP_URL` is automatically detected on Vercel using the `VERCEL_URL` environment variable. For local development, set it to `http://localhost:3000`.
 
 ## Deployment
 
@@ -306,11 +412,40 @@ Or ensure your `package.json` has a `postinstall` script:
 }
 ```
 
-#### 4. Run Migrations on Vercel
+#### 4. Configure Email Environment Variables
 
-After deployment, you'll need to run migrations on your production database. You have several options:
+Add the following environment variables in Vercel:
 
-**Option A: Using Vercel CLI (Recommended)**
+**`RESEND_API_KEY`** (Required)
+- **Key:** `RESEND_API_KEY`
+- **Value:** Your Resend API key from https://resend.com
+- **Environment:** All environments (Production, Preview, Development)
+
+**`RESEND_FROM_EMAIL`** (Optional)
+- **Key:** `RESEND_FROM_EMAIL`
+- **Value:** Your verified sender email (e.g., `noreply@yourdomain.com`)
+- **Environment:** All environments
+- **Note:** Defaults to `onboarding@resend.dev` if not set
+
+**`NEXT_PUBLIC_APP_URL`** (Optional for Vercel)
+- **Key:** `NEXT_PUBLIC_APP_URL`
+- **Value:** Your production domain (e.g., `https://yourdomain.com`)
+- **Environment:** Production only
+- **Note:** Automatically detected on Vercel via `VERCEL_URL`, but you can override for custom domains
+
+#### 5. Run Migrations on Vercel
+
+Migrations run automatically during Vercel deployments via the `vercel-build` script:
+
+```json
+"vercel-build": "prisma migrate deploy && next build"
+```
+
+This ensures your production database is always up-to-date with the latest schema changes.
+
+**Manual Migration (if needed):**
+
+If you need to run migrations manually:
 
 1. **Install Vercel CLI**:
    ```bash
@@ -334,29 +469,10 @@ After deployment, you'll need to run migrations on your production database. You
 
 5. **Run migrations**:
    ```bash
-   npm run db:migrate
+   npm run db:migrate:deploy
    ```
 
-**Option B: Using Vercel Environment Variables Directly**
-
-```bash
-DATABASE_URL="your_production_database_url" npm run db:migrate
-```
-
-**Option C: Using Vercel's Postinstall Hook**
-
-Add to your `package.json`:
-
-```json
-{
-  "scripts": {
-    "postinstall": "prisma generate",
-    "vercel-build": "prisma migrate deploy && next build"
-  }
-}
-```
-
-This will automatically run migrations during each Vercel deployment.
+**Note**: Use `db:migrate:deploy` (not `db:migrate`) for production, as it only applies existing migrations without creating new ones.
 
 #### 5. Verify Deployment
 
@@ -372,6 +488,29 @@ This will automatically run migrations during each Vercel deployment.
 - **Set up database backups** through your provider
 - **Monitor database performance** and scale as needed
 - **Use connection pooling** for better performance (most managed providers handle this)
+- **Verify your Resend sender email** before deploying to production
+- **Set `NEXT_PUBLIC_APP_URL`** for custom domains (or rely on Vercel's auto-detection)
+
+## Recent Updates
+
+### Email Verification System
+- Complete email verification workflow with token-based verification
+- Rate-limited resend functionality (10 minutes between requests)
+- Email verification required to post messages
+- Verification banners and settings integration
+
+### Message Posting Feature
+- Time-series message feed (Mastodon-like)
+- Customizable character limits per user (default: 666)
+- Public/private message visibility
+- Three-column responsive layout
+
+### Database Migrations
+- `20251223015038_init_user` - Initial user schema
+- `20260104005203_add_theme_to_user` - Theme preferences
+- `20260104035743_add_password_reset_fields` - Password reset functionality
+- `20260104140926_add_messages_and_max_length` - Messages table and character limits
+- `20260104235810_add_email_verification_fields` - Email verification tokens
 
 ## License
 
