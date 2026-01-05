@@ -48,13 +48,11 @@ export default function LoginForm() {
 
       // Verify login was successful
       if (data.message === 'Login successful') {
-        // Ensure cookie is set before redirecting
-        // Small delay to ensure the Set-Cookie header is processed by the browser
-        setTimeout(() => {
-          // Use window.location.replace for a full page reload to ensure cookies are read
-          // Replace instead of href prevents back button from going to login page
-          window.location.replace('/dashboard');
-        }, 100);
+        // Reload the current page - this will cause middleware to see the cookie
+        // and redirect to dashboard automatically (since login page checks for auth)
+        // This is more reliable than client-side redirect because the cookie
+        // will definitely be set when the page reloads
+        window.location.reload();
       } else {
         setError('Login failed. Please try again.');
         setLoading(false);
