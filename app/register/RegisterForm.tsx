@@ -25,6 +25,7 @@ export default function RegisterForm() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
+        credentials: 'include', // Ensure cookies are included in the request
       });
 
       const data = await response.json();
@@ -36,8 +37,10 @@ export default function RegisterForm() {
       }
 
       // Redirect to dashboard on success
-      // Use window.location for a full page reload to ensure cookies are read
-      window.location.href = '/dashboard';
+      // Small delay to ensure cookie is set before redirecting
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 200);
     } catch (err) {
       setError('An error occurred. Please try again.');
       setLoading(false);

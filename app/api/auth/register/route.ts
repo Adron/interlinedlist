@@ -55,44 +55,77 @@ export async function POST(request: NextRequest) {
     const verificationToken = generateEmailVerificationToken();
     const expiration = getEmailVerificationExpiration();
 
-    // Create user
-    const user = await prisma.user.create({
-      data: {
-        email,
-        username,
-        passwordHash,
-        displayName: displayName || username,
-        emailVerificationToken: verificationToken,
-        emailVerificationExpires: expiration,
-      },
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        displayName: true,
-        avatar: true,
-        bio: true,
-        emailVerified: true,
-        createdAt: true,
-      },
-    });
+    // Create user - try with email verification fields first, fall back if columns don't exist
+    let user;
+    let hasEmailVerificationFields = false;
+    try {
+      user = await prisma.user.create({
+        data: {
+          email,
+          username,
+          passwordHash,
+          displayName: displayName || username,
+          emailVerificationToken: verificationToken,
+          emailVerificationExpires: expiration,
+        },
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          displayName: true,
+          avatar: true,
+          bio: true,
+          emailVerified: true,
+          createdAt: true,
+        },
+      });
+      hasEmailVerificationFields = true;
+    } catch (error: any) {
+      // If email verification columns don't exist, create user without them
+      if (error?.code === 'P2022' && error?.meta?.column?.includes('emailVerification')) {
+        user = await prisma.user.create({
+          data: {
+            email,
+            username,
+            passwordHash,
+            displayName: displayName || username,
+          },
+          select: {
+            id: true,
+            email: true,
+            username: true,
+            displayName: true,
+            avatar: true,
+            bio: true,
+            emailVerified: true,
+            createdAt: true,
+          },
+        });
+        hasEmailVerificationFields = false;
+      } else {
+        throw error;
+      }
+    }
 
     // Create session
     await createSession(user.id);
 
-    // Send verification email (don't fail registration if email fails)
-    try {
-      await resend.emails.send({
-        from: FROM_EMAIL,
-        to: user.email,
-        subject: 'Verify Your Email - InterlinedList',
-        html: getEmailVerificationEmailHtml(verificationToken, user.displayName || user.username),
-        text: getEmailVerificationEmailText(verificationToken, user.displayName || user.username),
-      });
-    } catch (emailError) {
-      console.error('Failed to send verification email:', emailError);
-      // Don't fail the request if email fails - log it
-      // In production, you might want to use a queue system
+    // Send verification email only if email verification fields exist
+    // (don't fail registration if email fails)
+    if (hasEmailVerificationFields) {
+      try {
+        await resend.emails.send({
+          from: FROM_EMAIL,
+          to: user.email,
+          subject: 'Verify Your Email - InterlinedList',
+          html: getEmailVerificationEmailHtml(verificationToken, user.displayName || user.username),
+          text: getEmailVerificationEmailText(verificationToken, user.displayName || user.username),
+        });
+      } catch (emailError) {
+        console.error('Failed to send verification email:', emailError);
+        // Don't fail the request if email fails - log it
+        // In production, you might want to use a queue system
+      }
     }
 
     return NextResponse.json(

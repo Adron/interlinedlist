@@ -48,11 +48,12 @@ export default function LoginForm() {
 
       // Verify login was successful
       if (data.message === 'Login successful') {
-        // Reload the current page - this will cause middleware to see the cookie
-        // and redirect to dashboard automatically (since login page checks for auth)
-        // This is more reliable than client-side redirect because the cookie
-        // will definitely be set when the page reloads
-        window.location.reload();
+        // Small delay to ensure cookie is set, then navigate to dashboard
+        // The cookie is set in the API response, so we need a moment for it to be processed
+        setTimeout(() => {
+          // Direct navigation to dashboard - middleware will validate the cookie
+          window.location.href = '/dashboard';
+        }, 200);
       } else {
         setError('Login failed. Please try again.');
         setLoading(false);
