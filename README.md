@@ -140,7 +140,8 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
-- `npm run db:migrate` - Run database migrations
+- `npm run db:migrate` - Run database migrations locally (creates new migrations)
+- `npm run db:migrate:deploy` - Apply migrations to production database
 - `npm run db:generate` - Generate Prisma Client
 - `npm run db:studio` - Open Prisma Studio (database GUI)
 
@@ -175,11 +176,36 @@ This will open a web interface at `http://localhost:5555` where you can view and
 
 A test API endpoint is available at `/api/test-db` to verify your database connection is working correctly.
 
+## Features
+
+### Core Features
+
+- **User Authentication**: Registration, login, and session management
+- **Email Verification**: Email verification workflow with resend capability (rate limited to 10 minutes)
+- **Password Reset**: Secure password reset via email
+- **Theme Management**: System, light, and dark theme support
+- **Message Posting**: Time-series based micro-blogging (Mastodon-like)
+  - Customizable character limits per user (default: 666 characters)
+  - Public/private message visibility
+  - Email verification required to post messages
+- **User Profiles**: Customizable display names, avatars, and bios
+
+### Security Features
+
+- Password hashing with bcrypt
+- Email verification required for posting messages
+- Rate limiting on email resend (10 minutes)
+- Secure token generation for password resets and email verification
+- Session-based authentication with httpOnly cookies
+
 ## Environment Variables
 
 Required environment variables:
 
 - `DATABASE_URL` - PostgreSQL connection string
+- `RESEND_API_KEY` - Resend API key for sending emails
+- `RESEND_FROM_EMAIL` - Email address to send from (optional, defaults to onboarding@resend.dev)
+- `NEXT_PUBLIC_APP_URL` - Application URL for email links (optional, auto-detected on Vercel)
 - `NODE_ENV` - Node environment (development/production)
 
 These should be set in `.env` or `.env.local` (both are gitignored).
@@ -190,8 +216,23 @@ Create a `.env.local` file in the project root:
 
 ```env
 DATABASE_URL="postgresql://interlinedlist:interlinedlist_dev_password@localhost:5432/interlinedlist?schema=public"
+RESEND_API_KEY="your_resend_api_key"
+RESEND_FROM_EMAIL="noreply@yourdomain.com"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
 NODE_ENV="development"
 ```
+
+### Email Configuration
+
+The application uses [Resend](https://resend.com) for sending emails. To set up:
+
+1. **Create a Resend account** at https://resend.com
+2. **Get your API key** from the Resend dashboard
+3. **Add it to your environment variables**:
+   - Local: Add to `.env.local`
+   - Production: Add to Vercel environment variables
+
+**Note**: The `NEXT_PUBLIC_APP_URL` is automatically detected on Vercel using the `VERCEL_URL` environment variable. For local development, set it to `http://localhost:3000`.
 
 ## Deployment
 
