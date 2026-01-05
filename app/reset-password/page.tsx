@@ -38,6 +38,10 @@ export default async function ResetPasswordPage({ searchParams }: PageProps) {
     where: {
       passwordResetToken: token,
     },
+    select: {
+      id: true,
+      passwordResetExpires: true,
+    },
   });
 
   if (!user) {
