@@ -1,6 +1,6 @@
 # InterlinedList
 
-Time-series based micro-blogging platform, with embedded DSL scripts for creating interactive lists.
+Time-series based micro-blogging platform, with embedded script for creating interactive lists.
 
 ## Prerequisites
 
