@@ -16,7 +16,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { displayName, bio, avatar, theme, maxMessageLength } = body;
+    const { displayName, bio, avatar, theme, maxMessageLength, defaultPubliclyVisible } = body;
 
     // Validate maxMessageLength if provided
     if (maxMessageLength !== undefined) {
@@ -38,6 +38,7 @@ export async function PATCH(request: NextRequest) {
         ...(avatar !== undefined && { avatar }),
         ...(theme !== undefined && { theme }),
         ...(maxMessageLength !== undefined && { maxMessageLength: parseInt(maxMessageLength, 10) }),
+        ...(defaultPubliclyVisible !== undefined && { defaultPubliclyVisible: Boolean(defaultPubliclyVisible) }),
       },
       select: {
         id: true,
@@ -49,6 +50,7 @@ export async function PATCH(request: NextRequest) {
         theme: true,
         emailVerified: true,
         maxMessageLength: true,
+        defaultPubliclyVisible: true,
         createdAt: true,
       },
     });
