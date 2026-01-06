@@ -16,7 +16,7 @@ export default function LeftSidebar({ user }: LeftSidebarProps) {
   const [showMessageInput, setShowMessageInput] = useState(false);
 
   return (
-    <div className="d-none d-lg-block">
+    <div className="d-block">
       <div className="card mb-3">
         <div className="card-body">
           <p className="text-muted">
