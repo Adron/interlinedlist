@@ -34,13 +34,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get user's maxMessageLength setting
+    // Get user's settings
     const userWithSettings = await prisma.user.findUnique({
       where: { id: user.id },
-      select: { maxMessageLength: true },
+      select: { maxMessageLength: true, defaultPubliclyVisible: true },
     });
 
     const maxLength = userWithSettings?.maxMessageLength || 666;
+    const defaultPubliclyVisible = userWithSettings?.defaultPubliclyVisible ?? false;
 
     if (content.length > maxLength) {
       return NextResponse.json(
@@ -49,11 +50,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Use provided publiclyVisible, or fall back to user's default
+    const finalPubliclyVisible = publiclyVisible !== undefined ? Boolean(publiclyVisible) : defaultPubliclyVisible;
+
     // Create message
     const message = await prisma.message.create({
       data: {
         content: content.trim(),
-        publiclyVisible: publiclyVisible !== undefined ? Boolean(publiclyVisible) : true,
+        publiclyVisible: finalPubliclyVisible,
         userId: user.id,
       },
       include: {

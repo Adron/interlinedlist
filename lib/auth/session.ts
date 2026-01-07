@@ -45,6 +45,7 @@ export async function getCurrentUser() {
           theme: true,
           emailVerified: true,
           maxMessageLength: true,
+          defaultPubliclyVisible: true,
           createdAt: true,
         },
       });
@@ -68,8 +69,8 @@ export async function getCurrentUser() {
           },
         });
 
-        // Add default maxMessageLength if not in database
-        return user ? { ...user, maxMessageLength: 666 } : null;
+        // Add defaults if not in database
+        return user ? { ...user, maxMessageLength: 666, defaultPubliclyVisible: false } : null;
       }
       throw error;
     }
