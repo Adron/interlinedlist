@@ -4,12 +4,13 @@ import { useState, FormEvent, useRef, useEffect } from 'react';
 
 interface MessageInputProps {
   maxLength: number;
+  defaultPubliclyVisible?: boolean;
   onSubmit: () => void;
 }
 
-export default function MessageInput({ maxLength, onSubmit }: MessageInputProps) {
+export default function MessageInput({ maxLength, defaultPubliclyVisible = false, onSubmit }: MessageInputProps) {
   const [content, setContent] = useState('');
-  const [publiclyVisible, setPubliclyVisible] = useState(true);
+  const [publiclyVisible, setPubliclyVisible] = useState(defaultPubliclyVisible);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -21,6 +22,11 @@ export default function MessageInput({ maxLength, onSubmit }: MessageInputProps)
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   }, [content]);
+
+  // Synchronize publiclyVisible state with prop
+  useEffect(() => {
+    setPubliclyVisible(defaultPubliclyVisible);
+  }, [defaultPubliclyVisible]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -61,7 +67,7 @@ export default function MessageInput({ maxLength, onSubmit }: MessageInputProps)
 
       // Clear form
       setContent('');
-      setPubliclyVisible(true);
+      setPubliclyVisible(defaultPubliclyVisible);
       setError('');
       
       // Trigger refresh of message list

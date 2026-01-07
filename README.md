@@ -149,14 +149,137 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ```
 interlinedlist/
-├── app/              # Next.js app directory (pages, API routes)
-├── lib/              # Utility functions and configurations
-│   └── prisma.ts     # Prisma Client singleton
-├── prisma/           # Prisma schema and migrations
-│   ├── schema.prisma # Database schema
-│   └── migrations/   # Database migration files
-└── package.json      # Project dependencies
+├── app/                          # Next.js app directory (App Router)
+│   ├── api/                      # API routes
+│   │   ├── auth/                 # Authentication endpoints
+│   │   │   ├── forgot-password/  # Password reset request
+│   │   │   ├── login/            # User login
+│   │   │   ├── logout/           # User logout
+│   │   │   ├── register/         # User registration
+│   │   │   ├── reset-password/   # Password reset confirmation
+│   │   │   ├── send-verification-email/  # Resend verification email
+│   │   │   └── verify-email/     # Email verification
+│   │   ├── messages/             # Message endpoints
+│   │   │   ├── [id]/            # Individual message operations
+│   │   │   └── route.ts         # GET/POST messages
+│   │   ├── test-db/             # Database connection test endpoint
+│   │   └── user/                 # User management endpoints
+│   │       └── update/           # Update user profile/settings
+│   ├── dashboard/                # Dashboard page
+│   ├── forgot-password/          # Password reset page
+│   ├── login/                    # Login page and form
+│   ├── register/                 # Registration page and form
+│   ├── reset-password/           # Password reset page
+│   ├── settings/                 # User settings page
+│   │   ├── EmailVerificationResend.tsx
+│   │   ├── EmailVerificationSection.tsx
+│   │   ├── ProfileSettings.tsx  # Profile and preferences
+│   │   ├── SecuritySection.tsx   # Security settings
+│   │   └── SettingsForm.tsx
+│   ├── verify-email/             # Email verification page
+│   ├── globals.css               # Global styles
+│   ├── layout.tsx               # Root layout component
+│   └── page.tsx                 # Home page
+├── components/                   # React components
+│   ├── Avatar.tsx                # User avatar component
+│   ├── DashboardMessageFeed.tsx  # Dashboard message feed
+│   ├── EmailVerificationBanner.tsx  # Email verification banner
+│   ├── Footer.tsx                # Footer component
+│   ├── LeftSidebar.tsx           # Left sidebar with message input
+│   ├── Logo.tsx                  # Logo component
+│   ├── LogoutButton.tsx          # Logout button component
+│   ├── MessageCard.tsx           # Individual message card
+│   ├── MessageFeed.tsx           # Message feed component
+│   ├── MessageGrid.tsx           # Grid layout for messages
+│   ├── MessageInput.tsx          # Message input form
+│   ├── MessageList.tsx           # List of messages
+│   ├── Navigation.tsx            # Navigation bar
+│   ├── ThemeBridgeInit.tsx       # Theme bridge initialization
+│   └── ThemeProvider.tsx         # Theme context provider
+├── lib/                          # Utility functions and configurations
+│   ├── auth/                     # Authentication utilities
+│   │   ├── password.ts           # Password hashing/verification
+│   │   ├── session.ts            # Session management
+│   │   └── tokens.ts             # Token generation/verification
+│   ├── email/                    # Email utilities
+│   │   ├── resend.ts             # Resend email client
+│   │   └── templates/            # Email templates
+│   │       ├── email-verification.ts
+│   │       └── password-reset.ts
+│   ├── theme/                    # Theme utilities
+│   │   └── darkone-bridge.ts     # DarkOne theme bridge
+│   ├── utils/                    # General utilities
+│   │   └── relativeTime.ts      # Relative time formatting
+│   └── prisma.ts                 # Prisma Client singleton
+├── prisma/                       # Prisma schema and migrations
+│   ├── schema.prisma             # Database schema definition
+│   └── migrations/               # Database migration files
+│       ├── 20251223015038_init_user/
+│       ├── 20260104005203_add_theme_to_user/
+│       ├── 20260104035743_add_password_reset_fields/
+│       ├── 20260104140926_add_messages_and_max_length/
+│       ├── 20260104235810_add_email_verification_fields/
+│       ├── 20260106210211_add_default_publicly_visible/
+│       └── migration_lock.toml
+├── public/                       # Static assets
+│   ├── fonts/                    # Custom fonts (Boxicons)
+│   ├── images/                   # Image assets
+│   │   ├── brands/               # Brand logos
+│   │   ├── small/                # Small images
+│   │   └── users/                # User avatars
+│   ├── favicon.ico               # Favicon
+│   ├── favicon.svg               # SVG favicon
+│   ├── logo-*.svg                # Logo variants
+│   └── manifest.json             # Web app manifest
+├── scripts/                      # Utility scripts
+│   └── setup-database.sh         # Database setup automation
+├── styles/                       # Global styles
+│   └── darkone/                  # DarkOne theme styles
+│       └── scss/                 # SCSS source files
+│           ├── components/       # Component styles
+│           ├── config/           # Theme configuration
+│           ├── icons/            # Icon styles
+│           ├── pages/            # Page-specific styles
+│           ├── plugins/          # Plugin styles
+│           └── structure/       # Layout structure styles
+├── middleware.ts                 # Next.js middleware (auth, routing)
+├── next.config.js                # Next.js configuration
+├── package.json                  # Project dependencies and scripts
+├── tsconfig.json                 # TypeScript configuration
+└── README.md                     # Project documentation
 ```
+
+### Key Directories Explained
+
+- **`app/`**: Next.js 13+ App Router directory containing pages, API routes, and layouts. Uses file-based routing where each folder represents a route segment.
+
+- **`app/api/`**: RESTful API endpoints organized by feature:
+  - `auth/`: Authentication endpoints (login, register, password reset, email verification)
+  - `messages/`: Message CRUD operations
+  - `user/`: User profile and settings management
+  - `test-db/`: Database connection testing utility
+
+- **`components/`**: Reusable React components organized by feature:
+  - Message-related: `MessageInput`, `MessageCard`, `MessageFeed`, `MessageList`, `MessageGrid`
+  - UI components: `Avatar`, `Navigation`, `Footer`, `Logo`
+  - Feature-specific: `LeftSidebar`, `EmailVerificationBanner`, `ThemeProvider`
+
+- **`lib/`**: Shared utility functions and configurations:
+  - `auth/`: Authentication helpers (password hashing, session management, token generation)
+  - `email/`: Email sending utilities using Resend API
+  - `theme/`: Theme management and DarkOne theme integration
+  - `utils/`: General utility functions (time formatting, etc.)
+  - `prisma.ts`: Prisma Client singleton instance
+
+- **`prisma/`**: Database schema and migrations:
+  - `schema.prisma`: Type-safe database schema definition
+  - `migrations/`: Version-controlled database migration history
+
+- **`public/`**: Static assets served directly by Next.js (images, fonts, favicons)
+
+- **`styles/`**: Global stylesheets and theme files (DarkOne SCSS framework)
+
+- **`scripts/`**: Automation scripts for database setup and other tasks
 
 ## Database
 
@@ -167,7 +290,15 @@ The application uses Prisma as the ORM with PostgreSQL. The database schema is d
 The application includes the following models:
 
 - **User**: User accounts with authentication, profile, and preferences
+  - Authentication: email, username, password hash
+  - Profile: display name, avatar, bio
+  - Preferences: theme (system/light/dark), max message length, default message visibility
+  - Security: email verification, password reset tokens
 - **Message**: Time-series messages posted by users
+  - Content: message text with user-defined length limits
+  - Visibility: public or private (defaults to user's preference)
+  - Relationships: linked to user with cascade delete
+  - Indexes: optimized for createdAt and publiclyVisible queries
 
 ### Database Migrations
 
@@ -251,9 +382,15 @@ A test API endpoint is available at `/api/test-db` to verify your database conne
 - **Theme Management**: System, light, and dark theme support
 - **Message Posting**: Time-series based micro-blogging (Mastodon-like)
   - Customizable character limits per user (default: 666 characters)
-  - Public/private message visibility
+  - Public/private message visibility with per-user default preference
+  - Default visibility setting: Messages default to the user's preference, which itself defaults to private (not public)
   - Email verification required to post messages
 - **User Profiles**: Customizable display names, avatars, and bios
+- **User Settings**: Comprehensive settings management
+  - Profile customization (display name, bio, avatar)
+  - Theme preferences (system, light, dark)
+  - Message length limits
+  - Default message visibility preference (public/private)
 
 ### Security Features
 
@@ -502,8 +639,10 @@ If you need to run migrations manually:
 ### Message Posting Feature
 - Time-series message feed (Mastodon-like)
 - Customizable character limits per user (default: 666)
-- Public/private message visibility
+- Public/private message visibility with per-user default preference
+- Messages default to the user's preference, which itself defaults to private (not public)
 - Three-column responsive layout
+- Dashboard view with paginated message grid
 
 ### Database Migrations
 - `20251223015038_init_user` - Initial user schema
@@ -511,6 +650,7 @@ If you need to run migrations manually:
 - `20260104035743_add_password_reset_fields` - Password reset functionality
 - `20260104140926_add_messages_and_max_length` - Messages table and character limits
 - `20260104235810_add_email_verification_fields` - Email verification tokens
+- `20260106210211_add_default_publicly_visible` - User default message visibility preference
 
 ## License
 

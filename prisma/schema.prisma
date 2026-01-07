@@ -24,6 +24,7 @@ model User {
   emailVerificationToken     String?
   emailVerificationExpires   DateTime?
   maxMessageLength           Int       @default(666)
+  defaultPubliclyVisible     Boolean   @default(false)
   messages             Message[]
 
   @@map("users")
