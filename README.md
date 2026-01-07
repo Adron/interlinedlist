@@ -383,7 +383,7 @@ A test API endpoint is available at `/api/test-db` to verify your database conne
 - **Message Posting**: Time-series based micro-blogging (Mastodon-like)
   - Customizable character limits per user (default: 666 characters)
   - Public/private message visibility with per-user default preference
-  - Default visibility setting: Messages default to private (not public) unless user changes preference
+  - Default visibility setting: Messages default to the user's preference, which itself defaults to private (not public)
   - Email verification required to post messages
 - **User Profiles**: Customizable display names, avatars, and bios
 - **User Settings**: Comprehensive settings management
@@ -640,7 +640,7 @@ If you need to run migrations manually:
 - Time-series message feed (Mastodon-like)
 - Customizable character limits per user (default: 666)
 - Public/private message visibility with per-user default preference
-- Messages default to private (not public) unless user changes their default setting
+- Messages default to the user's preference, which itself defaults to private (not public)
 - Three-column responsive layout
 - Dashboard view with paginated message grid
 

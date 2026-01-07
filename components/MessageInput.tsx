@@ -23,6 +23,11 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
     }
   }, [content]);
 
+  // Synchronize publiclyVisible state with prop
+  useEffect(() => {
+    setPubliclyVisible(defaultPubliclyVisible);
+  }, [defaultPubliclyVisible]);
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
