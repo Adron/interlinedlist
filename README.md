@@ -368,6 +368,62 @@ npm run db:studio
 
 This will open a web interface at `http://localhost:5555` where you can view and edit your database.
 
+### Database Backups
+
+The project includes an automated backup script that creates SQL dumps of both production and local development databases.
+
+#### Running Backups
+
+To create backups of your databases:
+
+```bash
+npm run backup
+```
+
+Or run the script directly:
+
+```bash
+node scripts/backup-database.js
+```
+
+#### What Gets Backed Up
+
+The script automatically backs up:
+
+1. **Production Database** - Reads `DATABASE_URL` from `.env` file
+2. **Local Development Database** - Reads `DATABASE_URL` from `.env.local` file
+
+#### Backup Location
+
+Backups are saved to a `BACKUP` folder in your Downloads directory:
+- **macOS**: `~/Downloads/BACKUP/`
+- **Linux**: `~/Downloads/BACKUP/` (or `$XDG_DOWNLOAD_DIR/BACKUP/` if set)
+- **Windows**: `%USERPROFILE%\Downloads\BACKUP\`
+
+The script automatically creates the BACKUP directory if it doesn't exist.
+
+#### Backup File Naming
+
+Backup files are named with timestamps for easy identification:
+- Production: `backup_production_YYYY-MM-DD_HH-MM-SS.sql`
+- Local: `backup_local_YYYY-MM-DD_HH-MM-SS.sql`
+
+Example: `backup_production_2024-01-15_14-30-00.sql`
+
+#### Prerequisites
+
+- **PostgreSQL client tools** must be installed (includes `pg_dump`)
+  - macOS: `brew install postgresql`
+  - Linux: `sudo apt-get install postgresql-client` (Debian/Ubuntu) or `sudo yum install postgresql` (RHEL/CentOS)
+  - Windows: Install PostgreSQL from https://www.postgresql.org/download/windows/
+
+#### Notes
+
+- The script will skip backups if `.env` or `.env.local` files are missing
+- If `DATABASE_URL` is not found in a file, that backup will be skipped with a warning
+- Backups are created in plain SQL format and can be restored using `psql` or Prisma migrations
+- The script provides colored output indicating success, warnings, and errors
+
 ### Testing Database Connection
 
 A test API endpoint is available at `/api/test-db` to verify your database connection is working correctly.
@@ -651,8 +707,3 @@ If you need to run migrations manually:
 - `20260104140926_add_messages_and_max_length` - Messages table and character limits
 - `20260104235810_add_email_verification_fields` - Email verification tokens
 - `20260106210211_add_default_publicly_visible` - User default message visibility preference
-
-## License
-
-MIT
-
