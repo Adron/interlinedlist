@@ -24,7 +24,7 @@ export default async function DashboardMessageFeed() {
       };
     }
 
-    // Fetch first page of messages (10 messages)
+    // Fetch first page of messages (12 messages)
     const messages = await prisma.message.findMany({
       where,
       include: {
@@ -40,7 +40,7 @@ export default async function DashboardMessageFeed() {
       orderBy: {
         createdAt: 'desc',
       },
-      take: 10, // First page
+      take: 12, // First page
     });
 
     // Get total count for pagination
@@ -57,7 +57,7 @@ export default async function DashboardMessageFeed() {
         initialMessages={serializedMessages}
         initialTotal={total}
         currentUserId={user?.id}
-        itemsPerPage={10}
+        itemsPerPage={12}
       />
     );
   } catch (error: any) {
