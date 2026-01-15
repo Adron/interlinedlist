@@ -1,6 +1,6 @@
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/prisma';
-import MessageGrid from './MessageGrid';
+import MessageTable from './MessageTable';
 
 export default async function DashboardMessageFeed() {
   const user = await getCurrentUser();
@@ -53,7 +53,7 @@ export default async function DashboardMessageFeed() {
     }));
 
     return (
-      <MessageGrid
+      <MessageTable
         initialMessages={serializedMessages}
         initialTotal={total}
         currentUserId={user?.id}
