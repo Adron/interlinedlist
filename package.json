@@ -12,7 +12,8 @@
     "db:migrate": "dotenv -e .env.local -- prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:generate": "dotenv -e .env.local -- prisma generate",
-    "db:studio": "dotenv -e .env.local -- prisma studio"
+    "db:studio": "dotenv -e .env.local -- prisma studio",
+    "backup": "node scripts/backup-database.js"
   },
   "dependencies": {
     "@prisma/client": "^5.19.0",
