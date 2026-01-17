@@ -37,6 +37,10 @@ export default function MessageTable({
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(initialMessages.length >= itemsPerPage);
   const [selectedMessages, setSelectedMessages] = useState<Set<string>>(new Set());
+  const [showDeleteRepostModal, setShowDeleteRepostModal] = useState(false);
+  const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+  const [editedContent, setEditedContent] = useState('');
+  const [editedPubliclyVisible, setEditedPubliclyVisible] = useState(false);
   
   // Track if this is the initial mount to prevent unnecessary fetch
   const isInitialMount = useRef(true);
@@ -182,7 +186,7 @@ export default function MessageTable({
     }
   }, [selectedMessages, messages, currentUserId, currentPage, fetchMessages]);
 
-  const handleDeleteAndRepost = useCallback(async () => {
+  const handleDeleteAndRepost = useCallback(() => {
     if (selectedMessages.size !== 1) return;
     
     const messageId = Array.from(selectedMessages)[0];
@@ -190,10 +194,20 @@ export default function MessageTable({
     
     if (!message || message.user.id !== currentUserId) return;
     
+    // Open modal with message content
+    setEditingMessage(message);
+    setEditedContent(message.content);
+    setEditedPubliclyVisible(message.publiclyVisible);
+    setShowDeleteRepostModal(true);
+  }, [selectedMessages, messages, currentUserId]);
+
+  const handleDeleteAndPost = useCallback(async () => {
+    if (!editingMessage) return;
+    
     setIsLoading(true);
     try {
       // Delete the message
-      const deleteResponse = await fetch(`/api/messages/${messageId}`, {
+      const deleteResponse = await fetch(`/api/messages/${editingMessage.id}`, {
         method: 'DELETE',
       });
       
@@ -201,36 +215,77 @@ export default function MessageTable({
         throw new Error('Failed to delete message');
       }
 
-      // Create a new message with the same content
+      // Create a new message with edited content
       const createResponse = await fetch('/api/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          content: message.content,
-          publiclyVisible: message.publiclyVisible,
+          content: editedContent.trim(),
+          publiclyVisible: editedPubliclyVisible,
         }),
       });
 
       if (!createResponse.ok) {
-        throw new Error('Failed to repost message');
+        const data = await createResponse.json();
+        throw new Error(data.error || 'Failed to repost message');
       }
 
       // Refresh current page
       lastFetchedPage.current = null;
       await fetchMessages(currentPage, true);
       
-      // Clear selection
+      // Clear selection and close modal
       setSelectedMessages(new Set());
+      setShowDeleteRepostModal(false);
+      setEditingMessage(null);
       setTotalMessages((prev) => prev); // Total stays same since we deleted and created
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting and reposting message:', error);
-      alert('Failed to delete and repost message. Please try again.');
+      alert(error.message || 'Failed to delete and repost message. Please try again.');
     } finally {
       setIsLoading(false);
     }
-  }, [selectedMessages, messages, currentUserId, currentPage, fetchMessages]);
+  }, [editingMessage, editedContent, editedPubliclyVisible, currentPage, fetchMessages]);
+
+  const handleDeleteOnly = useCallback(async () => {
+    if (!editingMessage) return;
+    
+    setIsLoading(true);
+    try {
+      // Delete the message
+      const deleteResponse = await fetch(`/api/messages/${editingMessage.id}`, {
+        method: 'DELETE',
+      });
+      
+      if (!deleteResponse.ok) {
+        throw new Error('Failed to delete message');
+      }
+
+      // Refresh current page
+      lastFetchedPage.current = null;
+      await fetchMessages(currentPage, true);
+      
+      // Clear selection and close modal
+      setSelectedMessages(new Set());
+      setShowDeleteRepostModal(false);
+      setEditingMessage(null);
+      setTotalMessages((prev) => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      alert('Failed to delete message. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [editingMessage, currentPage, fetchMessages]);
+
+  const handleCancelModal = useCallback(() => {
+    setShowDeleteRepostModal(false);
+    setEditingMessage(null);
+    setEditedContent('');
+    setEditedPubliclyVisible(false);
+  }, []);
 
   // Listen for new messages
   useEffect(() => {
@@ -572,6 +627,89 @@ export default function MessageTable({
       {/* end card body */}
     </div>
     {/* end card */}
+
+    {/* Delete & Repost Modal */}
+    {showDeleteRepostModal && editingMessage && (
+      <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} tabIndex={-1}>
+        <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h5 className="modal-title">Delete & Repost Message</h5>
+              <button
+                type="button"
+                className="btn-close"
+                onClick={handleCancelModal}
+                disabled={isLoading}
+                aria-label="Close"
+              ></button>
+            </div>
+            <div className="modal-body">
+              <p className="mb-3">Edit the message content below. The original message will be deleted.</p>
+              
+              <div className="mb-3">
+                <label htmlFor="editContent" className="form-label">Message Content</label>
+                <textarea
+                  id="editContent"
+                  className="form-control"
+                  rows={6}
+                  value={editedContent}
+                  onChange={(e) => setEditedContent(e.target.value)}
+                  placeholder="Enter your message..."
+                  disabled={isLoading}
+                  style={{
+                    resize: 'vertical',
+                    minHeight: '120px',
+                  }}
+                />
+                <div className="form-text">
+                  {editedContent.length} characters
+                </div>
+              </div>
+
+              <div className="form-check mb-3">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  id="editPubliclyVisible"
+                  checked={editedPubliclyVisible}
+                  onChange={(e) => setEditedPubliclyVisible(e.target.checked)}
+                  disabled={isLoading}
+                />
+                <label className="form-check-label" htmlFor="editPubliclyVisible">
+                  Make this message public
+                </label>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handleCancelModal}
+                disabled={isLoading}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={handleDeleteOnly}
+                disabled={isLoading || !editedContent.trim()}
+              >
+                {isLoading ? 'Deleting...' : 'Delete'}
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleDeleteAndPost}
+                disabled={isLoading || !editedContent.trim()}
+              >
+                {isLoading ? 'Processing...' : 'Delete & Post'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
     </>
   );
 }
