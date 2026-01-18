@@ -34,4 +34,4 @@ From here on out, simply run `gulp` from your terminal and you're good to go!
   
 #### Support
 
-If you experience any problems with the above instruction, or if you think you've found a bug with theme - please don't hesitate to reach out to support tab
+If you experience any problems with the above instructions, or if you think you've found a bug with theme - please don't hesitate to reach out to support tab
