@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -14,6 +15,25 @@ interface UserDropdownProps {
 
 export default function UserDropdown({ user }: UserDropdownProps) {
   const router = useRouter();
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
 
   const handleLogout = async () => {
     try {
@@ -34,14 +54,17 @@ export default function UserDropdown({ user }: UserDropdownProps) {
   const initials = displayName[0].toUpperCase();
 
   return (
-    <div className="dropdown topbar-item">
+    <div className="dropdown topbar-item" ref={dropdownRef}>
       <a
         type="button"
         className="topbar-button"
         id="page-header-user-dropdown"
-        data-bs-toggle="dropdown"
         aria-haspopup="true"
-        aria-expanded="false"
+        aria-expanded={isOpen}
+        onClick={(e) => {
+          e.preventDefault();
+          setIsOpen(!isOpen);
+        }}
         style={{ cursor: 'pointer', textDecoration: 'none' }}
       >
         <span className="d-flex align-items-center">
@@ -72,25 +95,41 @@ export default function UserDropdown({ user }: UserDropdownProps) {
           )}
         </span>
       </a>
-      <div className="dropdown-menu dropdown-menu-end" aria-labelledby="page-header-user-dropdown">
+      <div 
+        className={`dropdown-menu dropdown-menu-end ${isOpen ? 'show' : ''}`}
+        aria-labelledby="page-header-user-dropdown"
+        style={{ display: isOpen ? 'block' : 'none' }}
+      >
         {/* Welcome header */}
         <h6 className="dropdown-header">Welcome!</h6>
 
         {/* My Account */}
-        <Link className="dropdown-item" href="/settings">
+        <Link 
+          className="dropdown-item" 
+          href="/settings"
+          onClick={() => setIsOpen(false)}
+        >
           <i className="bx bx-user align-middle me-2" style={{ fontSize: '18px' }}></i>
           <span className="align-middle">My Account</span>
         </Link>
 
         {/* Settings */}
-        <Link className="dropdown-item" href="/settings">
+        <Link 
+          className="dropdown-item" 
+          href="/settings"
+          onClick={() => setIsOpen(false)}
+        >
           <i className="bx bx-cog align-middle me-2" style={{ fontSize: '18px' }}></i>
           <span className="align-middle">Settings</span>
         </Link>
 
         {/* Help */}
-        <Link className="dropdown-item" href="/help">
-          <i className="bx bx-life-buoy align-middle me-2" style={{ fontSize: '18px' }}></i>
+        <Link 
+          className="dropdown-item" 
+          href="/help"
+          onClick={() => setIsOpen(false)}
+        >
+          <i className="bx bx-help-circle align-middle me-2" style={{ fontSize: '18px' }}></i>
           <span className="align-middle">Help</span>
         </Link>
 
@@ -103,6 +142,7 @@ export default function UserDropdown({ user }: UserDropdownProps) {
           href="#"
           onClick={(e) => {
             e.preventDefault();
+            setIsOpen(false);
             handleLogout();
           }}
         >

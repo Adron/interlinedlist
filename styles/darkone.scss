@@ -44,9 +44,8 @@
 @import "./darkone/scss/components/tooltip";
 @import "./darkone/scss/components/widgets";
 
-// Import Darkone Icons (commented out - too large, use CDN or load separately if needed)
-// @import "./darkone/scss/icons/boxicons";
-// @import "./darkone/scss/icons";
+// Import Darkone Icons
+@import "./darkone/scss/icons";
 
 // Import Darkone Plugins (only include what's actually used)
 // @import "./darkone/scss/plugins/simplebar";

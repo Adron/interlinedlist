@@ -28,13 +28,26 @@ export default async function Navigation() {
               <>
                 <div className="topbar-item">
                   <Link
-                    href="/dashboard"
-                    className="topbar-button btn btn-link text-decoration-none"
+                    href="/"
+                    className="topbar-button btn btn-link text-decoration-none d-flex align-items-center"
                     style={{
                       color: 'var(--bs-topbar-item-color, var(--color-text))',
                     }}
+                    title="Home"
                   >
-                    Dashboard
+                    <i className="bx bx-home fs-22 align-middle"></i>
+                  </Link>
+                </div>
+                <div className="topbar-item">
+                  <Link
+                    href="/dashboard"
+                    className="topbar-button btn btn-link text-decoration-none d-flex align-items-center"
+                    style={{
+                      color: 'var(--bs-topbar-item-color, var(--color-text))',
+                    }}
+                    title="Dashboard"
+                  >
+                    <i className="bx bx-bar-chart fs-22 align-middle"></i>
                   </Link>
                 </div>
                 <UserDropdown user={user} />
