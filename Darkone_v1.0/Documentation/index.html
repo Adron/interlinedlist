@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Darkone - Documentation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap"
+        rel="stylesheet">
+
+    <style>
+        .font-roboto {
+            font-family: "Roboto", sans-serif;
+        }
+    </style>
+</head>
+
+<body class="font-roboto text-zinc-700">
+
+    <section class="bg-slate-700 py-6 sticky top-0">
+        <div class="container mx-auto lg:px-40 px-10">
+            <div class="text-center">
+                <a href="#" class="inline-flex gap-3 items-center">
+                    <img src="images/logo-light.png" alt="images" class="h-8 mx-auto">
+                    <h5 class="font-semobild text-xl mt-1 text-white">- Documentation</h5>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <div class="container mx-auto bg-gray-50 text-gray-800 p-8">
+        <!-- Appreciation Section -->
+        <div class="bg-white p-6 rounded shadow">
+            <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded">
+                <p>
+                    If you need any assistance beyond this documentation, please feel free to
+                    reach out to us via email or through our support page.
+                </p>
+            </div>
+        </div>
+
+        <!-- Overview Section -->
+        <div class="bg-white p-6 rounded shadow mt-8">
+            <h4 class="text-xl font-semibold border-b border-gray-200 pb-2">Overview</h4>
+            <p class="mt-4 text-gray-700">
+                Darkone is a modern, developer-centric, and highly customizable HTML dashboard
+                template. Built on Bootstrap 5, HTML5, SCSS, and jQuery, it features a fully responsive
+                layout and an intuitive interface. With a vast library of components, widgets, and UI
+                elements, Darkone accelerates project development, saving valuable time and
+                resources. Perfect for SaaS interfaces, admin dashboards, or any other web application,
+                Darkone streamlines your workflow.
+            </p>
+            <p class="mt-4 text-gray-700">
+                Your feedback is invaluable to us. Please don’t hesitate to reach out with any comments,
+                questions, or suggestions.
+            </p>
+        </div>
+
+        <!-- Project Structure -->
+        <div class="bg-white p-6 rounded shadow mt-8">
+            <h4 class="text-xl font-semibold border-b border-gray-200 pb-2">Project Structure</h4>
+            <p class="mt-4 text-gray-700">
+                We’ve organized the project using best practices to ensure clarity and scalability.
+                Below is an overview of the folder and file structure, along with an explanation of
+                key files and tools.
+            </p>
+
+            <div class="mt-6">
+                <h4 class="text-lg font-semibold">Folder Organization</h4>
+                <hr class="my-2">
+                <pre class="bg-gray-100 text-gray-800 p-4 rounded overflow-auto">
+Darkone
+├── dist (Compiled and ready to deploy)
+├── src (Development files)
+│   ├── assets/
+│   │   ├── css/
+│   │   ├── fonts/
+│   │   ├── images/
+│   │   ├── js/
+│   │   └── scss/
+│   └── partials (Reusable components)
+│   └── All HTML files
+├── gulpfile.js (Build configuration)
+├── package.json (Dependencies list)
+└── yarn.lock (Dependency lock file)</pre>
+            </div>
+
+            <div class="mt-6">
+                <h4 class="text-lg font-semibold">Code Structure</h4>
+                <hr class="my-2">
+                <div class="overflow-hidden border rounded">
+                    <img src="images/code.png" class="-mt-1 -ms-12">
+                </div>
+            </div>
+
+            <!-- CSS Files -->
+            <h4 class="text-lg font-semibold mt-6">CSS Files</h4>
+            <hr class="my-2">
+            <p class="text-gray-700">The following are the primary CSS files included:</p>
+            <table class="w-full mt-4 border border-gray-300 bg-white rounded">
+                <thead>
+                    <tr class="bg-gray-200 text-left">
+                        <th class="px-4 py-2">File Name</th>
+                        <th class="px-4 py-2">Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="border px-4 py-2"><code>icons.min.css</code></td>
+                        <td class="border px-4 py-2">Includes various font icons. Remove unused fonts for optimization.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="border px-4 py-2"><code>style.min.css</code></td>
+                        <td class="border px-4 py-2">The main stylesheet combining all styles, including Bootstrap
+                            v5.3.3.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Setup Guide -->
+            <h4 class="text-lg font-semibold mt-8">Setup Guide</h4>
+            <hr class="my-2">
+            <p class="mt-4 text-gray-700">
+                We use <a href="https://gulpjs.com/" target="_blank" class="text-blue-500 underline">Gulp</a> to
+                simplify
+                the development process. It automates repetitive tasks, allowing you to
+                focus on coding. Learn more about Gulp <a href="https://gulpjs.com/" target="_blank"
+                    class="text-blue-500 underline">here</a>.
+            </p>
+
+            <h5 class="text-md font-semibold mt-6">Prerequisites</h5>
+            <ul class="list-disc list-inside mt-2 text-gray-700">
+                <li><strong>Node.js:</strong> Install <a href="https://nodejs.org/" target="_blank"
+                        class="text-blue-500 underline">Node.js</a> to manage dependencies.</li>
+                <li><strong>Gulp:</strong> Install globally using <code>npm install -g gulp@4.0.2</code>.</li>
+                <li><strong>Git:</strong> Download and install <a href="https://git-scm.com/" target="_blank"
+                        class="text-blue-500 underline">Git</a>.</li>
+            </ul>
+
+            <h5 class="text-md font-semibold mt-6">Installation</h5>
+            <ul class="list-disc list-inside mt-2 text-gray-700">
+                <li><strong>Step 1:</strong> Ensure all prerequisites are installed and running.</li>
+                <li><strong>Step 2:</strong> Use <code>npm install</code> or <code>yarn</code> to install project
+                    dependencies.</li>
+            </ul>
+
+            <p class="mt-4 text-gray-700">
+                After installation, use these commands:
+            </p>
+            <table class="w-full mt-4 border border-gray-300 bg-white rounded">
+                <thead>
+                    <tr class="bg-gray-200 text-left">
+                        <th class="px-4 py-2">Command</th>
+                        <th class="px-4 py-2">Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="border px-4 py-2"><code>yarn</code></td>
+                        <td class="border px-4 py-2">Generate node-module package folder</td>
+                    </tr>
+                    <tr>
+                        <td class="border px-4 py-2"><code>gulp</code></td>
+                        <td class="border px-4 py-2">Starts a local server at <a href="http://localhost:3000"
+                                target="_blank" class="text-blue-500 underline">http://localhost:3000</a> for
+                            development.</td>
+                    </tr>
+                    <tr>
+                        <td class="border px-4 py-2"><code>gulp build</code></td>
+                        <td class="border px-4 py-2">Generates a production-ready build optimized for performance.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Acknowledgments -->
+        <div class="bg-white p-6 rounded shadow mt-8">
+            <h4 class="text-lg font-semibold border-b border-gray-200 pb-2">Acknowledgments</h4>
+            <p class="mt-4 text-gray-700">
+                We would like to thank the creators of the following resources for their contributions:
+            </p>
+            <ul class="list-disc list-inside text-blue-500">
+                <li><a href="http://getbootstrap.com/" target="_blank" class="underline">Bootstrap</a></li>
+            </ul>
+        </div>
+
+        <!-- Customer Support -->
+        <div class="bg-white p-6 rounded shadow mt-8">
+            <h4 class="text-lg font-semibold border-b border-gray-200 pb-2">Customer Support</h4>
+            <p class="mt-4 text-gray-700">
+                We’re here to help! If you have suggestions or feature requests, feel free to reach
+                out. Your feedback will help shape future updates.
+            </p>
+            <p class="text-gray-800 font-semibold mt-2">Best regards,</p>
+            <p class="text-blue-600 font-semibold">- Stackbros</p>
+        </div>
+
+        <!-- Release Notes -->
+        <div class="bg-white p-6 rounded shadow mt-8">
+            <h4 class="text-lg font-semibold border-b border-gray-200 pb-2">Release Notes</h4>
+            <p class="mt-4">
+                <strong>Version 1.0.0 <small>- 23 November 2024</small></strong>
+            </p>
+            <ul class="list-disc list-inside mt-2 text-gray-700">
+                <li>Initial release.</li>
+            </ul>
+        </div>
+    </div>
+
+</body>
+
+</html>

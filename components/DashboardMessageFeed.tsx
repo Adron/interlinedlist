@@ -1,6 +1,6 @@
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/prisma';
-import MessageGrid from './MessageGrid';
+import MessageTable from './MessageTable';
 
 export default async function DashboardMessageFeed() {
   const user = await getCurrentUser();
@@ -24,7 +24,7 @@ export default async function DashboardMessageFeed() {
       };
     }
 
-    // Fetch first page of messages (10 messages)
+    // Fetch first page of messages (12 messages)
     const messages = await prisma.message.findMany({
       where,
       include: {
@@ -40,7 +40,7 @@ export default async function DashboardMessageFeed() {
       orderBy: {
         createdAt: 'desc',
       },
-      take: 10, // First page
+      take: 12, // First page
     });
 
     // Get total count for pagination
@@ -53,11 +53,11 @@ export default async function DashboardMessageFeed() {
     }));
 
     return (
-      <MessageGrid
+      <MessageTable
         initialMessages={serializedMessages}
         initialTotal={total}
         currentUserId={user?.id}
-        itemsPerPage={10}
+        itemsPerPage={12}
       />
     );
   } catch (error: any) {

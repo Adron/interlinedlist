@@ -26,12 +26,8 @@ export default async function DashboardPage() {
       </div>
 
       <div className="row">
-        {/* Left Column - Messages Grid */}
+        {/* Left Column - Messages Table */}
         <div className="col-lg-8 mb-4">
-          <div className="mb-3">
-            <h2 className="h4 mb-0">Recent Messages</h2>
-            <p className="text-muted small mb-0">Latest updates from the community</p>
-          </div>
           <DashboardMessageFeed />
         </div>
 
