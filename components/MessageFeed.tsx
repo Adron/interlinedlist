@@ -24,7 +24,7 @@ export default async function MessageFeed() {
       };
     }
 
-    // Fetch messages ordered by createdAt DESC (newest first)
+    // Fetch first 20 messages ordered by createdAt DESC (newest first)
     const messages = await prisma.message.findMany({
       where,
       include: {
@@ -40,8 +40,11 @@ export default async function MessageFeed() {
       orderBy: {
         createdAt: 'desc',
       },
-      take: 50, // Limit to 50 most recent messages
+      take: 20, // Show first 20 messages
     });
+
+    // Get total count for pagination
+    const total = await prisma.message.count({ where });
 
     // Serialize dates to strings for client components
     const serializedMessages = messages.map((message) => ({
@@ -53,6 +56,7 @@ export default async function MessageFeed() {
       <MessageList
         initialMessages={serializedMessages}
         currentUserId={user?.id}
+        initialTotal={total}
       />
     );
   } catch (error: any) {

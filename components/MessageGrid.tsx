@@ -29,13 +29,14 @@ export default function MessageGrid({
   initialMessages, 
   initialTotal,
   currentUserId,
-  itemsPerPage = 10 
+  itemsPerPage = 12 
 }: MessageGridProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalMessages, setTotalMessages] = useState(initialTotal ?? initialMessages.length);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(initialMessages.length >= itemsPerPage);
+  const [selectedMessages, setSelectedMessages] = useState<Set<string>>(new Set());
   
   // Track if this is the initial mount to prevent unnecessary fetch
   const isInitialMount = useRef(true);
@@ -96,6 +97,8 @@ export default function MessageGrid({
     // Only fetch if page actually changed
     if (currentPage !== lastFetchedPage.current) {
       fetchMessages(currentPage);
+      // Clear selection when page changes
+      setSelectedMessages(new Set());
     }
   }, [currentPage, fetchMessages]);
 
@@ -113,7 +116,121 @@ export default function MessageGrid({
       return updated;
     });
     setTotalMessages((prev) => Math.max(0, prev - 1));
+    // Remove from selection if selected
+    setSelectedMessages((prev) => {
+      const updated = new Set(prev);
+      updated.delete(deletedMessageId);
+      return updated;
+    });
   }, [currentPage, fetchMessages]);
+
+  const handleSelectChange = useCallback((messageId: string, selected: boolean) => {
+    // Only allow selecting messages that belong to the current user
+    const message = messages.find((m) => m.id === messageId);
+    if (message && message.user.id !== currentUserId) {
+      return; // Don't allow selecting other users' messages
+    }
+    
+    setSelectedMessages((prev) => {
+      const updated = new Set(prev);
+      if (selected) {
+        updated.add(messageId);
+      } else {
+        updated.delete(messageId);
+      }
+      return updated;
+    });
+  }, [messages, currentUserId]);
+
+  const handleBulkDelete = useCallback(async () => {
+    if (selectedMessages.size === 0) return;
+    
+    // Filter to only include messages owned by current user
+    const ownedSelectedMessages = Array.from(selectedMessages).filter((messageId) => {
+      const message = messages.find((m) => m.id === messageId);
+      return message && message.user.id === currentUserId;
+    });
+
+    if (ownedSelectedMessages.length === 0) return;
+    
+    setIsLoading(true);
+    try {
+      const deletePromises = ownedSelectedMessages.map(async (messageId) => {
+        const response = await fetch(`/api/messages/${messageId}`, {
+          method: 'DELETE',
+        });
+        if (!response.ok) {
+          throw new Error(`Failed to delete message ${messageId}`);
+        }
+        return messageId;
+      });
+
+      await Promise.all(deletePromises);
+      
+      // Refresh current page
+      lastFetchedPage.current = null;
+      await fetchMessages(currentPage, true);
+      
+      // Clear selection
+      setSelectedMessages(new Set());
+      setTotalMessages((prev) => Math.max(0, prev - ownedSelectedMessages.length));
+    } catch (error) {
+      console.error('Error deleting messages:', error);
+      alert('Failed to delete some messages. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedMessages, messages, currentUserId, currentPage, fetchMessages]);
+
+  const handleDeleteAndRepost = useCallback(async () => {
+    if (selectedMessages.size !== 1) return;
+    
+    const messageId = Array.from(selectedMessages)[0];
+    const message = messages.find((m) => m.id === messageId);
+    
+    if (!message || message.user.id !== currentUserId) return;
+    
+    setIsLoading(true);
+    try {
+      // Delete the message
+      const deleteResponse = await fetch(`/api/messages/${messageId}`, {
+        method: 'DELETE',
+      });
+      
+      if (!deleteResponse.ok) {
+        throw new Error('Failed to delete message');
+      }
+
+      // Create a new message with the same content
+      const createResponse = await fetch('/api/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: message.content,
+          publiclyVisible: message.publiclyVisible,
+        }),
+      });
+
+      if (!createResponse.ok) {
+        throw new Error('Failed to repost message');
+      }
+
+      // Refresh current page
+      lastFetchedPage.current = null;
+      await fetchMessages(currentPage, true);
+      
+      // Clear selection
+      setSelectedMessages(new Set());
+      setTotalMessages((prev) => prev); // Total stays same since we deleted and created
+    } catch (error) {
+      console.error('Error deleting and reposting message:', error);
+      alert('Failed to delete and repost message. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedMessages, messages, currentUserId, currentPage, fetchMessages]);
 
   // Listen for new messages
   useEffect(() => {
@@ -156,6 +273,113 @@ export default function MessageGrid({
     }
   };
 
+  // Action buttons component
+  const renderActionButtons = () => {
+    if (selectedMessages.size === 0) return null;
+
+    // Filter to only include messages owned by current user
+    const ownedSelectedMessages = Array.from(selectedMessages).filter((messageId) => {
+      const message = messages.find((m) => m.id === messageId);
+      return message && message.user.id === currentUserId;
+    });
+
+    if (ownedSelectedMessages.length === 0) return null;
+
+    const selectedCount = ownedSelectedMessages.length;
+    const isSingleSelection = selectedCount === 1;
+
+    return (
+      <div className="d-flex align-items-center gap-2 mb-3 flex-wrap">
+        <span className="text-muted small">
+          {selectedCount} {selectedCount === 1 ? 'message' : 'messages'} selected
+        </span>
+        <button
+          className="btn btn-sm btn-danger"
+          onClick={handleBulkDelete}
+          disabled={isLoading}
+          title="Delete selected messages"
+        >
+          <i className="bx bx-x" style={{ fontSize: '1rem' }}></i>
+          <span className="ms-1">Delete</span>
+        </button>
+        {isSingleSelection && (
+          <button
+            className="btn btn-sm btn-primary"
+            onClick={handleDeleteAndRepost}
+            disabled={isLoading}
+            title="Delete and repost message"
+          >
+            <i className="bx bx-recycle" style={{ fontSize: '1rem' }}></i>
+            <span className="ms-1">Delete & Repost</span>
+          </button>
+        )}
+      </div>
+    );
+  };
+
+  // Pagination component
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+    
+    return (
+      <nav aria-label="Message pagination" className="mb-3">
+        <ul className="pagination justify-content-center mb-0">
+          <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+            <button
+              className="page-link"
+              onClick={() => goToPage(currentPage - 1)}
+              disabled={currentPage === 1 || isLoading}
+            >
+              Previous
+            </button>
+          </li>
+          
+          {/* Page numbers */}
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+            // Show first page, last page, current page, and pages around current
+            if (
+              page === 1 ||
+              page === totalPages ||
+              (page >= currentPage - 1 && page <= currentPage + 1)
+            ) {
+              return (
+                <li key={page} className={`page-item ${currentPage === page ? 'active' : ''}`}>
+                  <button
+                    className="page-link"
+                    onClick={() => goToPage(page)}
+                    disabled={isLoading}
+                  >
+                    {page}
+                  </button>
+                </li>
+              );
+            } else if (
+              page === currentPage - 2 ||
+              page === currentPage + 2
+            ) {
+              return (
+                <li key={page} className="page-item disabled">
+                  <span className="page-link">...</span>
+                </li>
+              );
+            }
+            return null;
+          })}
+          
+          <li className={`page-item ${currentPage === totalPages || !hasMore ? 'disabled' : ''}`}>
+            <button
+              className="page-link"
+              onClick={() => goToPage(currentPage + 1)}
+              disabled={currentPage === totalPages || !hasMore || isLoading}
+            >
+              Next
+            </button>
+          </li>
+        </ul>
+      </nav>
+    );
+  };
+
   if (messages.length === 0 && !isLoading) {
     return (
       <div className="text-center py-5">
@@ -174,76 +398,40 @@ export default function MessageGrid({
         </div>
       )}
 
-      <div className="row g-3">
+      {/* Pagination at top */}
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-center align-items-md-start mb-3 gap-2">
+        <div className="flex-grow-1 w-100 w-md-auto">
+          {renderPagination()}
+        </div>
+        <div className="w-100 w-md-auto">
+          {renderActionButtons()}
+        </div>
+      </div>
+
+      <div className="row g-2">
         {messages.map((message) => (
-          <div key={message.id} className="col-md-6">
+          <div key={message.id} className="col-12 col-md-6 col-lg-4">
             <MessageCard
               message={message}
               currentUserId={currentUserId}
               onDelete={handleDelete}
+              isSelected={selectedMessages.has(message.id)}
+              onSelectChange={handleSelectChange}
+              showCheckbox={selectedMessages.size > 0}
             />
           </div>
         ))}
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <nav aria-label="Message pagination" className="mt-4">
-          <ul className="pagination justify-content-center">
-            <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-              <button
-                className="page-link"
-                onClick={() => goToPage(currentPage - 1)}
-                disabled={currentPage === 1 || isLoading}
-              >
-                Previous
-              </button>
-            </li>
-            
-            {/* Page numbers */}
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-              // Show first page, last page, current page, and pages around current
-              if (
-                page === 1 ||
-                page === totalPages ||
-                (page >= currentPage - 1 && page <= currentPage + 1)
-              ) {
-                return (
-                  <li key={page} className={`page-item ${currentPage === page ? 'active' : ''}`}>
-                    <button
-                      className="page-link"
-                      onClick={() => goToPage(page)}
-                      disabled={isLoading}
-                    >
-                      {page}
-                    </button>
-                  </li>
-                );
-              } else if (
-                page === currentPage - 2 ||
-                page === currentPage + 2
-              ) {
-                return (
-                  <li key={page} className="page-item disabled">
-                    <span className="page-link">...</span>
-                  </li>
-                );
-              }
-              return null;
-            })}
-            
-            <li className={`page-item ${currentPage === totalPages || !hasMore ? 'disabled' : ''}`}>
-              <button
-                className="page-link"
-                onClick={() => goToPage(currentPage + 1)}
-                disabled={currentPage === totalPages || !hasMore || isLoading}
-              >
-                Next
-              </button>
-            </li>
-          </ul>
-        </nav>
-      )}
+      {/* Pagination at bottom */}
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-center align-items-md-start mt-3 gap-2">
+        <div className="flex-grow-1 w-100 w-md-auto">
+          {renderPagination()}
+        </div>
+        <div className="w-100 w-md-auto">
+          {renderActionButtons()}
+        </div>
+      </div>
     </div>
   );
 }
