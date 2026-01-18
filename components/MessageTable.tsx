@@ -106,26 +106,49 @@ export default function MessageTable({
     }
   }, [currentPage, fetchMessages]);
 
-  const handleDelete = useCallback((deletedMessageId: string) => {
-    setMessages((prevMessages) => {
-      const updated = prevMessages.filter((msg) => msg.id !== deletedMessageId);
-      // If current page becomes empty and not on first page, go to previous page
-      if (updated.length === 0 && currentPage > 1) {
-        setCurrentPage(currentPage - 1);
-      } else {
-        // Refresh current page to maintain pagination
-        lastFetchedPage.current = null; // Reset to allow refetch
-        fetchMessages(currentPage);
+  const handleDelete = useCallback(async (deletedMessageId: string) => {
+    setIsLoading(true);
+    try {
+      console.log('Attempting to delete message:', deletedMessageId);
+      
+      // Delete the message via API
+      const deleteResponse = await fetch(`/api/messages/${deletedMessageId}`, {
+        method: 'DELETE',
+      });
+      
+      const responseData = await deleteResponse.json().catch(() => ({}));
+      console.log('Delete response:', deleteResponse.status, responseData);
+      
+      if (!deleteResponse.ok) {
+        throw new Error(responseData.error || 'Failed to delete message');
       }
-      return updated;
-    });
-    setTotalMessages((prev) => Math.max(0, prev - 1));
-    // Remove from selection if selected
-    setSelectedMessages((prev) => {
-      const updated = new Set(prev);
-      updated.delete(deletedMessageId);
-      return updated;
-    });
+
+      // Update local state after successful deletion
+      setMessages((prevMessages) => {
+        const updated = prevMessages.filter((msg) => msg.id !== deletedMessageId);
+        // If current page becomes empty and not on first page, go to previous page
+        if (updated.length === 0 && currentPage > 1) {
+          setCurrentPage(currentPage - 1);
+        } else {
+          // Refresh current page to maintain pagination
+          lastFetchedPage.current = null; // Reset to allow refetch
+          fetchMessages(currentPage);
+        }
+        return updated;
+      });
+      setTotalMessages((prev) => Math.max(0, prev - 1));
+      // Remove from selection if selected
+      setSelectedMessages((prev) => {
+        const updated = new Set(prev);
+        updated.delete(deletedMessageId);
+        return updated;
+      });
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      alert('Failed to delete message. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   }, [currentPage, fetchMessages]);
 
   const handleSelectChange = useCallback((messageId: string, selected: boolean) => {
@@ -611,9 +634,9 @@ export default function MessageTable({
                       <td>
                         <button
                           className="btn btn-sm btn-link text-danger p-0"
-                          onClick={() => {
+                          onClick={async () => {
                             if (isOwner && window.confirm('Are you sure you want to delete this message?')) {
-                              handleDelete(message.id);
+                              await handleDelete(message.id);
                             }
                           }}
                           disabled={isLoading || !isOwner}
