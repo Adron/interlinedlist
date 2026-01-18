@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
     const user = await getCurrentUser();
@@ -18,13 +18,19 @@ export async function DELETE(
       );
     }
 
-    const messageId = params.id;
+    // Handle both sync and async params (Next.js 14+)
+    const resolvedParams = params instanceof Promise ? await params : params;
+    const messageId = resolvedParams.id;
+
+    console.log('Delete request for message ID:', messageId);
 
     // Find the message and verify ownership
     const message = await prisma.message.findUnique({
       where: { id: messageId },
       select: { userId: true },
     });
+
+    console.log('Message found:', message ? 'yes' : 'no', message ? `userId: ${message.userId}, currentUserId: ${user.id}` : '');
 
     if (!message) {
       return NextResponse.json(

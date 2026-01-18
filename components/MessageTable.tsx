@@ -206,13 +206,18 @@ export default function MessageTable({
     
     setIsLoading(true);
     try {
+      console.log('Attempting to delete and repost message:', editingMessage.id);
+      
       // Delete the message
       const deleteResponse = await fetch(`/api/messages/${editingMessage.id}`, {
         method: 'DELETE',
       });
       
+      const deleteResponseData = await deleteResponse.json().catch(() => ({}));
+      console.log('Delete response:', deleteResponse.status, deleteResponseData);
+      
       if (!deleteResponse.ok) {
-        throw new Error('Failed to delete message');
+        throw new Error(deleteResponseData.error || 'Failed to delete message');
       }
 
       // Create a new message with edited content
@@ -254,13 +259,18 @@ export default function MessageTable({
     
     setIsLoading(true);
     try {
+      console.log('Attempting to delete message:', editingMessage.id);
+      
       // Delete the message
       const deleteResponse = await fetch(`/api/messages/${editingMessage.id}`, {
         method: 'DELETE',
       });
       
+      const responseData = await deleteResponse.json().catch(() => ({}));
+      console.log('Delete response:', deleteResponse.status, responseData);
+      
       if (!deleteResponse.ok) {
-        throw new Error('Failed to delete message');
+        throw new Error(responseData.error || 'Failed to delete message');
       }
 
       // Refresh current page
