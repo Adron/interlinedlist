@@ -76,15 +76,21 @@ export default function UserDropdown({ user }: UserDropdownProps) {
         {/* Welcome header */}
         <h6 className="dropdown-header">Welcome!</h6>
 
-        {/* My Account / Settings */}
+        {/* My Account */}
         <Link className="dropdown-item" href="/settings">
           <i className="bx bx-user align-middle me-2" style={{ fontSize: '18px' }}></i>
           <span className="align-middle">My Account</span>
         </Link>
 
+        {/* Settings */}
+        <Link className="dropdown-item" href="/settings">
+          <i className="bx bx-cog align-middle me-2" style={{ fontSize: '18px' }}></i>
+          <span className="align-middle">Settings</span>
+        </Link>
+
         {/* Help */}
         <Link className="dropdown-item" href="/help">
-          <i className="bx bx-help-circle align-middle me-2" style={{ fontSize: '18px' }}></i>
+          <i className="bx bx-life-buoy align-middle me-2" style={{ fontSize: '18px' }}></i>
           <span className="align-middle">Help</span>
         </Link>
 
