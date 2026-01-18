@@ -1,4 +1,3 @@
-
 # Darkone - Dark Admin Dashboard & UI Kit Template
 
 Thank you for purchasing Darkone :). The following guideline will help you to get started with Darkone and its documentation.
