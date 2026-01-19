@@ -10,21 +10,23 @@ export default async function Navigation() {
     <header className="app-topbar">
       <div className="container-fluid">
         <div className="navbar-header" style={{ position: 'relative' }}>
-          {/* Left side - Empty on desktop, Logo on mobile */}
-          <div className="d-flex align-items-center gap-2 d-md-none" style={{ flex: '0 0 auto' }}>
-            <Link
-              href="/"
-              style={{
-                textDecoration: 'none',
-                display: 'flex',
-                alignItems: 'center',
-              }}
-            >
-              <Logo size="medium" iconOnly={true} />
-            </Link>
+          {/* Left side - Logo icon (always visible) */}
+          <div className="d-flex align-items-center gap-2" style={{ flex: '0 0 auto', marginRight: 'auto' }}>
+            <div className="topbar-item">
+              <Link
+                href="/"
+                className="topbar-button btn btn-link text-decoration-none d-flex align-items-center"
+                style={{
+                  color: 'var(--bs-topbar-item-color, var(--color-text))',
+                }}
+                title="Home"
+              >
+                <Logo size="medium" iconOnly={true} />
+              </Link>
+            </div>
           </div>
 
-          {/* Center - Logo + Title (desktop only) */}
+          {/* Center - Title text (desktop only) */}
           <div className="d-none d-md-flex align-items-center justify-content-center" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', pointerEvents: 'auto' }}>
             <Link
               href="/"
@@ -34,7 +36,16 @@ export default async function Navigation() {
                 alignItems: 'center',
               }}
             >
-              <Logo size="medium" showText={true} />
+              <span
+                style={{
+                  fontSize: '1.25rem',
+                  fontWeight: 'bold',
+                  color: 'var(--color-text)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                InterlinedList
+              </span>
             </Link>
           </div>
 
