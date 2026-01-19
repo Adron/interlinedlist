@@ -118,3 +118,11 @@ textarea:focus {
 /* Button styles are now handled by Darkone/Bootstrap theme */
 /* Removed custom overrides to allow Darkone button styling to work properly */
 
+/* Max width constraint for 1080p screens */
+.container-fluid-max {
+  max-width: 1320px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}

@@ -63,6 +63,7 @@ export default function Logo({ size = 'medium', showText = false, iconOnly = fal
           style={{ flexShrink: 0 }}
         />
         <span
+          className="d-none d-md-inline"
           style={{
             fontSize: size === 'small' ? '1rem' : size === 'medium' ? '1.25rem' : '1.5rem',
             fontWeight: 'bold',

@@ -2,12 +2,13 @@ import { getCurrentUser } from '@/lib/auth/session';
 import MessageFeed from '@/components/MessageFeed';
 import LeftSidebar from '@/components/LeftSidebar';
 import EmailVerificationBanner from '@/components/EmailVerificationBanner';
+import WeatherWidget from '@/components/WeatherWidget';
 
 export default async function Home() {
   const user = await getCurrentUser();
 
   return (
-    <div className="container-fluid py-4">
+    <div className="container-fluid container-fluid-max py-4">
       {user && !user.emailVerified && (
         <div className="row mb-3">
           <div className="col-12">
@@ -31,14 +32,8 @@ export default async function Home() {
         </div>
 
         {/* Right Column - Sidebar */}
-        <div className="col-lg-3 d-none d-lg-block">
-          <div className="card">
-            <div className="card-body">
-              <p className="text-muted">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-              </p>
-            </div>
-          </div>
+        <div className="col-lg-3 col-12 mb-4 order-lg-3">
+          <WeatherWidget />
         </div>
       </div>
     </div>
