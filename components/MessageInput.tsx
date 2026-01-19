@@ -135,14 +135,6 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
 
           <div className="d-flex gap-2 justify-content-end">
             <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={onSubmit}
-              disabled={loading}
-            >
-              Cancel
-            </button>
-            <button
               type="submit"
               className="btn btn-primary btn-sm"
               disabled={loading || !content.trim() || isOverLimit}
