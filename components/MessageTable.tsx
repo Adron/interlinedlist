@@ -124,25 +124,25 @@ export default function MessageTable({
       }
 
       // Update local state after successful deletion
-      setMessages((prevMessages) => {
-        const updated = prevMessages.filter((msg) => msg.id !== deletedMessageId);
-        // If current page becomes empty and not on first page, go to previous page
-        if (updated.length === 0 && currentPage > 1) {
-          setCurrentPage(currentPage - 1);
-        } else {
-          // Refresh current page to maintain pagination
-          lastFetchedPage.current = null; // Reset to allow refetch
-          fetchMessages(currentPage);
-        }
-        return updated;
-      });
-      setTotalMessages((prev) => Math.max(0, prev - 1));
-      // Remove from selection if selected
-      setSelectedMessages((prev) => {
-        const updated = new Set(prev);
-        updated.delete(deletedMessageId);
-        return updated;
-      });
+    setMessages((prevMessages) => {
+      const updated = prevMessages.filter((msg) => msg.id !== deletedMessageId);
+      // If current page becomes empty and not on first page, go to previous page
+      if (updated.length === 0 && currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+      } else {
+        // Refresh current page to maintain pagination
+        lastFetchedPage.current = null; // Reset to allow refetch
+        fetchMessages(currentPage);
+      }
+      return updated;
+    });
+    setTotalMessages((prev) => Math.max(0, prev - 1));
+    // Remove from selection if selected
+    setSelectedMessages((prev) => {
+      const updated = new Set(prev);
+      updated.delete(deletedMessageId);
+      return updated;
+    });
     } catch (error) {
       console.error('Error deleting message:', error);
       alert('Failed to delete message. Please try again.');
@@ -632,19 +632,19 @@ export default function MessageTable({
                     </td>
                     {currentUserId && (
                       <td>
-                        <button
-                          className="btn btn-sm btn-link text-danger p-0"
+                          <button
+                            className="btn btn-sm btn-link text-danger p-0"
                           onClick={async () => {
                             if (isOwner && window.confirm('Are you sure you want to delete this message?')) {
                               await handleDelete(message.id);
-                            }
-                          }}
+                              }
+                            }}
                           disabled={isLoading || !isOwner}
                           title={isOwner ? "Delete message" : "You can only delete your own messages"}
                           style={{ opacity: isOwner ? 1 : 0.5 }}
-                        >
-                          <i className="bx bx-trash"></i>
-                        </button>
+                          >
+                            <i className="bx bx-trash"></i>
+                          </button>
                       </td>
                     )}
                   </tr>
