@@ -9,8 +9,23 @@ export default async function Navigation() {
   return (
     <header className="app-topbar">
       <div className="container-fluid">
-        <div className="navbar-header">
-          <div className="d-flex align-items-center gap-2">
+        <div className="navbar-header" style={{ position: 'relative' }}>
+          {/* Left side - Empty on desktop, Logo on mobile */}
+          <div className="d-flex align-items-center gap-2 d-md-none" style={{ flex: '0 0 auto' }}>
+            <Link
+              href="/"
+              style={{
+                textDecoration: 'none',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              <Logo size="medium" iconOnly={true} />
+            </Link>
+          </div>
+
+          {/* Center - Logo + Title (desktop only) */}
+          <div className="d-none d-md-flex align-items-center justify-content-center" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', pointerEvents: 'auto' }}>
             <Link
               href="/"
               style={{
@@ -23,7 +38,8 @@ export default async function Navigation() {
             </Link>
           </div>
 
-          <div className="d-flex align-items-center gap-2">
+          {/* Right side - User actions */}
+          <div className="d-flex align-items-center gap-2" style={{ flex: '0 0 auto', marginLeft: 'auto' }}>
             {user ? (
               <>
                 <div className="topbar-item">

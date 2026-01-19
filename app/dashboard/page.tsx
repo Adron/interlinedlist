@@ -12,7 +12,7 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="container-fluid py-4">
+    <div className="container-fluid container-fluid-max py-4">
       <div className="row mb-3">
         <div className="col-12">
           <h1 className="h2 mb-0">Dashboard</h1>
@@ -32,7 +32,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Right Column - Profile Information */}
-        <div className="col-lg-4">
+        <div className="col-lg-4 col-12 mb-4 order-lg-2">
           <div className="card mb-3">
             <div className="card-body">
               <div className="d-flex align-items-center gap-3 mb-3">

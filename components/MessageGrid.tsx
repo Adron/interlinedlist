@@ -320,63 +320,63 @@ export default function MessageGrid({
   // Pagination component
   const renderPagination = () => {
     if (totalPages <= 1) return null;
-    
-    return (
+
+  return (
       <nav aria-label="Message pagination" className="mb-3">
         <ul className="pagination justify-content-center mb-0">
-          <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-            <button
-              className="page-link"
-              onClick={() => goToPage(currentPage - 1)}
-              disabled={currentPage === 1 || isLoading}
-            >
-              Previous
-            </button>
-          </li>
-          
-          {/* Page numbers */}
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-            // Show first page, last page, current page, and pages around current
-            if (
-              page === 1 ||
-              page === totalPages ||
-              (page >= currentPage - 1 && page <= currentPage + 1)
-            ) {
-              return (
-                <li key={page} className={`page-item ${currentPage === page ? 'active' : ''}`}>
-                  <button
-                    className="page-link"
-                    onClick={() => goToPage(page)}
-                    disabled={isLoading}
-                  >
-                    {page}
-                  </button>
-                </li>
-              );
-            } else if (
-              page === currentPage - 2 ||
-              page === currentPage + 2
-            ) {
-              return (
-                <li key={page} className="page-item disabled">
-                  <span className="page-link">...</span>
-                </li>
-              );
-            }
-            return null;
-          })}
-          
-          <li className={`page-item ${currentPage === totalPages || !hasMore ? 'disabled' : ''}`}>
-            <button
-              className="page-link"
-              onClick={() => goToPage(currentPage + 1)}
-              disabled={currentPage === totalPages || !hasMore || isLoading}
-            >
-              Next
-            </button>
-          </li>
-        </ul>
-      </nav>
+            <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+              <button
+                className="page-link"
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1 || isLoading}
+              >
+                Previous
+              </button>
+            </li>
+            
+            {/* Page numbers */}
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+              // Show first page, last page, current page, and pages around current
+              if (
+                page === 1 ||
+                page === totalPages ||
+                (page >= currentPage - 1 && page <= currentPage + 1)
+              ) {
+                return (
+                  <li key={page} className={`page-item ${currentPage === page ? 'active' : ''}`}>
+                    <button
+                      className="page-link"
+                      onClick={() => goToPage(page)}
+                      disabled={isLoading}
+                    >
+                      {page}
+                    </button>
+                  </li>
+                );
+              } else if (
+                page === currentPage - 2 ||
+                page === currentPage + 2
+              ) {
+                return (
+                  <li key={page} className="page-item disabled">
+                    <span className="page-link">...</span>
+                  </li>
+                );
+              }
+              return null;
+            })}
+            
+            <li className={`page-item ${currentPage === totalPages || !hasMore ? 'disabled' : ''}`}>
+              <button
+                className="page-link"
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages || !hasMore || isLoading}
+              >
+                Next
+              </button>
+            </li>
+          </ul>
+        </nav>
     );
   };
 

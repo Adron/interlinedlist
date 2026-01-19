@@ -54,7 +54,7 @@ export default function Logo({ size = 'medium', showText = false, iconOnly = fal
 
   if (showText && !iconOnly) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '0.75rem' }}>
         <Image
           src={logoPath}
           alt="InterlinedList Logo"
@@ -63,10 +63,12 @@ export default function Logo({ size = 'medium', showText = false, iconOnly = fal
           style={{ flexShrink: 0 }}
         />
         <span
+          className="d-none d-md-inline"
           style={{
             fontSize: size === 'small' ? '1rem' : size === 'medium' ? '1.25rem' : '1.5rem',
             fontWeight: 'bold',
             color: 'var(--color-text)',
+            whiteSpace: 'nowrap',
           }}
         >
           InterlinedList
