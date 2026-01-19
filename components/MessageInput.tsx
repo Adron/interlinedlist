@@ -69,11 +69,12 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
       setContent('');
       setPubliclyVisible(defaultPubliclyVisible);
       setError('');
+      setLoading(false); // Reset loading state so button is enabled for next post
       
       // Trigger refresh of message list
       window.dispatchEvent(new Event('messageAdded'));
       
-      // Call onSubmit callback to hide the form
+      // Call onSubmit callback (currently a no-op, but kept for compatibility)
       onSubmit();
     } catch (err) {
       setError('An error occurred. Please try again.');
