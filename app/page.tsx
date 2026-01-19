@@ -2,8 +2,7 @@ import { getCurrentUser } from '@/lib/auth/session';
 import MessageFeed from '@/components/MessageFeed';
 import LeftSidebar from '@/components/LeftSidebar';
 import EmailVerificationBanner from '@/components/EmailVerificationBanner';
-import WeatherWidget from '@/components/WeatherWidget';
-import LocationWidget from '@/components/LocationWidget';
+import RightSidebar from '@/components/RightSidebar';
 
 export default async function Home() {
   const user = await getCurrentUser();
@@ -34,8 +33,7 @@ export default async function Home() {
 
         {/* Right Column - Sidebar */}
         <div className="col-lg-3 col-12 mb-4 order-lg-3">
-          {user && <LocationWidget />}
-          <WeatherWidget />
+          <RightSidebar showLocation={!!user} />
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
 import ProfileSettings from './ProfileSettings';
-import EmailVerificationSection from './EmailVerificationSection';
+import PermissionsSection from './PermissionsSection';
 import SecuritySection from './SecuritySection';
 
 export default async function SettingsPage() {
@@ -26,10 +26,10 @@ export default async function SettingsPage() {
           <ProfileSettings user={user} />
         </div>
 
-        {/* Column 2: Email Verification */}
+        {/* Column 2: Permissions (Location Permission + Email Verification) */}
         {/* Large: middle column (4/12), Medium: left column below Profile (6/12), Small: stacked (12/12) */}
         <div className="col-lg-4 col-md-6 col-12 order-2 order-md-2">
-          <EmailVerificationSection emailVerified={user.emailVerified} />
+          <PermissionsSection emailVerified={user.emailVerified} />
         </div>
 
         {/* Column 3: Security Settings */}
