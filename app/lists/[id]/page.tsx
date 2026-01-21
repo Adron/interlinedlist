@@ -125,9 +125,6 @@ export default async function ListDetailPage({ params, searchParams }: ListDetai
             <ListDataTable
               listId={params.id}
               fields={properties}
-              onAdd={() => {
-                // This will be handled by the link above
-              }}
             />
           </div>
         </div>
