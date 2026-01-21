@@ -111,7 +111,13 @@ export async function POST(request: NextRequest) {
     // Send verification email only if email verification fields exist
     // (don't fail registration if email fails)
     if (hasEmailVerificationFields) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/6d7b0182-ed1e-48d0-aaac-1eb388eba3d8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/auth/register/route.ts:before-email',message:'About to send verification email',data:{hasEmailVerificationFields,userEmail:user.email},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       try {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/6d7b0182-ed1e-48d0-aaac-1eb388eba3d8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/auth/register/route.ts:before-resend-access',message:'Before accessing resend.emails',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
         await resend.emails.send({
           from: FROM_EMAIL,
           to: user.email,
@@ -119,7 +125,13 @@ export async function POST(request: NextRequest) {
           html: getEmailVerificationEmailHtml(verificationToken, user.displayName || user.username),
           text: getEmailVerificationEmailText(verificationToken, user.displayName || user.username),
         });
-      } catch (emailError) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/6d7b0182-ed1e-48d0-aaac-1eb388eba3d8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/auth/register/route.ts:email-sent',message:'Email sent successfully',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
+      } catch (emailError: any) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/6d7b0182-ed1e-48d0-aaac-1eb388eba3d8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/auth/register/route.ts:email-error-caught',message:'Email error caught in try-catch',data:{errorMessage:emailError?.message,errorType:emailError?.constructor?.name,errorStack:emailError?.stack?.substring(0,200)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
         console.error('Failed to send verification email:', emailError);
         // Don't fail the request if email fails - log it
         // In production, you might want to use a queue system
