@@ -26,6 +26,7 @@ model User {
   maxMessageLength           Int       @default(666)
   defaultPubliclyVisible     Boolean   @default(false)
   messages             Message[]
+  lists                List[]
 
   @@map("users")
 }
@@ -38,8 +39,71 @@ model Message {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lists           List[]
 
   @@index([createdAt])
   @@index([publiclyVisible])
   @@map("messages")
+}
+
+model List {
+  id          String   @id @default(uuid())
+  userId      String
+  messageId   String?
+  title       String
+  description String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message     Message? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  properties  ListProperty[]
+  dataRows    ListDataRow[]
+
+  @@index([userId, deletedAt])
+  @@index([messageId])
+  @@index([createdAt])
+  @@map("lists")
+}
+
+model ListProperty {
+  id                  String   @id @default(uuid())
+  listId              String
+  propertyKey         String
+  propertyName        String
+  propertyType        String
+  displayOrder        Int      @default(0)
+  isRequired          Boolean  @default(false)
+  defaultValue        String?
+  validationRules     Json?
+  helpText            String?
+  placeholder         String?
+  isVisible           Boolean  @default(true)
+  visibilityCondition Json?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  list                List     @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@unique([listId, propertyKey])
+  @@index([listId, displayOrder])
+  @@map("list_properties")
+}
+
+model ListDataRow {
+  id          String   @id @default(uuid())
+  listId      String
+  rowData     Json
+  rowNumber   Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  list        List     @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@index([listId, deletedAt])
+  @@index([listId, createdAt])
+  @@map("list_data_rows")
 }
