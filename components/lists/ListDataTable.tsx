@@ -142,7 +142,7 @@ export default function ListDataTable({
     if (!row) return;
     
     setEditingCell({ rowId, fieldKey });
-    setEditingData({ [fieldKey]: row.rowData[fieldKey] || "" });
+    setEditingData({ [fieldKey]: row.rowData[fieldKey] ?? "" });
   };
 
   const handleCellChange = (fieldKey: string, value: any) => {
