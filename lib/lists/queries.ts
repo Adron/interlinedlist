@@ -363,9 +363,11 @@ export async function updateListDataRow(
   }
 
   // Fetch and return the updated row
-  return await prisma.listDataRow.findUnique({
+  return await prisma.listDataRow.findFirst({
     where: {
       id: rowId,
+      listId,
+      deletedAt: null,
     },
   });
 }
@@ -407,9 +409,10 @@ export async function deleteListDataRow(
   }
 
   // Fetch and return the deleted row
-  return await prisma.listDataRow.findUnique({
+  return await prisma.listDataRow.findFirst({
     where: {
       id: rowId,
+      listId,
     },
   });
 }
