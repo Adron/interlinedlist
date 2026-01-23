@@ -285,7 +285,7 @@ export default function ListDataTable({
     setNewRowErrors({});
   };
 
-  const handleTabFromLastColumn = async (e: KeyboardEvent) => {
+  const handleTabFromLastColumn = async (e: KeyboardEvent<HTMLElement>) => {
     e.preventDefault();
     
     // Check if all required fields have data
