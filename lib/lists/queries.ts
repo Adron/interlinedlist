@@ -347,12 +347,25 @@ export async function updateListDataRow(
     throw new Error("List not found or access denied");
   }
 
-  return await prisma.listDataRow.update({
+  const result = await prisma.listDataRow.updateMany({
     where: {
       id: rowId,
+      listId,
+      deletedAt: null,
     },
     data: {
       rowData: rowData as Prisma.InputJsonValue,
+    },
+  });
+
+  if (result.count === 0) {
+    throw new Error("Row not found or access denied");
+  }
+
+  // Fetch and return the updated row
+  return await prisma.listDataRow.findUnique({
+    where: {
+      id: rowId,
     },
   });
 }
@@ -378,12 +391,25 @@ export async function deleteListDataRow(
     throw new Error("List not found or access denied");
   }
 
-  return await prisma.listDataRow.update({
+  const result = await prisma.listDataRow.updateMany({
     where: {
       id: rowId,
+      listId,
+      deletedAt: null,
     },
     data: {
       deletedAt: new Date(),
+    },
+  });
+
+  if (result.count === 0) {
+    throw new Error("Row not found or access denied");
+  }
+
+  // Fetch and return the deleted row
+  return await prisma.listDataRow.findUnique({
+    where: {
+      id: rowId,
     },
   });
 }
