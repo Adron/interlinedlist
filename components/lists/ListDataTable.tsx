@@ -16,7 +16,6 @@ interface ListDataTableProps {
   listId: string;
   fields: ParsedField[];
   onEdit?: (rowId: string) => void;
-  onDelete?: (rowId: string) => void;
   onAdd?: () => void;
 }
 
@@ -24,7 +23,6 @@ export default function ListDataTable({
   listId,
   fields,
   onEdit,
-  onDelete,
   onAdd,
 }: ListDataTableProps) {
   const [rows, setRows] = useState<ListDataRow[]>([]);
@@ -624,14 +622,12 @@ export default function ListDataTable({
                       {sortedFields.map((field) => renderEditableCell(row, field))}
                       <td>
                         <div className="btn-group btn-group-sm">
-                          {(onDelete || true) && (
-                            <button
-                              className="btn btn-outline-danger"
-                              onClick={() => handleDelete(row.id)}
-                            >
-                              Delete
-                            </button>
-                          )}
+                          <button
+                            className="btn btn-outline-danger"
+                            onClick={() => handleDelete(row.id)}
+                          >
+                            Delete
+                          </button>
                         </div>
                       </td>
                     </tr>
