@@ -46,31 +46,30 @@ function buildPagination(params: PaginationParams): { take: number; skip: number
 }
 
 /**
- * Builds JSONB filter for rowData queries
+ * Builds JSONB filter conditions for rowData queries
  * Converts simple key-value filters to Prisma JSONB filter format
- * Note: For multiple conditions, we use a single path-based filter
- * For complex filtering, consider using raw SQL queries
+ * Supports multiple filter conditions using AND clause
+ * Returns an array of conditions to be used in the parent WHERE clause
  */
-function buildJSONBFilter(filter: ListDataFilter): Prisma.JsonFilter | undefined {
+function buildJSONBFilterConditions(filter: ListDataFilter): Prisma.ListDataRowWhereInput[] | undefined {
   if (!filter || Object.keys(filter).length === 0) {
     return undefined;
   }
 
-  // For single filter, use path-based query
-  const entries = Object.entries(filter).filter(([_, value]) => value !== undefined && value !== null);
+  const entries = Object.entries(filter).filter(([_, value]) => value !== undefined && value !== null && value !== "");
   
   if (entries.length === 0) {
     return undefined;
   }
 
-  // For now, only support single filter condition
-  // Multiple filters would require more complex JSONB queries
-  const [key, value] = entries[0];
-  
-  return {
-    path: [key],
-    equals: value,
-  };
+  // Return array of conditions, one for each filter key
+  // Each condition filters on a specific path in the JSONB rowData field
+  return entries.map(([key, value]) => ({
+    rowData: {
+      path: [key],
+      equals: value,
+    },
+  }));
 }
 
 /**
@@ -234,14 +233,14 @@ export async function getListDataRows(
   }
 
   const { take, skip } = buildPagination(options.pagination ?? {});
-  const jsonbFilter = buildJSONBFilter(options.filter ?? {});
+  const jsonbFilterConditions = buildJSONBFilterConditions(options.filter ?? {});
   const orderBy = buildOrderBy(options.sort);
 
   const where: Prisma.ListDataRowWhereInput = {
     listId,
     deletedAt: null,
-    ...(jsonbFilter && {
-      rowData: jsonbFilter,
+    ...(jsonbFilterConditions && jsonbFilterConditions.length > 0 && {
+      AND: jsonbFilterConditions,
     }),
   };
 
