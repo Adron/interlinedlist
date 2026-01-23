@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { USER_AGENT } from '@/lib/config/app';
 
 export const dynamic = 'force-dynamic';
 
 const NOAA_BASE_URL = 'https://api.weather.gov';
-const USER_AGENT = 'InterlinedList (https://interlinedlist.com, contact@interlinedlist.com)';
 
 interface WeatherData {
   location: string;

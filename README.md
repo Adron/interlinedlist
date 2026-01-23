@@ -458,15 +458,23 @@ A test API endpoint is available at `/api/test-db` to verify your database conne
 
 ## Environment Variables
 
-Required environment variables:
+### Required Variables
 
 - `DATABASE_URL` - PostgreSQL connection string
 - `RESEND_API_KEY` - Resend API key for sending emails
-- `RESEND_FROM_EMAIL` - Email address to send from (optional, defaults to onboarding@resend.dev)
-- `NEXT_PUBLIC_APP_URL` - Application URL for email links (optional, auto-detected on Vercel)
 - `NODE_ENV` - Node environment (development/production)
 
-These should be set in `.env` or `.env.local` (both are gitignored).
+### Optional Variables
+
+- `RESEND_FROM_EMAIL` - Email address to send from (defaults to `onboarding@resend.dev`)
+- `NEXT_PUBLIC_APP_URL` - Application URL for email links (auto-detected on Vercel via `VERCEL_URL`, defaults to `http://localhost:3000` in development)
+- `APP_NAME` - Application name (defaults to `InterlinedList`)
+- `APP_CONTACT_EMAIL` - Contact email for User-Agent header (defaults to `contact@interlinedlist.com`)
+- `APP_USER_AGENT` - Custom User-Agent string for external API calls (defaults to auto-generated based on app name and contact email)
+- `SESSION_COOKIE_NAME` - Session cookie name (defaults to `session`)
+- `SESSION_MAX_AGE` - Session max age in seconds (defaults to `604800` = 7 days)
+
+**Note**: See `.env.example` for a complete template. Environment variables should be set in `.env` or `.env.local` (both are gitignored).
 
 ### Local Development
 

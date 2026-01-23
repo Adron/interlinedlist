@@ -1,4 +1,4 @@
-import { APP_URL } from '../resend';
+import { APP_URL } from '@/lib/config/app';
 
 export function getEmailVerificationEmailHtml(token: string, username: string): string {
   const verifyUrl = `${APP_URL}/verify-email?token=${token}`;

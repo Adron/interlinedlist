@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyPassword } from '@/lib/auth/password';
 import { createSession } from '@/lib/auth/session';
+import { SESSION_COOKIE_NAME, SESSION_MAX_AGE, APP_CONFIG } from '@/lib/config/app';
 
 export const dynamic = 'force-dynamic';
 
@@ -72,12 +73,9 @@ export async function POST(request: NextRequest) {
 
     // Set cookie directly on the response
     // This ensures the cookie is included in the response headers
-    const SESSION_COOKIE_NAME = 'session';
-    const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
-    
     response.cookies.set(SESSION_COOKIE_NAME, user.id, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: APP_CONFIG.isProduction,
       sameSite: 'lax',
       maxAge: SESSION_MAX_AGE,
       path: '/',

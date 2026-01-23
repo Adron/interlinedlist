@@ -1,8 +1,6 @@
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
-
-const SESSION_COOKIE_NAME = 'session';
-const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
+import { SESSION_COOKIE_NAME, SESSION_MAX_AGE, APP_CONFIG } from '@/lib/config/app';
 
 /**
  * Create a session for a user
@@ -11,7 +9,7 @@ export async function createSession(userId: string): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE_NAME, userId, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: APP_CONFIG.isProduction,
     sameSite: 'lax',
     maxAge: SESSION_MAX_AGE,
     path: '/',
