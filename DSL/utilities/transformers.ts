@@ -176,7 +176,7 @@ export function toTypeScriptInterface(schema: DSLSchema): string {
   const interfaceName = schema.name.replace(/\s+/g, "");
   const fields = schema.fields
     .map((field) => {
-      let type = "string";
+      let type: string;
       switch (field.type) {
         case "number":
           type = "number";
