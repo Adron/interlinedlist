@@ -19,6 +19,7 @@ interface DynamicListFormProps {
   submitLabel?: string;
   cancelLabel?: string;
   loading?: boolean;
+  layout?: "vertical" | "horizontal";
 }
 
 export default function DynamicListForm({
@@ -29,6 +30,7 @@ export default function DynamicListForm({
   submitLabel = "Submit",
   cancelLabel = "Cancel",
   loading = false,
+  layout = "vertical",
 }: DynamicListFormProps) {
   const sortedFields = sortFieldsByOrder(fields);
   const [formData, setFormData] = useState<FormData>(
@@ -92,9 +94,9 @@ export default function DynamicListForm({
     const error = errors[field.propertyKey];
     const fieldId = field.propertyKey;
 
-    return (
-      <div key={field.propertyKey} className="mb-3">
-        <label htmlFor={fieldId} className="form-label">
+    const fieldWrapper = (
+      <div key={field.propertyKey} className={layout === "horizontal" ? "" : "mb-2"}>
+        <label htmlFor={fieldId} className="form-label small">
           {field.propertyName}
           {field.isRequired && <span className="text-danger">*</span>}
         </label>
@@ -104,7 +106,7 @@ export default function DynamicListForm({
             id={fieldId}
             name={fieldId}
             type={fieldComponent.props.type}
-            className={`form-control ${error ? "is-invalid" : ""}`}
+            className={`form-control form-control-sm ${error ? "is-invalid" : ""}`}
             value={
               field.propertyType === "checkbox"
                 ? undefined
@@ -149,7 +151,7 @@ export default function DynamicListForm({
           <textarea
             id={fieldId}
             name={fieldId}
-            className={`form-control ${error ? "is-invalid" : ""}`}
+            className={`form-control form-control-sm ${error ? "is-invalid" : ""}`}
             value={value !== null && value !== undefined ? String(value) : ""}
             onChange={(e) => handleChange(field.propertyKey, e.target.value)}
             required={field.isRequired}
@@ -169,7 +171,7 @@ export default function DynamicListForm({
           <select
             id={fieldId}
             name={fieldId}
-            className={`form-select ${error ? "is-invalid" : ""}`}
+            className={`form-select form-select-sm ${error ? "is-invalid" : ""}`}
             value={
               field.propertyType === "multiselect"
                 ? undefined
@@ -208,9 +210,34 @@ export default function DynamicListForm({
           </div>
         )}
 
-        {error && <div className="invalid-feedback">{error}</div>}
+        {error && <div className="invalid-feedback d-block">{error}</div>}
       </div>
     );
+
+    if (layout === "horizontal") {
+      // Calculate column width based on field count
+      const fieldCount = visibleFields.length;
+      let colClass = "col-md-12";
+      if (fieldCount <= 2) {
+        colClass = "col-md-6";
+      } else if (fieldCount <= 3) {
+        colClass = "col-md-4";
+      } else if (fieldCount <= 4) {
+        colClass = "col-md-3";
+      } else if (fieldCount <= 6) {
+        colClass = "col-md-2";
+      } else {
+        colClass = "col-md-2";
+      }
+
+      return (
+        <div key={field.propertyKey} className={`${colClass} mb-2`}>
+          {fieldWrapper}
+        </div>
+      );
+    }
+
+    return fieldWrapper;
   };
 
   return (
@@ -221,9 +248,15 @@ export default function DynamicListForm({
         </div>
       )}
 
-      {visibleFields.map(renderField)}
+      {layout === "horizontal" ? (
+        <div className="row g-2">
+          {visibleFields.map(renderField)}
+        </div>
+      ) : (
+        visibleFields.map(renderField)
+      )}
 
-      <div className="d-flex gap-2 mt-4">
+      <div className="d-flex gap-2 mt-3">
         <button
           type="submit"
           className="btn btn-primary"
