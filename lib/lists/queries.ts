@@ -239,7 +239,7 @@ export async function getListDataRows(
   const where: Prisma.ListDataRowWhereInput = {
     listId,
     deletedAt: null,
-    ...(jsonbFilterConditions && jsonbFilterConditions.length > 0 && {
+    ...(jsonbFilterConditions && {
       AND: jsonbFilterConditions,
     }),
   };
