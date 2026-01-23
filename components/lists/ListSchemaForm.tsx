@@ -42,6 +42,26 @@ const VISIBILITY_OPERATORS = [
   "isNotEmpty",
 ];
 
+// Generate default field name based on current date/time
+const generateDefaultFieldName = (): string => {
+  const now = new Date();
+  const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+  const days = [
+    "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
+  ];
+  
+  const month = months[now.getMonth()];
+  const day = days[now.getDay()];
+  const hours = now.getHours().toString().padStart(2, "0");
+  const minutes = now.getMinutes().toString().padStart(2, "0");
+  const time = `${hours}${minutes}`;
+  
+  return `listName${month}${day}${time}`;
+};
+
 export default function ListSchemaForm({
   initialSchema,
   onSubmit,
@@ -52,17 +72,27 @@ export default function ListSchemaForm({
 }: ListSchemaFormProps) {
   const [name, setName] = useState(initialSchema?.name || "");
   const [description, setDescription] = useState(initialSchema?.description || "");
-  const [fields, setFields] = useState<DSLField[]>(
-    initialSchema?.fields || [
+  
+  // Generate default field name only if creating new schema (no initialSchema)
+  // Always ensure we have a valid default field for new schemas
+  const getInitialFields = (): DSLField[] => {
+    if (initialSchema?.fields && initialSchema.fields.length > 0) {
+      return initialSchema.fields;
+    }
+    // Create new schema - always include default field
+    const defaultFieldName = generateDefaultFieldName();
+    return [
       {
-        key: "",
-        type: "text",
-        label: "",
+        key: defaultFieldName.toLowerCase().replace(/\s+/g, "_"),
+        type: "textarea",
+        label: defaultFieldName,
         displayOrder: 0,
         required: false,
       },
-    ]
-  );
+    ];
+  };
+  
+  const [fields, setFields] = useState<DSLField[]>(getInitialFields());
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -117,14 +147,24 @@ export default function ListSchemaForm({
     setIsSubmitting(true);
 
     // Filter out empty fields
-    const validFields = fields.filter(
+    let validFields = fields.filter(
       (field) => field.key && field.label
     );
 
+    // If no valid fields exist, add the default field
     if (validFields.length === 0) {
-      setError("At least one field is required");
-      setIsSubmitting(false);
-      return;
+      const defaultFieldName = generateDefaultFieldName();
+      validFields = [
+        {
+          key: defaultFieldName.toLowerCase().replace(/\s+/g, "_"),
+          type: "textarea" as FieldType,
+          label: defaultFieldName,
+          displayOrder: 0,
+          required: false,
+        },
+      ];
+      // Update the fields state to include the default field
+      setFields(validFields);
     }
 
     const schema: DSLSchema = {
@@ -153,38 +193,40 @@ export default function ListSchemaForm({
 
   return (
     <form onSubmit={handleSubmit}>
-      <div className="mb-3">
-        <label htmlFor="schema-name" className="form-label">
-          List Name <span className="text-danger">*</span>
-        </label>
-        <input
-          id="schema-name"
-          type="text"
-          className="form-control"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-          disabled={loading || isSubmitting}
-        />
+      <div className="row g-1 mb-1">
+        <div className="col-md-6">
+          <label htmlFor="schema-name" className="form-label small mb-0">
+            List Name <span className="text-danger">*</span>
+          </label>
+          <input
+            id="schema-name"
+            type="text"
+            className="form-control form-control-sm"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            disabled={loading || isSubmitting}
+          />
+        </div>
+
+        <div className="col-md-6">
+          <label htmlFor="schema-description" className="form-label small mb-0">
+            Description
+          </label>
+          <textarea
+            id="schema-description"
+            className="form-control form-control-sm"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={1}
+            disabled={loading || isSubmitting}
+          />
+        </div>
       </div>
 
-      <div className="mb-3">
-        <label htmlFor="schema-description" className="form-label">
-          Description
-        </label>
-        <textarea
-          id="schema-description"
-          className="form-control"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          rows={3}
-          disabled={loading || isSubmitting}
-        />
-      </div>
-
-      <div className="mb-3">
-        <div className="d-flex justify-content-between align-items-center mb-3">
-          <h5>Fields</h5>
+      <div className="mb-1">
+        <div className="d-flex justify-content-between align-items-center mb-1">
+          <h6 className="mb-0">Fields</h6>
           <button
             type="button"
             className="btn btn-sm btn-primary"
@@ -196,9 +238,9 @@ export default function ListSchemaForm({
         </div>
 
         {fields.map((field, index) => (
-          <div key={index} className="card mb-3">
-            <div className="card-body">
-              <div className="d-flex justify-content-between align-items-start mb-3">
+          <div key={index} className="card mb-1">
+            <div className="card-body p-2">
+              <div className="d-flex justify-content-between align-items-start mb-1">
                 <h6 className="mb-0">Field {index + 1}</h6>
                 <div className="btn-group btn-group-sm">
                   <button
@@ -228,12 +270,12 @@ export default function ListSchemaForm({
                 </div>
               </div>
 
-              <div className="row">
-                <div className="col-md-6 mb-3">
-                  <label className="form-label">Key (internal) *</label>
+              <div className="row g-1">
+                <div className="col-md-6 mb-1">
+                  <label className="form-label small mb-0">Key (internal) *</label>
                   <input
                     type="text"
-                    className="form-control"
+                    className="form-control form-control-sm"
                     value={field.key}
                     onChange={(e) =>
                       updateField(index, { key: e.target.value.toLowerCase().replace(/\s+/g, "_") })
@@ -244,11 +286,11 @@ export default function ListSchemaForm({
                   />
                 </div>
 
-                <div className="col-md-6 mb-3">
-                  <label className="form-label">Label (display) *</label>
+                <div className="col-md-6 mb-1">
+                  <label className="form-label small mb-0">Label (display) *</label>
                   <input
                     type="text"
-                    className="form-control"
+                    className="form-control form-control-sm"
                     value={field.label}
                     onChange={(e) => updateField(index, { label: e.target.value })}
                     placeholder="e.g., Email Address"
@@ -258,11 +300,11 @@ export default function ListSchemaForm({
                 </div>
               </div>
 
-              <div className="row">
-                <div className="col-md-4 mb-3">
-                  <label className="form-label">Type *</label>
+              <div className="row g-1">
+                <div className="col-md-4 mb-1">
+                  <label className="form-label small mb-0">Type *</label>
                   <select
-                    className="form-select"
+                    className="form-select form-select-sm"
                     value={field.type}
                     onChange={(e) =>
                       updateField(index, {
@@ -281,11 +323,11 @@ export default function ListSchemaForm({
                   </select>
                 </div>
 
-                <div className="col-md-4 mb-3">
-                  <label className="form-label">Display Order</label>
+                <div className="col-md-4 mb-1">
+                  <label className="form-label small mb-0">Display Order</label>
                   <input
                     type="number"
-                    className="form-control"
+                    className="form-control form-control-sm"
                     value={field.displayOrder ?? index}
                     onChange={(e) =>
                       updateField(index, {
@@ -296,8 +338,8 @@ export default function ListSchemaForm({
                   />
                 </div>
 
-                <div className="col-md-4 mb-3">
-                  <div className="form-check mt-4">
+                <div className="col-md-4 mb-1">
+                  <div className="form-check mt-2">
                     <input
                       className="form-check-input"
                       type="checkbox"
@@ -307,17 +349,17 @@ export default function ListSchemaForm({
                       }
                       disabled={loading || isSubmitting}
                     />
-                    <label className="form-check-label">Required</label>
+                    <label className="form-check-label small">Required</label>
                   </div>
                 </div>
               </div>
 
               {(field.type === "select" || field.type === "multiselect") && (
-                <div className="mb-3">
-                  <label className="form-label">Options (comma-separated) *</label>
+                <div className="mb-1">
+                  <label className="form-label small mb-0">Options (comma-separated) *</label>
                   <input
                     type="text"
-                    className="form-control"
+                    className="form-control form-control-sm"
                     value={field.options?.join(", ") || ""}
                     onChange={(e) =>
                       updateField(index, {
@@ -334,43 +376,45 @@ export default function ListSchemaForm({
                 </div>
               )}
 
-              <div className="mb-3">
-                <label className="form-label">Placeholder</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={field.placeholder || ""}
-                  onChange={(e) =>
-                    updateField(index, { placeholder: e.target.value || undefined })
-                  }
-                  disabled={loading || isSubmitting}
-                />
+              <div className="row g-1">
+                <div className="col-md-6 mb-1">
+                  <label className="form-label small mb-0">Placeholder</label>
+                  <input
+                    type="text"
+                    className="form-control form-control-sm"
+                    value={field.placeholder || ""}
+                    onChange={(e) =>
+                      updateField(index, { placeholder: e.target.value || undefined })
+                    }
+                    disabled={loading || isSubmitting}
+                  />
+                </div>
+
+                <div className="col-md-6 mb-1">
+                  <label className="form-label small mb-0">Default Value</label>
+                  <input
+                    type="text"
+                    className="form-control form-control-sm"
+                    value={field.defaultValue || ""}
+                    onChange={(e) =>
+                      updateField(index, {
+                        defaultValue: e.target.value || undefined,
+                      })
+                    }
+                    disabled={loading || isSubmitting}
+                  />
+                </div>
               </div>
 
-              <div className="mb-3">
-                <label className="form-label">Help Text</label>
+              <div className="mb-1">
+                <label className="form-label small mb-0">Help Text</label>
                 <textarea
-                  className="form-control"
+                  className="form-control form-control-sm"
                   value={field.helpText || ""}
                   onChange={(e) =>
                     updateField(index, { helpText: e.target.value || undefined })
                   }
-                  rows={2}
-                  disabled={loading || isSubmitting}
-                />
-              </div>
-
-              <div className="mb-3">
-                <label className="form-label">Default Value</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={field.defaultValue || ""}
-                  onChange={(e) =>
-                    updateField(index, {
-                      defaultValue: e.target.value || undefined,
-                    })
-                  }
+                  rows={1}
                   disabled={loading || isSubmitting}
                 />
               </div>
@@ -385,7 +429,7 @@ export default function ListSchemaForm({
         </div>
       )}
 
-      <div className="d-flex gap-2 mt-4">
+      <div className="d-flex gap-2 mt-3">
         <button
           type="submit"
           className="btn btn-primary"
