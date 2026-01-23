@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import type { KeyboardEvent } from "react";
 import { ParsedField, FormData } from "@/lib/lists/dsl-types";
 import { validateFormData } from "@/lib/lists/dsl-validator";
 import { parseFieldValue, getFieldComponent } from "@/lib/lists/form-generator";
@@ -284,7 +285,7 @@ export default function ListDataTable({
     setNewRowErrors({});
   };
 
-  const handleTabFromLastColumn = async (e: React.KeyboardEvent) => {
+  const handleTabFromLastColumn = async (e: KeyboardEvent) => {
     e.preventDefault();
     
     // Check if all required fields have data
