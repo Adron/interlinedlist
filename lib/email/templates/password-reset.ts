@@ -1,4 +1,4 @@
-import { APP_URL } from '../resend';
+import { APP_URL } from '@/lib/config/app';
 
 export function getPasswordResetEmailHtml(token: string, username: string): string {
   const resetUrl = `${APP_URL}/reset-password?token=${token}`;
