@@ -58,6 +58,7 @@ export default function AddRowForm({ listId, fields }: AddRowFormProps) {
         onCancel={handleCancel}
         submitLabel="Add Row"
         loading={loading}
+        layout="horizontal"
       />
     </>
   );
