@@ -378,9 +378,11 @@ export async function deleteListDataRow(
     throw new Error("List not found or access denied");
   }
 
-  return await prisma.listDataRow.update({
+  return await prisma.listDataRow.updateMany({
     where: {
       id: rowId,
+      listId: listId,
+      deletedAt: null,
     },
     data: {
       deletedAt: new Date(),
