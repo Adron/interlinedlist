@@ -59,7 +59,7 @@ InterlinedList is a time-series based micro-blogging platform (similar to Mastod
 ## Build, Test, and Development Commands
 
 ### Installation & Setup
-**ALWAYS run `npm install` first when working with this repository.** This installs dependencies and automatically runs `prisma generate` via the postinstall hook.
+**ALWAYS run `npm install` after cloning the repository or pulling changes that modify package.json or Prisma schema.** This installs dependencies and automatically runs `prisma generate` via the postinstall hook.
 
 ```bash
 npm install
