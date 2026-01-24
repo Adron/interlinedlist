@@ -87,7 +87,7 @@ export async function PUT(
 
 /**
  * DELETE /api/lists/[id]
- * Delete a list (soft delete)
+ * Delete a list (hard delete with cascading)
  */
 export async function DELETE(
   request: NextRequest,
@@ -107,11 +107,10 @@ export async function DELETE(
       return NextResponse.json({ error: "List not found" }, { status: 404 });
     }
 
-    await prisma.list.update({
+    // Hard delete - Prisma will cascade delete ListProperty and ListDataRow
+    // due to onDelete: Cascade in schema
+    await prisma.list.delete({
       where: { id: params.id },
-      data: {
-        deletedAt: new Date(),
-      },
     });
 
     return NextResponse.json({ message: "List deleted successfully" }, { status: 200 });

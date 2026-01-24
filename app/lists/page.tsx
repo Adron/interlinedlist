@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
 import { getUserLists } from '@/lib/lists/queries';
 import Link from 'next/link';
+import DeleteListButton from '@/components/lists/DeleteListButton';
 
 export default async function ListsPage() {
   const user = await getCurrentUser();
@@ -68,6 +69,7 @@ export default async function ListsPage() {
                       >
                         <i className="bx bx-edit"></i>
                       </Link>
+                      <DeleteListButton listId={list.id} listTitle={list.title} />
                     </div>
                   </div>
                 </div>
