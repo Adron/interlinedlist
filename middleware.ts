@@ -19,10 +19,6 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith(route)
   );
 
-  // Auth routes (redirect to dashboard if already logged in)
-  const authRoutes = ['/login', '/register'];
-  const isAuthRoute = authRoutes.includes(pathname);
-
   // Check if session cookie exists (validation happens in page components)
   // Note: We can't use Prisma in Edge Runtime, so we just check cookie existence
   // Page components will validate the session properly
@@ -33,11 +29,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  if (isAuthRoute && hasSessionCookie) {
-    // Redirect to dashboard if trying to access auth routes while logged in
-    // The dashboard page will validate the session and redirect back if invalid
-    return NextResponse.redirect(new URL('/dashboard', request.url));
-  }
+  // Removed auth route redirect - let page components handle session validation
+  // This allows users with invalid/expired cookies to access login/register pages
 
   return NextResponse.next();
 }
