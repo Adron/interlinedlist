@@ -2,6 +2,10 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { formatRelativeTime } from '@/lib/utils/relativeTime';
+import { linkifyText } from '@/lib/messages/linkify';
+import { Message as MessageType, LinkMetadataItem } from '@/lib/types';
+import { detectLinks } from '@/lib/messages/link-detector';
+import LinkMetadataCard from './messages/LinkMetadataCard';
 
 interface MessageUser {
   id: string;
@@ -10,11 +14,7 @@ interface MessageUser {
   avatar: string | null;
 }
 
-interface Message {
-  id: string;
-  content: string;
-  publiclyVisible: boolean;
-  createdAt: string;
+interface Message extends Omit<MessageType, 'user'> {
   user: MessageUser;
 }
 
@@ -626,9 +626,48 @@ export default function MessageTable({
                         }}
                       >
                         {message.content.length > 100 
-                          ? message.content.substring(0, 100) + '...'
-                          : message.content}
+                          ? linkifyText(message.content.substring(0, 100) + '...')
+                          : linkifyText(message.content)}
                       </div>
+                      {/* Render link previews for all detected links */}
+                      {(() => {
+                        // Detect all links in the message
+                        const detectedLinks = detectLinks(message.content);
+                        
+                        if (detectedLinks.length === 0) {
+                          return null;
+                        }
+                        
+                        // Create a map of URLs to metadata for quick lookup
+                        const metadataMap = new Map<string, LinkMetadataItem>();
+                        if (message.linkMetadata?.links) {
+                          message.linkMetadata.links.forEach(link => {
+                            metadataMap.set(link.url, link);
+                          });
+                        }
+                        
+                        // Create link items with metadata if available, or pending status
+                        const linkItems: LinkMetadataItem[] = detectedLinks.map(detected => {
+                          const existing = metadataMap.get(detected.url);
+                          if (existing) {
+                            return existing;
+                          }
+                          // No metadata yet - create pending item
+                          return {
+                            url: detected.url,
+                            platform: detected.platform,
+                            fetchStatus: 'pending',
+                          };
+                        });
+                        
+                        return (
+                          <div className="mt-2">
+                            {linkItems.map((link, index) => (
+                              <LinkMetadataCard key={`${link.url}-${index}`} link={link} />
+                            ))}
+                          </div>
+                        );
+                      })()}
                     </td>
                     {currentUserId && (
                       <td>

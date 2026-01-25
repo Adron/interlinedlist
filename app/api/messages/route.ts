@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth/session';
+import { detectLinks } from '@/lib/messages/link-detector';
+import { APP_URL } from '@/lib/config/app';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,6 +73,26 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // Detect links and trigger async metadata fetch (don't await)
+    const detectedLinks = detectLinks(content.trim());
+    if (detectedLinks.length > 0) {
+      // Get base URL from request or use APP_URL
+      const baseUrl = request.headers.get('host')
+        ? `${request.headers.get('x-forwarded-proto') || 'http'}://${request.headers.get('host')}`
+        : APP_URL;
+      
+      // Trigger metadata fetch asynchronously without blocking response
+      fetch(`${baseUrl}/api/messages/${message.id}/metadata`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }).catch((error) => {
+        // Silently handle errors - metadata fetch failures shouldn't affect message creation
+        console.error('Failed to trigger metadata fetch:', error);
+      });
+    }
 
     return NextResponse.json(
       { message: 'Message created successfully', data: message },

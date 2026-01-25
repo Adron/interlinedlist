@@ -1,5 +1,6 @@
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/prisma';
+import { LinkMetadata } from '@/lib/types';
 import MessageTable from './MessageTable';
 
 export default async function DashboardMessageFeed() {
@@ -50,6 +51,8 @@ export default async function DashboardMessageFeed() {
     const serializedMessages = messages.map((message) => ({
       ...message,
       createdAt: message.createdAt.toISOString(),
+      updatedAt: message.updatedAt.toISOString(),
+      linkMetadata: message.linkMetadata as LinkMetadata | null,
     }));
 
     return (

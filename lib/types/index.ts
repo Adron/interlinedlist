@@ -30,12 +30,34 @@ export interface MessageUser {
 }
 
 /**
+ * Link metadata structure for message links
+ */
+export interface LinkMetadataItem {
+  url: string;
+  platform: 'instagram' | 'bluesky' | 'threads' | 'mastodon' | 'other';
+  metadata?: {
+    thumbnail?: string;
+    title?: string;
+    description?: string;
+    text?: string; // For quote/rethread/repost content
+    type: 'image' | 'quote' | 'rethread' | 'repost' | 'link';
+  };
+  fetchedAt?: string;
+  fetchStatus: 'pending' | 'success' | 'failed';
+}
+
+export interface LinkMetadata {
+  links: LinkMetadataItem[];
+}
+
+/**
  * Message type matching Prisma Message model with user relation
  */
 export interface Message {
   id: string;
   content: string;
   publiclyVisible: boolean;
+  linkMetadata?: LinkMetadata | null;
   createdAt: string; // ISO string for client components
   updatedAt?: string; // ISO string, optional
   user: MessageUser;
