@@ -45,8 +45,8 @@ const PLATFORM_PATTERNS: Array<{ platform: Platform; patterns: RegExp[] }> = [
   {
     platform: 'mastodon',
     patterns: [
-      // Mastodon post URLs: /@username/status/123456
-      /\/@[\w\.-]+\/status\/\d+/i,
+      // Mastodon post URLs: /@username/status/123456 or /@username/123456
+      /\/@[\w\.-]+\/(?:status\/)?\d+/i,
       // Mastodon instance domains (common patterns)
       /mastodon\.social/i,
       /mastodon\.online/i,

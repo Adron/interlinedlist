@@ -663,7 +663,7 @@ export default function MessageTable({
                         return (
                           <div className="mt-2">
                             {linkItems.map((link, index) => (
-                              <LinkMetadataCard key={`${link.url}-${index}`} link={link} />
+                              <LinkMetadataCard key={`${link.url}-${index}`} link={link} messageId={message.id} />
                             ))}
                           </div>
                         );
