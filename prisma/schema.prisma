@@ -25,6 +25,9 @@ model User {
   emailVerificationExpires   DateTime?
   maxMessageLength           Int       @default(666)
   defaultPubliclyVisible     Boolean   @default(false)
+  messagesPerPage            Int       @default(20)
+  viewingPreference         String    @default("all_messages")
+  showPreviews              Boolean   @default(true)
   messages             Message[]
   lists                List[]
 
@@ -36,6 +39,7 @@ model Message {
   content         String
   publiclyVisible Boolean  @default(true)
   userId          String
+  linkMetadata    Json?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)

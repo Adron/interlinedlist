@@ -1,5 +1,6 @@
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/prisma';
+import { LinkMetadata } from '@/lib/types';
 import MessageList from './MessageList';
 
 export default async function MessageFeed() {
@@ -24,7 +25,10 @@ export default async function MessageFeed() {
       };
     }
 
-    // Fetch first 20 messages ordered by createdAt DESC (newest first)
+    // Use user's messagesPerPage preference or default to 20
+    const messagesPerPage = user?.messagesPerPage ?? 20;
+
+    // Fetch first page of messages ordered by createdAt DESC (newest first)
     const messages = await prisma.message.findMany({
       where,
       include: {
@@ -40,7 +44,7 @@ export default async function MessageFeed() {
       orderBy: {
         createdAt: 'desc',
       },
-      take: 20, // Show first 20 messages
+      take: messagesPerPage,
     });
 
     // Get total count for pagination
@@ -50,6 +54,8 @@ export default async function MessageFeed() {
     const serializedMessages = messages.map((message) => ({
       ...message,
       createdAt: message.createdAt.toISOString(),
+      updatedAt: message.updatedAt.toISOString(),
+      linkMetadata: message.linkMetadata as LinkMetadata | null,
     }));
 
     return (
@@ -57,6 +63,8 @@ export default async function MessageFeed() {
         initialMessages={serializedMessages}
         currentUserId={user?.id}
         initialTotal={total}
+        showPreviews={user?.showPreviews ?? true}
+        messagesPerPage={messagesPerPage}
       />
     );
   } catch (error: any) {

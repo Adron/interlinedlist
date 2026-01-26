@@ -24,10 +24,6 @@ export default async function Home() {
 
         {/* Center Column - Messages Feed */}
         <div className="col-lg-6 col-md-8 mb-4">
-          <div className="mb-3">
-            <h2 className="h4 mb-0">Messages</h2>
-            <p className="text-muted small mb-0">Latest updates from the community</p>
-          </div>
           <MessageFeed />
         </div>
 

@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
 import ProfileSettings from './ProfileSettings';
 import PermissionsSection from './PermissionsSection';
+import ViewPreferencesSection from './ViewPreferencesSection';
 import SecuritySection from './SecuritySection';
 
 export default async function SettingsPage() {
@@ -26,10 +27,20 @@ export default async function SettingsPage() {
           <ProfileSettings user={user} />
         </div>
 
-        {/* Column 2: Permissions (Location Permission + Email Verification) */}
+        {/* Column 2: Middle section - Permissions (top) and View Preferences (below) */}
         {/* Large: middle column (4/12), Medium: left column below Profile (6/12), Small: stacked (12/12) */}
         <div className="col-lg-4 col-md-6 col-12 order-2 order-md-2">
-          <PermissionsSection emailVerified={user.emailVerified} />
+          <div className="d-flex flex-column gap-4">
+            {/* Permissions Section */}
+            <PermissionsSection emailVerified={user.emailVerified} />
+            
+            {/* View Preferences Section */}
+            <ViewPreferencesSection
+              messagesPerPage={user.messagesPerPage ?? 20}
+              viewingPreference={user.viewingPreference ?? 'all_messages'}
+              showPreviews={user.showPreviews ?? true}
+            />
+          </div>
         </div>
 
         {/* Column 3: Security Settings */}
