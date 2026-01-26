@@ -44,6 +44,9 @@ export async function getCurrentUser() {
           emailVerified: true,
           maxMessageLength: true,
           defaultPubliclyVisible: true,
+          messagesPerPage: true,
+          viewingPreference: true,
+          showPreviews: true,
           createdAt: true,
         },
       });
@@ -68,7 +71,14 @@ export async function getCurrentUser() {
         });
 
         // Add defaults if not in database
-        return user ? { ...user, maxMessageLength: 666, defaultPubliclyVisible: false } : null;
+        return user ? { 
+          ...user, 
+          maxMessageLength: 666, 
+          defaultPubliclyVisible: false,
+          messagesPerPage: 20,
+          viewingPreference: 'all_messages',
+          showPreviews: true,
+        } : null;
       }
       throw error;
     }

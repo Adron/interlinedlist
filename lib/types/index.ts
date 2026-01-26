@@ -16,6 +16,9 @@ export interface User {
   theme: string | null;
   emailVerified: boolean;
   maxMessageLength: number | null;
+  messagesPerPage: number | null;
+  viewingPreference: string | null;
+  showPreviews: boolean | null;
   createdAt: Date | string;
 }
 

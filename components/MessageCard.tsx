@@ -26,6 +26,7 @@ interface MessageCardProps {
   isSelected?: boolean;
   onSelectChange?: (messageId: string, selected: boolean) => void;
   showCheckbox?: boolean;
+  showPreviews?: boolean;
 }
 
 export default function MessageCard({ 
@@ -34,7 +35,8 @@ export default function MessageCard({
   onDelete,
   isSelected = false,
   onSelectChange,
-  showCheckbox = false
+  showCheckbox = false,
+  showPreviews = true
 }: MessageCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -172,8 +174,8 @@ export default function MessageCard({
               {linkifyText(message.content)}
             </p>
             
-            {/* Render link previews for all detected links */}
-            {(() => {
+            {/* Render link previews for all detected links (if showPreviews is enabled) */}
+            {showPreviews && (() => {
               // Detect all links in the message
               const detectedLinks = detectLinks(message.content);
               

@@ -23,13 +23,15 @@ interface MessageTableProps {
   initialTotal?: number;
   currentUserId?: string;
   itemsPerPage?: number;
+  showPreviews?: boolean;
 }
 
 export default function MessageTable({ 
   initialMessages, 
   initialTotal,
   currentUserId,
-  itemsPerPage = 12 
+  itemsPerPage = 12,
+  showPreviews = true
 }: MessageTableProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [currentPage, setCurrentPage] = useState(1);
@@ -629,8 +631,8 @@ export default function MessageTable({
                           ? linkifyText(message.content.substring(0, 100) + '...')
                           : linkifyText(message.content)}
                       </div>
-                      {/* Render link previews for all detected links */}
-                      {(() => {
+                      {/* Render link previews for all detected links (if showPreviews is enabled) */}
+                      {showPreviews && (() => {
                         // Detect all links in the message
                         const detectedLinks = detectLinks(message.content);
                         

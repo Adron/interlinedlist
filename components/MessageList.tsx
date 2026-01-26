@@ -22,14 +22,60 @@ interface MessageListProps {
   initialMessages: Message[];
   currentUserId?: string;
   initialTotal?: number;
+  showPreviews?: boolean;
+  messagesPerPage?: number;
 }
 
-export default function MessageList({ initialMessages, currentUserId, initialTotal }: MessageListProps) {
+export default function MessageList({ initialMessages, currentUserId, initialTotal, showPreviews = true, messagesPerPage = 20 }: MessageListProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState((initialTotal ?? initialMessages.length) > initialMessages.length);
   const [currentOffset, setCurrentOffset] = useState(initialMessages.length);
+  const [localShowPreviews, setLocalShowPreviews] = useState(showPreviews);
+  const [isSavingPreference, setIsSavingPreference] = useState(false);
+
+  // Sync local state with prop changes
+  useEffect(() => {
+    setLocalShowPreviews(showPreviews);
+  }, [showPreviews]);
+
+  // Save preference to database when toggle changes
+  const handlePreviewsToggleChange = async (newValue: boolean) => {
+    // Only save if user is authenticated
+    if (!currentUserId) {
+      setLocalShowPreviews(newValue);
+      return;
+    }
+
+    setLocalShowPreviews(newValue);
+    setIsSavingPreference(true);
+
+    try {
+      const response = await fetch('/api/user/update', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          showPreviews: newValue,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        console.error('Failed to save preference:', data.error || 'Update failed');
+        // Revert on error
+        setLocalShowPreviews(!newValue);
+      }
+    } catch (error) {
+      console.error('Error saving preference:', error);
+      // Revert on error
+      setLocalShowPreviews(!newValue);
+    } finally {
+      setIsSavingPreference(false);
+    }
+  };
 
   const refreshMessages = async () => {
     setIsRefreshing(true);
@@ -71,7 +117,7 @@ export default function MessageList({ initialMessages, currentUserId, initialTot
 
     setIsLoadingMore(true);
     try {
-      const response = await fetch(`/api/messages?limit=20&offset=${currentOffset}`);
+      const response = await fetch(`/api/messages?limit=${messagesPerPage}&offset=${currentOffset}`);
       if (response.ok) {
         const data = await response.json();
         const newMessages = (data.messages || []).map((message: any) => ({
@@ -121,6 +167,44 @@ export default function MessageList({ initialMessages, currentUserId, initialTot
 
   return (
     <div>
+      {/* Header with preview toggle */}
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <div></div>
+        <div className="d-flex align-items-center gap-2">
+          <small className="text-muted me-2">Message Previews:</small>
+          <div className="d-flex gap-3">
+            <div className="form-check form-check-inline">
+              <input
+                className="form-check-input"
+                type="radio"
+                name="messagePreviewsToggle"
+                id="showPreviewsToggle"
+                checked={localShowPreviews === true}
+                onChange={() => handlePreviewsToggleChange(true)}
+                disabled={isSavingPreference}
+              />
+              <label className="form-check-label" htmlFor="showPreviewsToggle">
+                Show
+              </label>
+            </div>
+            <div className="form-check form-check-inline">
+              <input
+                className="form-check-input"
+                type="radio"
+                name="messagePreviewsToggle"
+                id="hidePreviewsToggle"
+                checked={localShowPreviews === false}
+                onChange={() => handlePreviewsToggleChange(false)}
+                disabled={isSavingPreference}
+              />
+              <label className="form-check-label" htmlFor="hidePreviewsToggle">
+                Hide
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {isRefreshing && (
         <div className="text-center mb-3">
           <small className="text-muted">Refreshing...</small>
@@ -133,6 +217,7 @@ export default function MessageList({ initialMessages, currentUserId, initialTot
           currentUserId={currentUserId}
           onDelete={handleDelete}
           showCheckbox={false}
+          showPreviews={localShowPreviews}
         />
       ))}
       
