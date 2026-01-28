@@ -144,6 +144,8 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - `npm run db:migrate:deploy` - Apply migrations to production database
 - `npm run db:generate` - Generate Prisma Client
 - `npm run db:studio` - Open Prisma Studio (database GUI)
+- `npm run backup` - Create database backups (production and local)
+- `npm run restore` - Restore database from backup file
 
 ## Project Structure
 
@@ -159,12 +161,27 @@ interlinedlist/
 │   │   │   ├── reset-password/   # Password reset confirmation
 │   │   │   ├── send-verification-email/  # Resend verification email
 │   │   │   └── verify-email/     # Email verification
+│   │   ├── images/               # Image proxy endpoints
+│   │   │   └── proxy/           # Image proxy for external images (CORS bypass)
+│   │   ├── lists/                # List endpoints
+│   │   │   ├── [id]/            # Individual list operations
+│   │   │   │   ├── data/       # List data row operations
+│   │   │   │   │   ├── [rowId]/ # Individual row operations
+│   │   │   │   │   └── route.ts
+│   │   │   │   ├── schema/     # List schema operations
+│   │   │   │   └── route.ts
+│   │   │   │   └── route.ts
+│   │   │   └── route.ts         # GET/POST lists
+│   │   ├── location/             # Location widget endpoint
 │   │   ├── messages/             # Message endpoints
 │   │   │   ├── [id]/            # Individual message operations
+│   │   │   │   ├── metadata/   # Link metadata fetching
+│   │   │   │   └── route.ts
 │   │   │   └── route.ts         # GET/POST messages
 │   │   ├── test-db/             # Database connection test endpoint
-│   │   └── user/                 # User management endpoints
-│   │       └── update/           # Update user profile/settings
+│   │   ├── user/                 # User management endpoints
+│   │   │   └── update/           # Update user profile/settings
+│   │   └── weather/              # Weather widget endpoint
 │   ├── dashboard/                # Dashboard page
 │   ├── forgot-password/          # Password reset page
 │   ├── login/                    # Login page and form
@@ -173,18 +190,28 @@ interlinedlist/
 │   ├── settings/                 # User settings page
 │   │   ├── EmailVerificationResend.tsx
 │   │   ├── EmailVerificationSection.tsx
+│   │   ├── PermissionsSection.tsx # Permissions settings
 │   │   ├── ProfileSettings.tsx  # Profile and preferences
 │   │   ├── SecuritySection.tsx   # Security settings
-│   │   └── SettingsForm.tsx
+│   │   ├── SettingsForm.tsx
+│   │   └── ViewPreferencesSection.tsx # View preferences (pagination, previews)
 │   ├── verify-email/             # Email verification page
 │   ├── globals.css               # Global styles
 │   ├── layout.tsx               # Root layout component
 │   └── page.tsx                 # Home page
 ├── components/                   # React components
 │   ├── Avatar.tsx                # User avatar component
+│   ├── AvatarPlaceholder.tsx    # Avatar placeholder component
 │   ├── DashboardMessageFeed.tsx  # Dashboard message feed
 │   ├── EmailVerificationBanner.tsx  # Email verification banner
 │   ├── Footer.tsx                # Footer component
+│   ├── lists/                    # List-related components
+│   │   ├── DeleteListButton.tsx
+│   │   ├── DynamicListForm.tsx
+│   │   ├── ListDataTable.tsx
+│   │   └── ListSchemaForm.tsx
+│   ├── ListsTreeView.tsx         # Lists tree navigation
+│   ├── LocationWidget.tsx        # Location widget component
 │   ├── LeftSidebar.tsx           # Left sidebar with message input
 │   ├── Logo.tsx                  # Logo component
 │   ├── LogoutButton.tsx          # Logout button component
@@ -193,22 +220,63 @@ interlinedlist/
 │   ├── MessageGrid.tsx           # Grid layout for messages
 │   ├── MessageInput.tsx          # Message input form
 │   ├── MessageList.tsx           # List of messages
+│   ├── MessageTable.tsx          # Table layout for messages (dashboard)
+│   ├── messages/                 # Message-related components
+│   │   └── LinkMetadataCard.tsx  # Link preview card component
 │   ├── Navigation.tsx            # Navigation bar
+│   ├── RightSidebar.tsx          # Right sidebar component
+│   ├── SidebarToggle.tsx         # Sidebar toggle component
 │   ├── ThemeBridgeInit.tsx       # Theme bridge initialization
-│   └── ThemeProvider.tsx         # Theme context provider
+│   ├── ThemeProvider.tsx         # Theme context provider
+│   ├── UserDropdown.tsx          # User dropdown menu
+│   └── WeatherWidget.tsx         # Weather widget component
+├── DSL/                          # Domain Specific Language for Lists
+│   ├── docs/                     # DSL documentation
+│   │   ├── conditional-logic.md
+│   │   ├── field-types.md
+│   │   ├── syntax-reference.md
+│   │   └── validation-rules.md
+│   ├── examples/                 # DSL example schemas
+│   │   ├── customer-list.js
+│   │   ├── employee-directory.js
+│   │   ├── event-registration.js
+│   │   ├── product-inventory.js
+│   │   └── task-tracker.js
+│   ├── utilities/                # DSL utilities
+│   │   ├── builder.ts           # DSL builder API
+│   │   ├── transformers.ts      # Schema transformers
+│   │   └── validators.ts         # Schema validators
+│   ├── index.ts                  # DSL main exports
+│   └── README.md                 # DSL documentation
 ├── lib/                          # Utility functions and configurations
 │   ├── auth/                     # Authentication utilities
 │   │   ├── password.ts           # Password hashing/verification
 │   │   ├── session.ts            # Session management
 │   │   └── tokens.ts             # Token generation/verification
+│   ├── config/                   # Application configuration
+│   │   └── app.ts                # App config and constants
 │   ├── email/                    # Email utilities
 │   │   ├── resend.ts             # Resend email client
 │   │   └── templates/            # Email templates
 │   │       ├── email-verification.ts
 │   │       └── password-reset.ts
+│   ├── lists/                    # List utilities
+│   │   ├── dsl-parser.ts        # DSL parser
+│   │   ├── dsl-types.ts         # DSL type definitions
+│   │   ├── dsl-validator.ts     # DSL validation
+│   │   ├── form-generator.ts    # Form generation from schema
+│   │   └── queries.ts           # List database queries
+│   ├── messages/                 # Message utilities
+│   │   ├── link-detector.ts     # URL detection and platform identification
+│   │   ├── linkify.tsx          # Link rendering component
+│   │   ├── metadata-fetcher.ts  # Link metadata fetching (Open Graph, oEmbed)
+│   │   └── queries.ts           # Message database queries
 │   ├── theme/                    # Theme utilities
 │   │   └── darkone-bridge.ts     # DarkOne theme bridge
+│   ├── types/                    # TypeScript type definitions
+│   │   └── index.ts              # Shared types
 │   ├── utils/                    # General utilities
+│   │   ├── errors.tsx           # Error handling components
 │   │   └── relativeTime.ts      # Relative time formatting
 │   └── prisma.ts                 # Prisma Client singleton
 ├── prisma/                       # Prisma schema and migrations
@@ -220,6 +288,10 @@ interlinedlist/
 │       ├── 20260104140926_add_messages_and_max_length/
 │       ├── 20260104235810_add_email_verification_fields/
 │       ├── 20260106210211_add_default_publicly_visible/
+│       ├── 20260120233430_add_lists_schema/
+│       ├── 20260125002814_add_link_metadata_to_messages/
+│       ├── 20260125040011_new_feautres/
+│       ├── 20260125170624_add_view_preferences/
 │       └── migration_lock.toml
 ├── public/                       # Static assets
 │   ├── fonts/                    # Custom fonts (Boxicons)
@@ -232,6 +304,8 @@ interlinedlist/
 │   ├── logo-*.svg                # Logo variants
 │   └── manifest.json             # Web app manifest
 ├── scripts/                      # Utility scripts
+│   ├── backup-database.js        # Database backup script
+│   ├── restore-database.js       # Database restore script
 │   └── setup-database.sh         # Database setup automation
 ├── styles/                       # Global styles
 │   └── darkone/                  # DarkOne theme styles
@@ -255,20 +329,35 @@ interlinedlist/
 
 - **`app/api/`**: RESTful API endpoints organized by feature:
   - `auth/`: Authentication endpoints (login, register, password reset, email verification)
-  - `messages/`: Message CRUD operations
+  - `images/`: Image proxy endpoints for external images (CORS bypass)
+  - `lists/`: List CRUD operations, schema management, and data row operations
+  - `location/`: Location widget API endpoint
+  - `messages/`: Message CRUD operations and link metadata fetching
   - `user/`: User profile and settings management
+  - `weather/`: Weather widget API endpoint
   - `test-db/`: Database connection testing utility
 
 - **`components/`**: Reusable React components organized by feature:
-  - Message-related: `MessageInput`, `MessageCard`, `MessageFeed`, `MessageList`, `MessageGrid`
-  - UI components: `Avatar`, `Navigation`, `Footer`, `Logo`
-  - Feature-specific: `LeftSidebar`, `EmailVerificationBanner`, `ThemeProvider`
+  - Message-related: `MessageInput`, `MessageCard`, `MessageFeed`, `MessageList`, `MessageGrid`, `MessageTable`, `LinkMetadataCard`
+  - List-related: `ListsTreeView`, `DynamicListForm`, `ListDataTable`, `ListSchemaForm`, `DeleteListButton`
+  - UI components: `Avatar`, `Navigation`, `Footer`, `Logo`, `UserDropdown`, `SidebarToggle`
+  - Widgets: `LocationWidget`, `WeatherWidget`
+  - Feature-specific: `LeftSidebar`, `RightSidebar`, `EmailVerificationBanner`, `ThemeProvider`
+
+- **`DSL/`**: Domain Specific Language for defining dynamic list schemas:
+  - `docs/`: Complete DSL documentation (syntax, field types, validation, conditional logic)
+  - `examples/`: Ready-to-use DSL schema examples
+  - `utilities/`: DSL builder API, transformers, and validators
 
 - **`lib/`**: Shared utility functions and configurations:
   - `auth/`: Authentication helpers (password hashing, session management, token generation)
+  - `config/`: Application configuration and constants
   - `email/`: Email sending utilities using Resend API
+  - `lists/`: List utilities (DSL parsing, validation, form generation, queries)
+  - `messages/`: Message utilities (link detection, metadata fetching, link rendering)
   - `theme/`: Theme management and DarkOne theme integration
-  - `utils/`: General utility functions (time formatting, etc.)
+  - `types/`: Shared TypeScript type definitions
+  - `utils/`: General utility functions (time formatting, error handling)
   - `prisma.ts`: Prisma Client singleton instance
 
 - **`prisma/`**: Database schema and migrations:
@@ -293,12 +382,26 @@ The application includes the following models:
   - Authentication: email, username, password hash
   - Profile: display name, avatar, bio
   - Preferences: theme (system/light/dark), max message length, default message visibility
+  - View Preferences: messages per page (10-30), viewing preference (my_messages/all_messages/followers_only/following_only), show previews toggle
   - Security: email verification, password reset tokens
 - **Message**: Time-series messages posted by users
   - Content: message text with user-defined length limits
   - Visibility: public or private (defaults to user's preference)
-  - Relationships: linked to user with cascade delete
+  - Link Metadata: JSONB field storing metadata for links in messages (thumbnails, descriptions, etc.)
+  - Relationships: linked to user with cascade delete, can be associated with lists
   - Indexes: optimized for createdAt and publiclyVisible queries
+- **List**: Dynamic lists created by users with custom schemas
+  - Schema: JSONB metadata field storing DSL-defined schema
+  - Properties: Related ListProperty records defining fields
+  - Data Rows: Related ListDataRow records storing actual data
+  - Relationships: linked to user and optionally to a message
+  - Soft deletes: deletedAt timestamp for soft deletion
+- **ListProperty**: Field definitions for lists
+  - Defines field types, validation rules, display order, visibility conditions
+  - Supports conditional logic and field dependencies
+- **ListDataRow**: Data rows within lists
+  - Stores JSONB rowData matching the list's schema
+  - Supports row numbering and soft deletes
 
 ### Database Migrations
 
@@ -447,6 +550,26 @@ A test API endpoint is available at `/api/test-db` to verify your database conne
   - Theme preferences (system, light, dark)
   - Message length limits
   - Default message visibility preference (public/private)
+  - View Preferences:
+    - Messages per page (10-30, default: 20)
+    - Viewing preference (My Messages, All Messages, Followers Only, Following Only)
+    - Show/hide link previews toggle
+- **Dynamic Lists**: Create custom lists with dynamic schemas using DSL
+  - Define custom fields with types, validation, and conditional logic
+  - Form generation from schema definitions
+  - Data management with CRUD operations
+  - List navigation via tree view
+  - Link lists to messages for context
+- **Link Previews**: Automatic link detection and rich preview generation
+  - Supports Instagram, Blue Sky, Threads, Mastodon, and general URLs
+  - Automatic metadata fetching (Open Graph, oEmbed, platform-specific APIs)
+  - Thumbnail images and descriptions
+  - Asynchronous background processing
+  - Client-side toggle to show/hide previews
+  - Image proxy for Instagram (CORS bypass)
+- **Widgets**: Interactive sidebar widgets
+  - Location widget (geolocation-based)
+  - Weather widget (location-based weather)
 
 ### Security Features
 
@@ -707,6 +830,34 @@ If you need to run migrations manually:
 - Messages default to the user's preference, which itself defaults to private (not public)
 - Three-column responsive layout
 - Dashboard view with paginated message grid
+- Pagination respects user's messagesPerPage setting (10-30)
+- "Show More Messages" button loads configured number of messages
+
+### Link Previews Feature
+- Automatic URL detection in message content
+- Rich preview cards for Instagram, Blue Sky, Threads, Mastodon, and general URLs
+- Asynchronous metadata fetching (Open Graph, oEmbed, platform-specific APIs)
+- Thumbnail images and descriptions displayed inline
+- Client-side toggle to show/hide previews
+- Image proxy endpoint for Instagram images (CORS bypass)
+- Auto-polling for pending metadata updates
+
+### Dynamic Lists Feature
+- Domain Specific Language (DSL) for defining list schemas
+- Custom field types (text, email, number, select, date, etc.)
+- Validation rules and conditional field visibility
+- Form generation from schema definitions
+- CRUD operations for list data
+- Tree view navigation for lists
+- Link lists to messages for context
+- Soft delete support
+
+### View Preferences
+- Messages per page setting (10-30, default: 20)
+- Viewing preference options (My Messages, All Messages, Followers Only, Following Only)
+- Show/hide link previews toggle
+- Settings persist across sessions
+- Quick toggle on main page for preview visibility
 
 ### Database Migrations
 - `20251223015038_init_user` - Initial user schema
@@ -715,3 +866,7 @@ If you need to run migrations manually:
 - `20260104140926_add_messages_and_max_length` - Messages table and character limits
 - `20260104235810_add_email_verification_fields` - Email verification tokens
 - `20260106210211_add_default_publicly_visible` - User default message visibility preference
+- `20260120233430_add_lists_schema` - Lists, ListProperty, and ListDataRow tables
+- `20260125002814_add_link_metadata_to_messages` - Link metadata JSONB field for messages
+- `20260125040011_new_feautres` - Index optimizations
+- `20260125170624_add_view_preferences` - User view preferences (messagesPerPage, viewingPreference, showPreviews)
