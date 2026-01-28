@@ -43,6 +43,8 @@ export default function MessageTable({
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [editedContent, setEditedContent] = useState('');
   const [editedPubliclyVisible, setEditedPubliclyVisible] = useState(false);
+  const [localShowPreviews, setLocalShowPreviews] = useState(showPreviews);
+  const [isSavingPreference, setIsSavingPreference] = useState(false);
   
   // Track if this is the initial mount to prevent unnecessary fetch
   const isInitialMount = useRef(true);
@@ -338,6 +340,48 @@ export default function MessageTable({
     };
   }, [currentPage, fetchMessages]);
   
+  // Sync local showPreviews state with prop changes
+  useEffect(() => {
+    setLocalShowPreviews(showPreviews);
+  }, [showPreviews]);
+
+  // Save preference to database when toggle changes
+  const handlePreviewsToggleChange = async (newValue: boolean) => {
+    // Only save if user is authenticated
+    if (!currentUserId) {
+      setLocalShowPreviews(newValue);
+      return;
+    }
+
+    setLocalShowPreviews(newValue);
+    setIsSavingPreference(true);
+
+    try {
+      const response = await fetch('/api/user/update', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          showPreviews: newValue,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        console.error('Failed to save preference:', data.error || 'Update failed');
+        // Revert on error
+        setLocalShowPreviews(!newValue);
+      }
+    } catch (error) {
+      console.error('Error saving preference:', error);
+      // Revert on error
+      setLocalShowPreviews(!newValue);
+    } finally {
+      setIsSavingPreference(false);
+    }
+  };
+
   // Sync with prop changes (e.g., when navigating back to page 1)
   const prevInitialMessagesRef = useRef<string>(JSON.stringify(initialMessages));
   useEffect(() => {
@@ -510,6 +554,44 @@ export default function MessageTable({
       {/* end card-header*/}
 
       <div className="card-body pb-1">
+        {/* Preview toggle header */}
+        <div className="d-flex justify-content-between align-items-center mb-2 px-0">
+          <div></div>
+          <div className="d-flex align-items-center gap-2">
+            <small className="text-muted me-2">Message Previews:</small>
+            <div className="d-flex gap-3">
+              <div className="form-check form-check-inline">
+                <input
+                  className="form-check-input"
+                  type="radio"
+                  name="messagePreviewsToggleDashboard"
+                  id="showPreviewsToggleDashboard"
+                  checked={localShowPreviews === true}
+                  onChange={() => handlePreviewsToggleChange(true)}
+                  disabled={isSavingPreference}
+                />
+                <label className="form-check-label" htmlFor="showPreviewsToggleDashboard">
+                  Show
+                </label>
+              </div>
+              <div className="form-check form-check-inline">
+                <input
+                  className="form-check-input"
+                  type="radio"
+                  name="messagePreviewsToggleDashboard"
+                  id="hidePreviewsToggleDashboard"
+                  checked={localShowPreviews === false}
+                  onChange={() => handlePreviewsToggleChange(false)}
+                  disabled={isSavingPreference}
+                />
+                <label className="form-check-label" htmlFor="hidePreviewsToggleDashboard">
+                  Hide
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {isLoading ? (
           <div className="text-center mb-3">
             <div className="spinner-border spinner-border-sm text-primary" role="status">
@@ -522,11 +604,11 @@ export default function MessageTable({
         {!hasOwnedSelections ? renderActionButtons() : null}
 
         <div className="table-responsive">
-          <table className="table table-hover mb-0 table-centered">
+          <table className="table table-hover mb-0 table-centered" style={{ fontSize: '0.85rem' }}>
             <thead>
               <tr>
                 {currentUserId && (
-                  <th className="py-1" style={{ width: '40px' }}>
+                  <th style={{ width: '40px', padding: '0.25rem 0.5rem' }}>
                     <input
                       type="checkbox"
                       className="form-check-input"
@@ -544,11 +626,11 @@ export default function MessageTable({
                     />
                   </th>
                 )}
-                <th className="py-1">Date</th>
-                <th className="py-1">User</th>
-                <th className="py-1">Visibility</th>
-                <th className="py-1">Content</th>
-                {currentUserId && <th className="py-1">Actions</th>}
+                <th style={{ padding: '0.25rem 0.5rem' }}>Date</th>
+                <th style={{ padding: '0.25rem 0.5rem' }}>User</th>
+                <th style={{ padding: '0.25rem 0.5rem' }}>Visibility</th>
+                <th style={{ padding: '0.25rem 0.5rem' }}>Content</th>
+                {currentUserId && <th style={{ padding: '0.25rem 0.5rem' }}>Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -558,9 +640,9 @@ export default function MessageTable({
                 const canSelect = isOwner && currentUserId;
 
                 return (
-                  <tr key={message.id}>
+                  <tr key={message.id} style={{ lineHeight: '1.3' }}>
                     {currentUserId && (
-                      <td>
+                      <td style={{ padding: '0.25rem 0.5rem' }}>
                         {canSelect ? (
                           <input
                             type="checkbox"
@@ -575,29 +657,29 @@ export default function MessageTable({
                         )}
                       </td>
                     )}
-                    <td>
-                      <span className="text-muted">{formatDate(message.createdAt)}</span>
-                      <br />
-                      <small className="text-muted">{formatRelativeTime(message.createdAt)}</small>
+                    <td style={{ padding: '0.25rem 0.5rem' }}>
+                      <span className="text-muted" style={{ fontSize: '0.85rem' }}>
+                        {formatRelativeTime(message.createdAt)}
+                      </span>
                     </td>
-                    <td>
+                    <td style={{ padding: '0.25rem 0.5rem' }}>
                       <div className="d-flex align-items-center">
                         {message.user.avatar ? (
                           <img
                             src={message.user.avatar}
                             alt={message.user.displayName || message.user.username}
-                            className="img-fluid avatar-xs rounded-circle me-2"
-                            style={{ width: '32px', height: '32px', objectFit: 'cover' }}
+                            className="img-fluid avatar-xs rounded-circle me-1"
+                            style={{ width: '24px', height: '24px', objectFit: 'cover' }}
                           />
                         ) : (
                           <div
-                            className="rounded-circle d-flex align-items-center justify-content-center me-2 avatar-xs"
+                            className="rounded-circle d-flex align-items-center justify-content-center me-1 avatar-xs"
                             style={{
-                              width: '32px',
-                              height: '32px',
+                              width: '24px',
+                              height: '24px',
                               backgroundColor: 'var(--bs-secondary)',
                               color: 'white',
-                              fontSize: '0.8rem',
+                              fontSize: '0.7rem',
                               fontWeight: 'bold',
                               flexShrink: 0,
                             }}
@@ -605,26 +687,26 @@ export default function MessageTable({
                             {(message.user.displayName || message.user.username)[0].toUpperCase()}
                           </div>
                         )}
-                        <span className="align-middle">
+                        <span className="align-middle" style={{ fontSize: '0.85rem' }}>
                           {message.user.displayName || message.user.username}
                         </span>
                       </div>
                     </td>
-                    <td>
+                    <td style={{ padding: '0.25rem 0.5rem' }}>
                       {message.publiclyVisible ? (
-                        <span className="badge badge-soft-success">Public</span>
+                        <span className="badge badge-soft-success" style={{ fontSize: '0.75rem' }}>Public</span>
                       ) : (
-                        <span className="badge badge-soft-warning">Private</span>
+                        <span className="badge badge-soft-warning" style={{ fontSize: '0.75rem' }}>Private</span>
                       )}
                     </td>
-                    <td>
+                    <td style={{ padding: '0.25rem 0.5rem' }}>
                       <div 
                         className="text-break" 
                         style={{ 
-                          maxWidth: '300px', 
+                          maxWidth: '250px', 
                           whiteSpace: 'pre-wrap', 
                           wordBreak: 'break-word',
-                          fontSize: '0.9rem'
+                          fontSize: '0.85rem'
                         }}
                       >
                         {message.content.length > 100 
@@ -632,7 +714,7 @@ export default function MessageTable({
                           : linkifyText(message.content)}
                       </div>
                       {/* Render link previews for all detected links (if showPreviews is enabled) */}
-                      {showPreviews && (() => {
+                      {localShowPreviews && (() => {
                         // Detect all links in the message
                         const detectedLinks = detectLinks(message.content);
                         
@@ -672,20 +754,33 @@ export default function MessageTable({
                       })()}
                     </td>
                     {currentUserId && (
-                      <td>
+                      <td style={{ padding: '0.25rem 0.5rem' }}>
+                        <div className="d-flex align-items-center gap-1">
+                          <button
+                            className="btn btn-sm btn-link text-primary p-0"
+                            onClick={() => {
+                              // Placeholder - will be implemented later
+                              console.log('Create list for message:', message.id);
+                            }}
+                            disabled={isLoading}
+                            title="Create list from this message"
+                          >
+                            <i className="bx bx-list-plus"></i>
+                          </button>
                           <button
                             className="btn btn-sm btn-link text-danger p-0"
-                          onClick={async () => {
-                            if (isOwner && window.confirm('Are you sure you want to delete this message?')) {
-                              await handleDelete(message.id);
+                            onClick={async () => {
+                              if (isOwner && window.confirm('Are you sure you want to delete this message?')) {
+                                await handleDelete(message.id);
                               }
                             }}
-                          disabled={isLoading || !isOwner}
-                          title={isOwner ? "Delete message" : "You can only delete your own messages"}
-                          style={{ opacity: isOwner ? 1 : 0.5 }}
+                            disabled={isLoading || !isOwner}
+                            title={isOwner ? "Delete message" : "You can only delete your own messages"}
+                            style={{ opacity: isOwner ? 1 : 0.5 }}
                           >
                             <i className="bx bx-trash"></i>
                           </button>
+                        </div>
                       </td>
                     )}
                   </tr>
