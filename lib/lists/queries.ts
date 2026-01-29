@@ -9,6 +9,80 @@ import { prisma } from "@/lib/prisma";
 import { ParsedField } from "./dsl-types";
 
 /**
+ * Validates that setting a parentId for a list would not create a circular reference
+ * @param listId The ID of the list being updated
+ * @param parentId The proposed parent ID (null is valid)
+ * @param userId The user ID to ensure parent belongs to user
+ * @returns true if valid, false if circular reference would be created
+ */
+export async function validateParentRelationship(
+  listId: string,
+  parentId: string | null,
+  userId: string
+): Promise<boolean> {
+  // Null parent is always valid
+  if (!parentId) {
+    return true;
+  }
+
+  // Self-reference is allowed
+  if (parentId === listId) {
+    return true;
+  }
+
+  // Check if parent exists and belongs to user
+  const parent = await prisma.list.findFirst({
+    where: {
+      id: parentId,
+      userId,
+      deletedAt: null,
+    },
+    select: {
+      parentId: true,
+    },
+  });
+
+  if (!parent) {
+    return false; // Parent doesn't exist or doesn't belong to user
+  }
+
+  // Traverse parent chain to check for circular reference
+  let currentParentId: string | null = parentId;
+  const visited = new Set<string>();
+
+  while (currentParentId) {
+    // If we've visited this node before, there's a cycle
+    if (visited.has(currentParentId)) {
+      return false;
+    }
+
+    // If we encounter the listId in the chain, it's a circular reference
+    if (currentParentId === listId) {
+      return false;
+    }
+
+    visited.add(currentParentId);
+
+    // Get the next parent
+    const nextParent: { parentId: string | null } | null = await prisma.list.findFirst({
+      where: {
+        id: currentParentId,
+        userId,
+        deletedAt: null,
+      },
+      select: {
+        parentId: true,
+      },
+    });
+
+    currentParentId = nextParent?.parentId || null;
+  }
+
+  // No circular reference found
+  return true;
+}
+
+/**
  * Pagination parameters
  */
 export interface PaginationParams {
@@ -101,6 +175,12 @@ export async function getListById(listId: string, userId: string) {
       deletedAt: null,
     },
     include: {
+      parent: {
+        select: {
+          id: true,
+          title: true,
+        },
+      },
       properties: {
         orderBy: {
           displayOrder: "asc",
@@ -125,6 +205,23 @@ export async function getUserLists(
         userId,
         deletedAt: null,
       },
+      include: {
+        parent: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+        children: {
+          where: {
+            deletedAt: null,
+          },
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
       orderBy: {
         createdAt: "desc",
       },
@@ -148,6 +245,68 @@ export async function getUserLists(
       hasMore: skip + take < total,
     },
   };
+}
+
+/**
+ * Gets lists for parent selection (excludes a specific list if editing)
+ */
+export async function getListsForParentSelection(
+  userId: string,
+  excludeListId?: string
+) {
+  return await prisma.list.findMany({
+    where: {
+      userId,
+      deletedAt: null,
+      ...(excludeListId && { id: { not: excludeListId } }),
+    },
+    select: {
+      id: true,
+      title: true,
+      parentId: true,
+    },
+    orderBy: {
+      title: "asc",
+    },
+  });
+}
+
+/**
+ * Tree node structure for hierarchical list display
+ */
+export interface TreeNode {
+  list: {
+    id: string;
+    title: string;
+    parentId: string | null;
+    [key: string]: any;
+  };
+  children: TreeNode[];
+}
+
+/**
+ * Builds a hierarchical tree structure from a flat list of lists
+ */
+export function buildListTree(lists: Array<{ id: string; title: string; parentId: string | null; [key: string]: any }>): TreeNode[] {
+  const map = new Map<string, TreeNode>();
+  const roots: TreeNode[] = [];
+
+  // Create nodes for all lists
+  lists.forEach((list) => {
+    map.set(list.id, { list, children: [] });
+  });
+
+  // Build tree by linking children to parents
+  lists.forEach((list) => {
+    const node = map.get(list.id)!;
+    if (list.parentId && map.has(list.parentId)) {
+      map.get(list.parentId)!.children.push(node);
+    } else {
+      roots.push(node);
+    }
+  });
+
+  return roots;
 }
 
 /**

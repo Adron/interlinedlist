@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import { DSLSchema, DSLField, FieldType } from "@/lib/lists/dsl-types";
 import { validateDSLSchema } from "@/lib/lists/dsl-parser";
+import { List } from "@/lib/types";
 
 interface ListSchemaFormProps {
   initialSchema?: DSLSchema;
-  onSubmit: (schema: DSLSchema) => Promise<void> | void;
+  initialParentId?: string | null;
+  currentListId?: string; // For excluding current list when editing
+  onSubmit: (schema: DSLSchema, parentId: string | null) => Promise<void> | void;
   onCancel?: () => void;
   submitLabel?: string;
   cancelLabel?: string;
@@ -64,6 +67,8 @@ const generateDefaultFieldName = (): string => {
 
 export default function ListSchemaForm({
   initialSchema,
+  initialParentId,
+  currentListId,
   onSubmit,
   onCancel,
   submitLabel = "Save Schema",
@@ -72,6 +77,9 @@ export default function ListSchemaForm({
 }: ListSchemaFormProps) {
   const [name, setName] = useState(initialSchema?.name || "");
   const [description, setDescription] = useState(initialSchema?.description || "");
+  const [parentId, setParentId] = useState<string | null>(initialParentId || null);
+  const [availableParents, setAvailableParents] = useState<List[]>([]);
+  const [loadingParents, setLoadingParents] = useState(false);
   
   // Generate default field name only if creating new schema (no initialSchema)
   // Always ensure we have a valid default field for new schemas
@@ -95,6 +103,30 @@ export default function ListSchemaForm({
   const [fields, setFields] = useState<DSLField[]>(getInitialFields());
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Fetch available parent lists
+  useEffect(() => {
+    const fetchParents = async () => {
+      setLoadingParents(true);
+      try {
+        const response = await fetch(`/api/lists?limit=100`);
+        if (response.ok) {
+          const data = await response.json();
+          // Filter out current list if editing
+          const filtered = currentListId
+            ? data.lists.filter((l: List) => l.id !== currentListId)
+            : data.lists;
+          setAvailableParents(filtered);
+        }
+      } catch (err) {
+        console.error("Failed to fetch parent lists:", err);
+      } finally {
+        setLoadingParents(false);
+      }
+    };
+
+    fetchParents();
+  }, [currentListId]);
 
   const updateField = (index: number, updates: Partial<DSLField>) => {
     setFields((prev) => {
@@ -183,7 +215,7 @@ export default function ListSchemaForm({
     }
 
     try {
-      await onSubmit(schema);
+      await onSubmit(schema, parentId);
     } catch (err: any) {
       setError(err.message || "An error occurred");
     } finally {
@@ -221,6 +253,31 @@ export default function ListSchemaForm({
             rows={1}
             disabled={loading || isSubmitting}
           />
+        </div>
+      </div>
+
+      <div className="row g-1 mb-1">
+        <div className="col-md-12">
+          <label htmlFor="schema-parent" className="form-label small mb-0">
+            Parent List
+          </label>
+          <select
+            id="schema-parent"
+            className="form-select form-select-sm"
+            value={parentId || ""}
+            onChange={(e) => setParentId(e.target.value || null)}
+            disabled={loading || isSubmitting || loadingParents}
+          >
+            <option value="">None</option>
+            {availableParents.map((list) => (
+              <option key={list.id} value={list.id}>
+                {list.title}
+              </option>
+            ))}
+          </select>
+          <small className="form-text text-muted">
+            Select a parent list to organize lists hierarchically. A list can reference itself.
+          </small>
         </div>
       </div>
 
