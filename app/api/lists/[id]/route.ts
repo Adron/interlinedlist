@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/session";
-import { getListById } from "@/lib/lists/queries";
+import { getListById, validateParentRelationship } from "@/lib/lists/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +56,41 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { title, description, messageId, metadata } = body;
+    const { title, description, messageId, metadata, parentId } = body;
+
+    // Validate parentId if provided
+    if (parentId !== undefined) {
+      if (parentId !== null && typeof parentId !== "string") {
+        return NextResponse.json({ error: "Invalid parentId" }, { status: 400 });
+      }
+
+      if (parentId !== null) {
+        // Check if parent exists and belongs to user
+        const parent = await prisma.list.findFirst({
+          where: {
+            id: parentId,
+            userId: user.id,
+            deletedAt: null,
+          },
+        });
+
+        if (!parent) {
+          return NextResponse.json(
+            { error: "Parent list not found or access denied" },
+            { status: 404 }
+          );
+        }
+
+        // Validate no circular reference
+        const isValid = await validateParentRelationship(params.id, parentId, user.id);
+        if (!isValid) {
+          return NextResponse.json(
+            { error: "Setting this parent would create a circular reference" },
+            { status: 400 }
+          );
+        }
+      }
+    }
 
     const updated = await prisma.list.update({
       where: { id: params.id },
@@ -65,6 +99,7 @@ export async function PUT(
         ...(description !== undefined && { description: description?.trim() || null }),
         ...(messageId !== undefined && { messageId: messageId || null }),
         ...(metadata !== undefined && { metadata }),
+        ...(parentId !== undefined && { parentId: parentId || null }),
       },
       include: {
         properties: {

@@ -85,3 +85,21 @@ export interface MessagesResponse {
   pagination: PaginationInfo;
 }
 
+/**
+ * List type matching the Prisma List model
+ */
+export interface List {
+  id: string;
+  userId: string;
+  messageId: string | null;
+  parentId: string | null;
+  title: string;
+  description: string | null;
+  metadata: any | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  deletedAt: Date | string | null;
+  parent?: List | null;
+  children?: List[];
+}
+

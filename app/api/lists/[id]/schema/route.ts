@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/session";
-import { getListProperties } from "@/lib/lists/queries";
+import { getListProperties, validateParentRelationship } from "@/lib/lists/queries";
 import { parseDSLSchema, validateDSLSchema, parsedSchemaToDSL } from "@/lib/lists/dsl-parser";
 
 export const dynamic = "force-dynamic";
@@ -95,10 +95,44 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { schema } = body;
+    const { schema, parentId } = body;
 
     if (!schema) {
       return NextResponse.json({ error: "Schema is required" }, { status: 400 });
+    }
+
+    // Validate parentId if provided
+    if (parentId !== undefined) {
+      if (parentId !== null && typeof parentId !== "string") {
+        return NextResponse.json({ error: "Invalid parentId" }, { status: 400 });
+      }
+
+      if (parentId !== null) {
+        // Check if parent exists and belongs to user
+        const parent = await prisma.list.findFirst({
+          where: {
+            id: parentId,
+            userId: user.id,
+            deletedAt: null,
+          },
+        });
+
+        if (!parent) {
+          return NextResponse.json(
+            { error: "Parent list not found or access denied" },
+            { status: 404 }
+          );
+        }
+
+        // Validate no circular reference
+        const isValid = await validateParentRelationship(params.id, parentId, user.id);
+        if (!isValid) {
+          return NextResponse.json(
+            { error: "Setting this parent would create a circular reference" },
+            { status: 400 }
+          );
+        }
+      }
     }
 
     // Validate and parse DSL schema
@@ -112,6 +146,16 @@ export async function PUT(
         { status: 400 }
       );
     }
+
+    // Update list title, description, and parentId from parsed schema
+    await prisma.list.update({
+      where: { id: params.id },
+      data: {
+        title: parsedSchema.title,
+        description: parsedSchema.description,
+        ...(parentId !== undefined && { parentId: parentId || null }),
+      },
+    });
 
     // Delete existing properties
     await prisma.listProperty.deleteMany({

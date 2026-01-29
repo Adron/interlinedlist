@@ -3,6 +3,8 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { getUserLists } from '@/lib/lists/queries';
 import Link from 'next/link';
 import DeleteListButton from '@/components/lists/DeleteListButton';
+import ListConnections from '@/components/lists/ListConnections';
+import ParentLink from '@/components/lists/ParentLink';
 
 export default async function ListsPage() {
   const user = await getCurrentUser();
@@ -39,12 +41,66 @@ export default async function ListsPage() {
           </div>
         </div>
       ) : (
-        <div className="row">
-          {result.lists.map((list: any) => (
-            <div key={list.id} className="col-md-6 col-lg-4 mb-4">
-              <div className="card h-100">
+        <ListConnections lists={result.lists}>
+          <div className="row position-relative" style={{ minHeight: '400px' }}>
+            {result.lists.map((list: any) => (
+            <div 
+              key={list.id} 
+              className="col-md-6 col-lg-4 mb-4"
+              data-list-id={list.id}
+              data-parent-id={list.parentId || ''}
+            >
+              <div 
+                className={`card h-100 ${list.parentId ? 'border-start border-primary border-3' : ''}`}
+                style={{
+                  position: 'relative',
+                  ...(list.parentId && {
+                    backgroundColor: 'rgba(13, 110, 253, 0.02)',
+                  }),
+                }}
+              >
+                {list.parentId && (
+                  <div 
+                    className="position-absolute"
+                    style={{
+                      top: '-8px',
+                      left: '-12px',
+                      width: '24px',
+                      height: '24px',
+                      backgroundColor: '#0d6efd',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 10,
+                    }}
+                    title={`Child of: ${list.parent?.title || 'Unknown'}`}
+                  >
+                    <i className="bx bx-link text-white" style={{ fontSize: '12px' }}></i>
+                  </div>
+                )}
                 <div className="card-body d-flex flex-column">
-                  <h5 className="card-title">{list.title}</h5>
+                  <div className="d-flex align-items-start justify-content-between mb-2">
+                    <h5 className="card-title mb-0 flex-grow-1">{list.title}</h5>
+                    {list.parentId && (
+                      <span 
+                        className="badge bg-primary ms-2"
+                        style={{ fontSize: '0.65rem' }}
+                        title={`Parent: ${list.parent?.title || 'Unknown'}`}
+                      >
+                        <i className="bx bx-up-arrow-alt"></i>
+                      </span>
+                    )}
+                  </div>
+                  {list.parent && (
+                    <div className="mb-2">
+                      <small className="text-muted d-flex align-items-center">
+                        <i className="bx bx-up-arrow-alt me-1" style={{ fontSize: '0.75rem' }}></i>
+                        <span>Parent: </span>
+                        <ParentLink parentId={list.parent.id} parentTitle={list.parent.title} />
+                      </small>
+                    </div>
+                  )}
                   {list.description && (
                     <p className="card-text text-muted flex-grow-1">{list.description}</p>
                   )}
@@ -76,7 +132,8 @@ export default async function ListsPage() {
               </div>
             </div>
           ))}
-        </div>
+          </div>
+        </ListConnections>
       )}
 
       {result.pagination.hasMore && (

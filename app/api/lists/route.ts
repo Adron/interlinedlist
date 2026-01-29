@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/session";
 import { parseDSLSchema, validateDSLSchema } from "@/lib/lists/dsl-parser";
-import { getUserLists } from "@/lib/lists/queries";
+import { getUserLists, validateParentRelationship } from "@/lib/lists/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -50,11 +50,37 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, messageId, metadata, schema } = body;
+    const { title, description, messageId, metadata, schema, parentId } = body;
 
     // Validate required fields
     if (!title || typeof title !== "string" || title.trim().length === 0) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
+    }
+
+    // Validate parentId if provided
+    if (parentId !== undefined && parentId !== null) {
+      if (typeof parentId !== "string") {
+        return NextResponse.json({ error: "Invalid parentId" }, { status: 400 });
+      }
+
+      // Check if parent exists and belongs to user
+      const parent = await prisma.list.findFirst({
+        where: {
+          id: parentId,
+          userId: user.id,
+          deletedAt: null,
+        },
+      });
+
+      if (!parent) {
+        return NextResponse.json(
+          { error: "Parent list not found or access denied" },
+          { status: 404 }
+        );
+      }
+
+      // Validate no circular reference (for new lists, listId will be generated, so we use a placeholder)
+      // We'll validate after creation if parentId is set
     }
 
     // Validate and parse DSL schema if provided
@@ -79,8 +105,22 @@ export async function POST(request: NextRequest) {
         description: description?.trim() || null,
         messageId: messageId || null,
         metadata: metadata || null,
+        parentId: parentId || null,
       },
     });
+
+    // Validate circular reference after creation (if parentId was set)
+    if (parentId) {
+      const isValid = await validateParentRelationship(list.id, parentId, user.id);
+      if (!isValid) {
+        // Delete the list we just created and return error
+        await prisma.list.delete({ where: { id: list.id } });
+        return NextResponse.json(
+          { error: "Setting this parent would create a circular reference" },
+          { status: 400 }
+        );
+      }
+    }
 
     // Create properties if schema provided
     if (parsedSchema && parsedSchema.fields.length > 0) {

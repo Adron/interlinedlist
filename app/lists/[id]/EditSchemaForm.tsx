@@ -16,7 +16,7 @@ export default function EditSchemaForm({ listId, initialSchema }: EditSchemaForm
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async (schema: DSLSchema) => {
+  const handleSubmit = async (schema: DSLSchema, parentId: string | null) => {
     setLoading(true);
     setError('');
 
@@ -26,7 +26,7 @@ export default function EditSchemaForm({ listId, initialSchema }: EditSchemaForm
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ schema }),
+        body: JSON.stringify({ schema, parentId }),
       });
 
       if (!response.ok) {
@@ -76,6 +76,8 @@ export default function EditSchemaForm({ listId, initialSchema }: EditSchemaForm
       )}
       <ListSchemaForm
         initialSchema={initialDSL}
+        initialParentId={initialSchema.parentId || null}
+        currentListId={listId}
         onSubmit={handleSubmit}
         onCancel={handleCancel}
         submitLabel="Update Schema"
