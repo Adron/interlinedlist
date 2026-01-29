@@ -212,6 +212,15 @@ export async function getUserLists(
             title: true,
           },
         },
+        children: {
+          where: {
+            deletedAt: null,
+          },
+          select: {
+            id: true,
+            title: true,
+          },
+        },
       },
       orderBy: {
         createdAt: "desc",

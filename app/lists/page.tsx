@@ -5,6 +5,7 @@ import Link from 'next/link';
 import DeleteListButton from '@/components/lists/DeleteListButton';
 import ListConnections from '@/components/lists/ListConnections';
 import ParentLink from '@/components/lists/ParentLink';
+import ChildLink from '@/components/lists/ChildLink';
 
 export default async function ListsPage() {
   const user = await getCurrentUser();
@@ -98,6 +99,25 @@ export default async function ListsPage() {
                         <i className="bx bx-up-arrow-alt me-1" style={{ fontSize: '0.75rem' }}></i>
                         <span>Parent: </span>
                         <ParentLink parentId={list.parent.id} parentTitle={list.parent.title} />
+                      </small>
+                    </div>
+                  )}
+                  {list.children && list.children.length > 0 && (
+                    <div className="mb-2">
+                      <small className="text-muted d-flex align-items-center flex-wrap">
+                        <i className="bx bx-down-arrow-alt me-1" style={{ fontSize: '0.75rem' }}></i>
+                        <span>Children: </span>
+                        {list.children.slice(0, 3).map((child: any, index: number) => (
+                          <span key={child.id}>
+                            <ChildLink childId={child.id} childTitle={child.title} />
+                            {index < Math.min(list.children.length, 3) - 1 && <span className="text-muted ms-1">, </span>}
+                          </span>
+                        ))}
+                        {list.children.length > 3 && (
+                          <span className="badge bg-secondary ms-1" style={{ fontSize: '0.65rem' }}>
+                            +{list.children.length - 3} more
+                          </span>
+                        )}
                       </small>
                     </div>
                   )}
