@@ -49,6 +49,7 @@ export async function GET(request: NextRequest) {
           username: true,
           displayName: true,
           avatar: true,
+          bio: true,
           emailVerified: true,
           createdAt: true,
         },

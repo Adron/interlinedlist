@@ -24,6 +24,7 @@ export default async function AdminPage() {
       username: true,
       displayName: true,
       avatar: true,
+      bio: true,
       emailVerified: true,
       createdAt: true,
     },
