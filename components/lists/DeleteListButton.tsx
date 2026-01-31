@@ -6,9 +6,10 @@ import { useRouter } from 'next/navigation';
 interface DeleteListButtonProps {
   listId: string;
   listTitle: string;
+  onDeleteSuccess?: () => void;
 }
 
-export default function DeleteListButton({ listId, listTitle }: DeleteListButtonProps) {
+export default function DeleteListButton({ listId, listTitle, onDeleteSuccess }: DeleteListButtonProps) {
   const router = useRouter();
   const [showModal, setShowModal] = useState(false);
   const [step, setStep] = useState<'confirm' | 'verify'>('confirm');
@@ -57,6 +58,10 @@ export default function DeleteListButton({ listId, listTitle }: DeleteListButton
       // Close modal and refresh page
       handleCloseModal();
       router.refresh();
+      // Call optional callback to refresh parent component
+      if (onDeleteSuccess) {
+        onDeleteSuccess();
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to delete list');
       setIsDeleting(false);
@@ -90,7 +95,11 @@ export default function DeleteListButton({ listId, listTitle }: DeleteListButton
     <>
       <button
         className="btn btn-sm btn-outline-danger"
-        onClick={handleOpenModal}
+        onClick={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          handleOpenModal();
+        }}
         title="Delete"
       >
         <i className="bx bx-trash"></i>
