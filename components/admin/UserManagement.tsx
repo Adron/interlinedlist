@@ -30,14 +30,9 @@ export default function UserManagement({ initialUsers, initialTotal }: UserManag
   const [editFormData, setEditFormData] = useState<Partial<User>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const itemsPerPage = 20;
+  const itemsPerPage = 10;
 
   useEffect(() => {
-    // Only fetch if search term exists or page changed from initial
-    if (!searchTerm && currentPage === 1) {
-      return;
-    }
-
     const fetchUsers = async () => {
       setLoading(true);
       try {
@@ -60,15 +55,30 @@ export default function UserManagement({ initialUsers, initialTotal }: UserManag
       }
     };
 
+    // If search is cleared and we're on page 1, reset to initial users
+    if (!searchTerm && currentPage === 1) {
+      setUsers(initialUsers);
+      setTotal(initialTotal);
+      return;
+    }
+
     // Debounce search
     const timeoutId = setTimeout(() => {
       fetchUsers();
     }, searchTerm ? 300 : 0);
 
     return () => clearTimeout(timeoutId);
-  }, [currentPage, searchTerm]);
+  }, [currentPage, searchTerm, initialUsers, initialTotal]);
 
   const totalPages = Math.ceil(total / itemsPerPage);
+
+  const handleReset = () => {
+    setSearchTerm('');
+    setCurrentPage(1);
+    // Reset to initial users
+    setUsers(initialUsers);
+    setTotal(initialTotal);
+  };
 
   const handleEditClick = (user: User) => {
     setEditingUser(user);
@@ -139,16 +149,28 @@ export default function UserManagement({ initialUsers, initialTotal }: UserManag
 
         {/* Search */}
         <div className="mb-3">
-          <input
-            type="text"
-            className="form-control"
-            placeholder="Search by email, username, or display name..."
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1);
-            }}
-          />
+          <div className="input-group">
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Search by email, username, or display name..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+            />
+            {(searchTerm || currentPage !== 1) && (
+              <button
+                className="btn btn-outline-secondary"
+                type="button"
+                onClick={handleReset}
+                title="Reset filter"
+              >
+                <i className="bx bx-x"></i> Reset
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Users Table */}
