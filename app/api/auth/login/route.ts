@@ -81,12 +81,6 @@ export async function POST(request: NextRequest) {
       path: '/',
     });
 
-    console.log('[Login API] Cookie set on response:', {
-      'set-cookie': response.headers.get('set-cookie'),
-      'cookie-name': SESSION_COOKIE_NAME,
-      'cookie-value': user.id,
-    });
-
     return response;
   } catch (error) {
     console.error('Login error:', error);

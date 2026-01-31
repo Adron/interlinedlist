@@ -30,6 +30,7 @@ model User {
   showPreviews              Boolean   @default(true)
   messages             Message[]
   lists                List[]
+  administrator        Administrator?
 
   @@map("users")
 }
@@ -114,4 +115,15 @@ model ListDataRow {
   @@index([listId, deletedAt])
   @@index([listId, createdAt])
   @@map("list_data_rows")
+}
+
+model Administrator {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("administrators")
 }

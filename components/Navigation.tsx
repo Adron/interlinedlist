@@ -89,6 +89,20 @@ export default async function Navigation() {
                     <i className="bx bx-list-ul fs-22 align-middle"></i>
                   </Link>
                 </div>
+                {user.isAdministrator && (
+                  <div className="topbar-item">
+                    <Link
+                      href="/admin"
+                      className="topbar-button btn btn-link text-decoration-none d-flex align-items-center"
+                      style={{
+                        color: 'var(--bs-topbar-item-color, var(--color-text))',
+                      }}
+                      title="Administration"
+                    >
+                      <i className="bx bx-user-check fs-22 align-middle"></i>
+                    </Link>
+                  </div>
+                )}
                 <UserDropdown user={user} />
               </>
             ) : (

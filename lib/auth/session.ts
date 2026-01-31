@@ -51,7 +51,31 @@ export async function getCurrentUser() {
         },
       });
 
-      return user;
+      if (!user) {
+        return null;
+      }
+
+      // Check if user is administrator (handle case where table doesn't exist yet)
+      let isAdministrator = false;
+      try {
+        const admin = await prisma.administrator.findUnique({
+          where: { userId: user.id },
+        });
+        isAdministrator = !!admin;
+      } catch (error: any) {
+        // If administrators table doesn't exist yet, user is not admin
+        // This allows the app to work before migration is applied
+        if (error?.code === 'P2021' || error?.message?.includes('does not exist')) {
+          isAdministrator = false;
+        } else {
+          throw error;
+        }
+      }
+
+      return {
+        ...user,
+        isAdministrator,
+      };
     } catch (error: any) {
       // If maxMessageLength column doesn't exist, query without it
       if (error?.message?.includes('maxMessageLength') || error?.code === 'P2021') {
@@ -70,15 +94,36 @@ export async function getCurrentUser() {
           },
         });
 
+        if (!user) {
+          return null;
+        }
+
+        // Check if user is administrator (handle case where table doesn't exist yet)
+        let isAdministrator = false;
+        try {
+          const admin = await prisma.administrator.findUnique({
+            where: { userId: user.id },
+          });
+          isAdministrator = !!admin;
+        } catch (error: any) {
+          // If administrators table doesn't exist yet, user is not admin
+          if (error?.code === 'P2021' || error?.message?.includes('does not exist')) {
+            isAdministrator = false;
+          } else {
+            throw error;
+          }
+        }
+
         // Add defaults if not in database
-        return user ? { 
-          ...user, 
-          maxMessageLength: 666, 
+        return {
+          ...user,
+          maxMessageLength: 666,
           defaultPubliclyVisible: false,
           messagesPerPage: 20,
           viewingPreference: 'all_messages',
           showPreviews: true,
-        } : null;
+          isAdministrator,
+        };
       }
       throw error;
     }
@@ -93,5 +138,23 @@ export async function getCurrentUser() {
 export async function deleteSession(): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.delete(SESSION_COOKIE_NAME);
+}
+
+/**
+ * Check if a user is an administrator
+ */
+export async function isAdministrator(userId: string): Promise<boolean> {
+  try {
+    const admin = await prisma.administrator.findUnique({
+      where: { userId },
+    });
+    return !!admin;
+  } catch (error: any) {
+    // If administrators table doesn't exist yet, user is not admin
+    if (error?.code === 'P2021' || error?.message?.includes('does not exist')) {
+      return false;
+    }
+    throw error;
+  }
 }
 

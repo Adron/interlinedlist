@@ -20,6 +20,7 @@ export interface User {
   viewingPreference: string | null;
   showPreviews: boolean | null;
   createdAt: Date | string;
+  isAdministrator?: boolean;
 }
 
 /**

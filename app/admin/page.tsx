@@ -1,0 +1,71 @@
+import { redirect } from 'next/navigation';
+import { getCurrentUser } from '@/lib/auth/session';
+import { prisma } from '@/lib/prisma';
+import UserManagement from '@/components/admin/UserManagement';
+
+export default async function AdminPage() {
+  const user = await getCurrentUser();
+
+  // Redirect if not logged in
+  if (!user) {
+    redirect('/login');
+  }
+
+  // Redirect if not administrator
+  if (!user.isAdministrator) {
+    redirect('/dashboard');
+  }
+
+  // Fetch users for display
+  const users = await prisma.user.findMany({
+    select: {
+      id: true,
+      email: true,
+      username: true,
+      displayName: true,
+      avatar: true,
+      emailVerified: true,
+      createdAt: true,
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    take: 20,
+  });
+
+  // Check which users are administrators
+  const adminUserIds = new Set(
+    (
+      await prisma.administrator.findMany({
+        select: { userId: true },
+      })
+    ).map((a) => a.userId)
+  );
+
+  // Add administrator flag to users
+  const usersWithAdminFlag = users.map((u) => ({
+    ...u,
+    isAdministrator: adminUserIds.has(u.id),
+    createdAt: u.createdAt.toISOString(),
+  }));
+
+  // Get total count
+  const total = await prisma.user.count();
+
+  return (
+    <div className="container-fluid container-fluid-max py-4">
+      <div className="row mb-4">
+        <div className="col-12">
+          <h1 className="h2 mb-0">Administration</h1>
+          <p className="text-muted mb-0">Manage users and site settings</p>
+        </div>
+      </div>
+
+      <div className="row">
+        <div className="col-12">
+          <UserManagement initialUsers={usersWithAdminFlag} initialTotal={total} />
+        </div>
+      </div>
+    </div>
+  );
+}
