@@ -1,47 +1,90 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { List } from '@/lib/types';
 import { buildListTree, TreeNode } from '@/lib/lists/queries';
+import DeleteListButton from '@/components/lists/DeleteListButton';
 
 interface TreeNodeComponentProps {
   node: TreeNode;
   level: number;
   expandedNodes: Set<string>;
   onToggle: (id: string) => void;
+  onDelete: () => void;
 }
 
-function TreeNodeComponent({ node, level, expandedNodes, onToggle }: TreeNodeComponentProps) {
+function TreeNodeComponent({ node, level, expandedNodes, onToggle, onDelete }: TreeNodeComponentProps) {
   const hasChildren = node.children.length > 0;
   const isExpanded = expandedNodes.has(node.list.id);
 
+  const handleActionClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+  };
+
   return (
-    <li className="mb-1">
-      <div className="d-flex align-items-center">
-        {hasChildren ? (
-          <div
-            className="d-flex align-items-center"
-            style={{ cursor: 'pointer' }}
-            onClick={() => onToggle(node.list.id)}
+    <li className="mb-1" style={{ minWidth: 0 }}>
+      <div className="d-flex align-items-center justify-content-between" style={{ minWidth: 0 }}>
+        <div className="d-flex align-items-center flex-grow-1" style={{ minWidth: 0, overflow: 'hidden' }}>
+          {hasChildren ? (
+            <div
+              className="d-flex align-items-center"
+              style={{ cursor: 'pointer', minWidth: 0, flex: 1 }}
+              onClick={() => onToggle(node.list.id)}
+            >
+              <i className={`bx ${isExpanded ? 'bx-chevron-down' : 'bx-chevron-right'} me-2`} style={{ flexShrink: 0 }}></i>
+              <i className="bx bx-folder me-2 text-muted" style={{ flexShrink: 0 }}></i>
+              <Link 
+                href={`/lists/${node.list.id}`} 
+                className="text-decoration-none text-truncate"
+                style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                data-bs-toggle="tooltip"
+                data-bs-placement="top"
+                data-bs-title={node.list.title}
+                title={node.list.title}
+              >
+                {node.list.title}
+              </Link>
+            </div>
+          ) : (
+            <div className="d-flex align-items-center" style={{ minWidth: 0, flex: 1 }}>
+              <i className="bx bx-folder me-2 text-muted" style={{ flexShrink: 0 }}></i>
+              <Link 
+                href={`/lists/${node.list.id}`} 
+                className="text-decoration-none text-truncate"
+                style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                data-bs-toggle="tooltip"
+                data-bs-placement="top"
+                data-bs-title={node.list.title}
+                title={node.list.title}
+              >
+                {node.list.title}
+              </Link>
+            </div>
+          )}
+        </div>
+        <div className="d-flex align-items-center gap-1 ms-2" style={{ flexShrink: 0 }} onClick={handleActionClick}>
+          <Link
+            href={`/lists/${node.list.id}?edit=true`}
+            className="btn btn-sm btn-link text-primary p-0"
+            title="Edit list"
+            onClick={handleActionClick}
+            style={{ lineHeight: '1', flexShrink: 0 }}
           >
-            <i className={`bx ${isExpanded ? 'bx-chevron-down' : 'bx-chevron-right'} me-2`}></i>
-            <i className="bx bx-folder me-2 text-muted"></i>
-            <Link href={`/lists/${node.list.id}`} className="text-decoration-none">
-              {node.list.title}
-            </Link>
-          </div>
-        ) : (
-          <>
-            <i className="bx bx-folder me-2 text-muted"></i>
-            <Link href={`/lists/${node.list.id}`} className="text-decoration-none">
-              {node.list.title}
-            </Link>
-          </>
-        )}
+            <i className="bx bx-edit"></i>
+          </Link>
+          <span onClick={handleActionClick} style={{ flexShrink: 0 }}>
+            <DeleteListButton
+              listId={node.list.id}
+              listTitle={node.list.title}
+              onDeleteSuccess={onDelete}
+            />
+          </span>
+        </div>
       </div>
       {hasChildren && isExpanded && (
-        <ul className="list-unstyled ms-4 mt-1 mb-0">
+        <ul className="list-unstyled ms-4 mt-1 mb-0" style={{ minWidth: 0 }}>
           {node.children.map((child) => (
             <TreeNodeComponent
               key={child.list.id}
@@ -49,6 +92,7 @@ function TreeNodeComponent({ node, level, expandedNodes, onToggle }: TreeNodeCom
               level={level + 1}
               expandedNodes={expandedNodes}
               onToggle={onToggle}
+              onDelete={onDelete}
             />
           ))}
         </ul>
@@ -62,32 +106,96 @@ export default function ListsTreeView() {
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [lists, setLists] = useState<List[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [tree, setTree] = useState<TreeNode[]>([]);
 
-  useEffect(() => {
-    const fetchLists = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch('/api/lists?limit=100');
-        if (response.ok) {
-          const data = await response.json();
-          setLists(data.lists || []);
-          // Build tree structure
-          const treeData = buildListTree(data.lists || []);
-          setTree(treeData);
-          // Expand root nodes by default
-          const rootIds = new Set(treeData.map((node) => node.list.id));
-          setExpandedNodes(rootIds);
-        }
-      } catch (err) {
-        console.error('Failed to fetch lists:', err);
-      } finally {
-        setLoading(false);
+  const fetchLists = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/lists?limit=100');
+      if (response.status === 401) {
+        setError('Please log in to view your lists');
+        setLists([]);
+        setTree([]);
+        return;
       }
-    };
+      if (!response.ok) {
+        throw new Error(`Failed to fetch lists: ${response.statusText}`);
+      }
+      const data = await response.json();
+      const userLists = data.lists || [];
+      setLists(userLists);
+      // Build tree structure
+      const treeData = buildListTree(userLists);
+      setTree(treeData);
+      // Expand root nodes by default
+      const rootIds = new Set(treeData.map((node) => node.list.id));
+      setExpandedNodes(rootIds);
+    } catch (err: any) {
+      console.error('Failed to fetch lists:', err);
+      setError(err.message || 'Failed to load lists');
+      setLists([]);
+      setTree([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchLists();
   }, []);
+
+  // Initialize Bootstrap tooltips for list names
+  useEffect(() => {
+    // Only initialize tooltips if Bootstrap is available and tree is rendered
+    if (typeof window !== 'undefined' && (window as any).bootstrap && tree.length > 0 && !loading) {
+      // Use setTimeout to ensure DOM is fully updated
+      const timeoutId = setTimeout(() => {
+        // Find tooltip elements only within this component
+        const treeviewContainer = document.querySelector('.lists-treeview');
+        if (!treeviewContainer) return;
+
+        // Dispose existing tooltips first (only within this component)
+        const existingTooltips = treeviewContainer.querySelectorAll('[data-bs-toggle="tooltip"]');
+        existingTooltips.forEach((el) => {
+          const existingTooltip = (window as any).bootstrap.Tooltip.getInstance(el);
+          if (existingTooltip) {
+            existingTooltip.dispose();
+          }
+        });
+
+        // Initialize new tooltips (only within this component)
+        const tooltipTriggerList = treeviewContainer.querySelectorAll('[data-bs-toggle="tooltip"]');
+        tooltipTriggerList.forEach((tooltipTriggerEl) => {
+          // Only initialize if not already initialized
+          if (!(window as any).bootstrap.Tooltip.getInstance(tooltipTriggerEl)) {
+            new (window as any).bootstrap.Tooltip(tooltipTriggerEl);
+          }
+        });
+      }, 100);
+
+      return () => {
+        clearTimeout(timeoutId);
+        // Cleanup tooltips on unmount or when tree changes
+        const treeviewContainer = document.querySelector('.lists-treeview');
+        if (treeviewContainer) {
+          const tooltipTriggerList = treeviewContainer.querySelectorAll('[data-bs-toggle="tooltip"]');
+          tooltipTriggerList.forEach((el) => {
+            const tooltip = (window as any).bootstrap.Tooltip.getInstance(el);
+            if (tooltip) {
+              tooltip.dispose();
+            }
+          });
+        }
+      };
+    }
+  }, [tree, loading]); // Re-initialize when tree or loading state changes
+
+  // Refresh tree after deletion
+  const handleDelete = () => {
+    fetchLists();
+  };
 
   const handleToggle = (id: string) => {
     setExpandedNodes((prev) => {
@@ -104,7 +212,7 @@ export default function ListsTreeView() {
   return (
     <div className="card mb-3">
       <div className="card-body">
-        <div className="lists-treeview">
+        <div className="lists-treeview" style={{ maxHeight: '500px', overflowY: 'auto', overflowX: 'hidden' }}>
           <div
             className="treeview-root d-flex align-items-center mb-2"
             style={{ cursor: 'pointer' }}
@@ -118,6 +226,8 @@ export default function ListsTreeView() {
             <>
               {loading ? (
                 <div className="text-muted small ms-3">Loading...</div>
+              ) : error ? (
+                <div className="text-danger small ms-3">{error}</div>
               ) : tree.length === 0 ? (
                 <div className="text-muted small ms-3">No lists found</div>
               ) : (
@@ -129,6 +239,7 @@ export default function ListsTreeView() {
                       level={0}
                       expandedNodes={expandedNodes}
                       onToggle={handleToggle}
+                      onDelete={handleDelete}
                     />
                   ))}
                 </ul>
