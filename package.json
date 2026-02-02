@@ -14,7 +14,8 @@
     "db:generate": "dotenv -e .env.local -- prisma generate",
     "db:studio": "dotenv -e .env.local -- prisma studio",
     "backup": "node scripts/backup-database.js",
-    "restore": "node scripts/restore-database.js"
+    "restore": "node scripts/restore-database.js",
+    "test-data:seed": "dotenv -e .env.local -- node test-data/seed-test-accounts.js"
   },
   "dependencies": {
     "@prisma/client": "^5.19.0",
