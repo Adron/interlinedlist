@@ -4,7 +4,7 @@ This directory contains test account profiles and a script to seed them into the
 
 ## Overview
 
-The `test-accounts.json` file contains 41 test user accounts with realistic profiles, each associated with an image in this directory. These accounts are designed for local development and testing purposes.
+The `test-accounts.json` file contains 71 test user accounts with realistic profiles. The seed script creates these accounts and also generates test messages for each user (10-50 messages per user). These accounts and messages are designed for local development and testing purposes.
 
 ## Test Accounts
 
@@ -54,7 +54,8 @@ The script will:
 - Check for existing accounts (skips duplicates)
 - Hash passwords using bcrypt
 - Create accounts in the database
-- Display a summary of created, skipped, and failed accounts
+- Generate and create test messages for each user (10-50 messages per user)
+- Display a summary of created accounts and messages
 
 ### Example Output
 
@@ -89,7 +90,44 @@ Default Password
 ==========================================
 ℹ All test accounts use the password: TestAccount123!
 ℹ All accounts are marked as email verified for easy testing.
+
+==========================================
+Creating Test Messages
+==========================================
+
+ℹ Creating messages for 71 users...
+
+[1/71] Creating 32 messages for Alex Martinez...
+  ✓ Created 32 messages (4 with links)
+[2/71] Creating 28 messages for Sarah Chen...
+  ✓ Created 28 messages (4 with links)
+...
+
+==========================================
+Message Creation Summary
+==========================================
+
+✓ Total messages created: 1,847
+ℹ Messages with links: ~277 (~15%)
+ℹ Messages are spread over the past 6 months
+ℹ Mix of public and private messages (~80% public, ~20% private)
 ```
+
+## Test Messages
+
+After creating user accounts, the seed script automatically generates test messages for each user:
+
+- **Message Count**: Each user receives 10-50 messages (randomly distributed)
+- **Message Content**: Realistic messages based on the user's profession and bio
+- **Links**: Approximately 15% of messages contain links to:
+  - Instagram posts/reels
+  - Blue Sky posts
+  - Threads posts
+  - Mastodon posts
+  - Other web links (GitHub, Medium, Twitter/X, etc.)
+- **Timestamps**: Messages are spread over the past 6 months (chronologically ordered)
+- **Visibility**: Mix of public (~80%) and private (~20%) messages
+- **Link Metadata**: Left as `null` initially - the application's async metadata fetching will populate it
 
 ## Account Profiles
 
@@ -103,7 +141,7 @@ The test accounts represent diverse professions and backgrounds:
 - Marketing professionals
 - And more...
 
-Each account has a unique username, email, and bio that matches their professional persona.
+Each account has a unique username, email, and bio that matches their professional persona. Messages are generated to match each user's professional context.
 
 ## Avatar URLs
 
@@ -189,13 +227,31 @@ If password hashing fails:
 ## Files
 
 - `test-accounts.json`: JSON file containing all test account data
-- `seed-test-accounts.js`: Node.js script to seed accounts into database
+- `seed-test-accounts.js`: Node.js script to seed accounts and messages into database
 - `README.md`: This documentation file
-- `acct*.jpg`: Image files used as avatars for test accounts
+- `acct*.jpg`: Image files used as avatars for test accounts (41 images total)
+
+## Message Generation
+
+The seed script generates realistic message content based on each user's profession:
+
+- **Developers**: Technical discussions, code updates, debugging stories
+- **Designers**: Design process, user research, accessibility topics
+- **Managers**: Team updates, product planning, stakeholder communication
+- **Data Scientists**: ML models, data analysis, statistical insights
+- **DevOps**: Infrastructure, CI/CD, monitoring, automation
+- **Marketing**: Campaigns, analytics, content strategy
+- **Generic**: Professional updates and thoughts for other roles
+
+Messages with links naturally incorporate URLs into the content, simulating real-world link sharing behavior.
 
 ## Notes
 
-- These accounts are for **development and testing only**
+- These accounts and messages are for **development and testing only**
 - Do not use these accounts in production
 - The default password should be changed if deploying to any shared environment
 - All accounts are pre-verified to skip email verification flow during testing
+- Messages are created with realistic timestamps spread over 6 months
+- Link metadata is left null initially - the app's async metadata fetching will populate it
+- Approximately 1,500-3,500 total messages are created (average ~25 per user)
+- Link URLs are randomly generated and may not resolve - they're for testing link detection/preview functionality
