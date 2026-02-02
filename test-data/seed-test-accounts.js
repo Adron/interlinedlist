@@ -528,13 +528,37 @@ async function main() {
     logInfo('All test accounts use the password: TestAccount123!');
     logInfo('All accounts are marked as email verified for easy testing.\n');
 
-    // Create messages for successfully created users
-    if (results.created.length > 0) {
+    // Create messages for all users (both newly created and existing)
+    const usersToProcess = [...results.created];
+    
+    // Also add existing users (skipped ones) so they get messages too
+    for (const skipped of results.skipped) {
+      const existingUser = await prisma.user.findUnique({
+        where: { username: skipped.username },
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          bio: true,
+        },
+      });
+      
+      if (existingUser) {
+        usersToProcess.push({
+          success: true,
+          skipped: false,
+          username: existingUser.username,
+          user: existingUser,
+        });
+      }
+    }
+    
+    if (usersToProcess.length > 0) {
       log('\n==========================================', 'cyan');
       log('Creating Test Messages', 'cyan');
       log('==========================================\n', 'cyan');
       
-      logInfo(`Creating messages for ${results.created.length} users...\n`);
+      logInfo(`Creating messages for ${usersToProcess.length} users...\n`);
       
       const messageResults = {
         totalMessages: 0,
@@ -542,8 +566,8 @@ async function main() {
         errors: 0,
       };
       
-      for (let i = 0; i < results.created.length; i++) {
-        const userResult = results.created[i];
+      for (let i = 0; i < usersToProcess.length; i++) {
+        const userResult = usersToProcess[i];
         const userNum = i + 1;
         
         // Get full user data from database
@@ -558,7 +582,7 @@ async function main() {
         });
         
         if (!user) {
-          logWarning(`[${userNum}/${results.created.length}] User ${userResult.username} not found, skipping messages`);
+          logWarning(`[${userNum}/${usersToProcess.length}] User ${userResult.username} not found, skipping messages`);
           continue;
         }
         
@@ -566,7 +590,7 @@ async function main() {
         const messageCount = Math.floor(Math.random() * 41) + 10;
         const linkCount = Math.floor(messageCount * 0.15);
         
-        logProgress(`[${userNum}/${results.created.length}] Creating ${messageCount} messages for ${user.displayName || user.username}...`);
+        logProgress(`[${userNum}/${usersToProcess.length}] Creating ${messageCount} messages for ${user.displayName || user.username}...`);
         
         try {
           const createdMessages = await createMessagesForUser(prisma, user, messageCount);
