@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
-import { Avatar } from '@/components/Avatar';
 import EmailVerificationBanner from '@/components/EmailVerificationBanner';
 import DashboardMessageFeed from '@/components/DashboardMessageFeed';
+import ListsTreeView from '@/components/ListsTreeView';
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
@@ -35,44 +35,6 @@ export default async function DashboardPage() {
         <div className="col-lg-4 col-12 mb-4 order-lg-2">
           <div className="card mb-3">
             <div className="card-body">
-              <div className="d-flex align-items-center gap-3 mb-3">
-                {user.avatar ? (
-                  <Avatar
-                    src={user.avatar}
-                    alt={`${user.displayName || user.username}'s avatar`}
-                    size={80}
-                  />
-                ) : (
-                  <div
-                    className="rounded-circle d-flex align-items-center justify-content-center"
-                    style={{
-                      width: '80px',
-                      height: '80px',
-                      backgroundColor: 'var(--bs-secondary)',
-                      color: 'white',
-                      fontSize: '2rem',
-                      fontWeight: 'bold',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {(user.displayName || user.username)[0].toUpperCase()}
-                  </div>
-                )}
-                <div>
-                  <h3 className="h5 mb-0">Welcome, {user.displayName || user.username}!</h3>
-                  <p className="text-muted small mb-0">@{user.username}</p>
-                </div>
-              </div>
-              {user.bio && (
-                <p className="mb-0" style={{ whiteSpace: 'pre-wrap' }}>
-                  {user.bio}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="card-body">
               <h4 className="h6 mb-3">Profile Information</h4>
               <ul className="list-unstyled mb-0">
                 <li className="mb-2">
@@ -100,6 +62,8 @@ export default async function DashboardPage() {
               </ul>
             </div>
           </div>
+
+          <ListsTreeView />
         </div>
       </div>
     </div>

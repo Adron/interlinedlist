@@ -113,18 +113,26 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '50', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
+    const onlyMine = searchParams.get('onlyMine') === 'true';
 
     // Build where clause based on authentication
     let where: any = {};
 
     if (user) {
-      // Authenticated users see: their own messages (public or private) + all public messages
-      where = {
-        OR: [
-          { userId: user.id }, // User's own messages
-          { publiclyVisible: true }, // All public messages
-        ],
-      };
+      if (onlyMine) {
+        // Only show user's own messages (for dashboard)
+        where = {
+          userId: user.id, // Only user's own messages
+        };
+      } else {
+        // Authenticated users see: their own messages (public or private) + all public messages
+        where = {
+          OR: [
+            { userId: user.id }, // User's own messages
+            { publiclyVisible: true }, // All public messages
+          ],
+        };
+      }
     } else {
       // Unauthenticated users see only public messages
       where = {

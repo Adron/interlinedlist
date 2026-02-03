@@ -24,6 +24,7 @@ interface MessageTableProps {
   currentUserId?: string;
   itemsPerPage?: number;
   showPreviews?: boolean;
+  onlyMine?: boolean; // If true, only fetch user's own messages
 }
 
 export default function MessageTable({ 
@@ -31,13 +32,15 @@ export default function MessageTable({
   initialTotal,
   currentUserId,
   itemsPerPage = 12,
-  showPreviews = true
+  showPreviews = true,
+  onlyMine = false
 }: MessageTableProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalMessages, setTotalMessages] = useState(initialTotal ?? initialMessages.length);
   const [isLoading, setIsLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(initialMessages.length >= itemsPerPage);
+  const [localItemsPerPage, setLocalItemsPerPage] = useState(itemsPerPage);
+  const [hasMore, setHasMore] = useState(initialMessages.length >= localItemsPerPage);
   const [selectedMessages, setSelectedMessages] = useState<Set<string>>(new Set());
   const [showDeleteRepostModal, setShowDeleteRepostModal] = useState(false);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
@@ -51,7 +54,7 @@ export default function MessageTable({
   // Track the last page we fetched to avoid duplicate fetches
   const lastFetchedPage = useRef<number | null>(null);
 
-  const totalPages = Math.ceil(totalMessages / itemsPerPage);
+  const totalPages = Math.ceil(totalMessages / localItemsPerPage);
 
   const fetchMessages = useCallback(async (page: number, skipLoadingState = false) => {
     // Skip if we're fetching the same page again
@@ -64,8 +67,9 @@ export default function MessageTable({
     }
     
     try {
-      const offset = (page - 1) * itemsPerPage;
-      const response = await fetch(`/api/messages?limit=${itemsPerPage}&offset=${offset}`);
+      const offset = (page - 1) * localItemsPerPage;
+      const onlyMineParam = onlyMine ? '&onlyMine=true' : '';
+      const response = await fetch(`/api/messages?limit=${localItemsPerPage}&offset=${offset}${onlyMineParam}`);
       
       if (response.ok) {
         const data = await response.json();
@@ -90,7 +94,7 @@ export default function MessageTable({
         setIsLoading(false);
       }
     }
-  }, [itemsPerPage]);
+  }, [localItemsPerPage, onlyMine]);
 
   // Only fetch when page changes, not on initial mount
   useEffect(() => {
@@ -109,6 +113,16 @@ export default function MessageTable({
       setSelectedMessages(new Set());
     }
   }, [currentPage, fetchMessages]);
+
+  // Refetch messages when items per page changes
+  useEffect(() => {
+    if (!isInitialMount.current) {
+      // Reset to first page and refetch
+      setCurrentPage(1);
+      lastFetchedPage.current = null;
+      fetchMessages(1);
+    }
+  }, [localItemsPerPage, fetchMessages]);
 
   const handleDelete = useCallback(async (deletedMessageId: string) => {
     setIsLoading(true);
@@ -393,12 +407,12 @@ export default function MessageTable({
         if (initialTotal !== undefined) {
           setTotalMessages(initialTotal);
         }
-        setHasMore(initialMessages.length >= itemsPerPage);
+        setHasMore(initialMessages.length >= localItemsPerPage);
         lastFetchedPage.current = 1;
         prevInitialMessagesRef.current = currentInitialMessagesStr;
       }
     }
-  }, [initialMessages, initialTotal, itemsPerPage, currentPage]);
+  }, [initialMessages, initialTotal, localItemsPerPage, currentPage]);
 
   const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages) {
@@ -406,6 +420,25 @@ export default function MessageTable({
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
+
+  const handleSelectAll = useCallback(() => {
+    const ownedMessages = messages.filter(m => m.user.id === currentUserId);
+    const allSelected = ownedMessages.every(m => selectedMessages.has(m.id));
+    
+    if (allSelected) {
+      // Deselect all
+      setSelectedMessages(new Set());
+    } else {
+      // Select all owned messages
+      setSelectedMessages(new Set(ownedMessages.map(m => m.id)));
+    }
+  }, [messages, selectedMessages, currentUserId]);
+
+  const handleItemsPerPageChange = useCallback((newValue: number) => {
+    if (newValue >= 10 && newValue <= 30) {
+      setLocalItemsPerPage(newValue);
+    }
+  }, []);
 
   // Action buttons component
   const renderActionButtons = () => {
@@ -548,8 +581,63 @@ export default function MessageTable({
     <>
     <div className="card">
       <div className="card-header d-flex justify-content-between align-items-center">
-        <h4 className="card-title mb-0">Recent Messages</h4>
-        {hasOwnedSelections ? renderActionButtons() : null}
+        <h4 className="card-title mb-0">Messages</h4>
+        <div className="d-flex align-items-center gap-2">
+          {currentUserId && (
+            <button
+              className="btn btn-sm btn-link text-primary p-1"
+              onClick={handleSelectAll}
+              title="Select all owned messages"
+              style={{ lineHeight: 1 }}
+            >
+              <i className="bx bx-check-square fs-5"></i>
+            </button>
+          )}
+          <button
+            className="btn btn-sm btn-link text-secondary p-1"
+            title="Paging controls"
+            style={{ lineHeight: 1 }}
+            disabled
+          >
+            <i className="bx bx-list-ul fs-5"></i>
+          </button>
+          <div className="d-flex align-items-center gap-1">
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-secondary"
+              onClick={() => handleItemsPerPageChange(localItemsPerPage - 1)}
+              disabled={localItemsPerPage <= 10 || isLoading}
+              style={{ padding: '0.25rem 0.5rem' }}
+            >
+              <i className="bx bx-minus"></i>
+            </button>
+            <input
+              type="number"
+              className="form-control form-control-sm text-center"
+              style={{ maxWidth: '60px', padding: '0.25rem' }}
+              min="10"
+              max="30"
+              value={localItemsPerPage}
+              onChange={(e) => {
+                const value = parseInt(e.target.value, 10);
+                if (!isNaN(value) && value >= 10 && value <= 30) {
+                  handleItemsPerPageChange(value);
+                }
+              }}
+              disabled={isLoading}
+            />
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-secondary"
+              onClick={() => handleItemsPerPageChange(localItemsPerPage + 1)}
+              disabled={localItemsPerPage >= 30 || isLoading}
+              style={{ padding: '0.25rem 0.5rem' }}
+            >
+              <i className="bx bx-plus"></i>
+            </button>
+          </div>
+          {hasOwnedSelections ? renderActionButtons() : null}
+        </div>
       </div>
       {/* end card-header*/}
 

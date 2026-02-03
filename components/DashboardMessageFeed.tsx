@@ -11,12 +11,9 @@ export default async function DashboardMessageFeed() {
     let where: any = {};
 
     if (user) {
-      // Authenticated users see: their own messages (public or private) + all public messages
+      // Only show user's own messages (public or private)
       where = {
-        OR: [
-          { userId: user.id }, // User's own messages
-          { publiclyVisible: true }, // All public messages
-        ],
+        userId: user.id, // Only user's own messages
       };
     } else {
       // Unauthenticated users see only public messages
@@ -65,6 +62,7 @@ export default async function DashboardMessageFeed() {
         currentUserId={user?.id}
         itemsPerPage={messagesPerPage}
         showPreviews={user?.showPreviews ?? true}
+        onlyMine={true}
       />
     );
   } catch (error: any) {
