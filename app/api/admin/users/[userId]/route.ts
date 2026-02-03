@@ -152,3 +152,67 @@ export async function PUT(
     );
   }
 }
+
+/**
+ * DELETE /api/admin/users/[userId]
+ * Delete a user (admin only)
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { userId: string } }
+) {
+  try {
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!currentUser.isAdministrator) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const { userId } = params;
+
+    if (userId === currentUser.id) {
+      return NextResponse.json(
+        { error: 'You cannot delete your own account' },
+        { status: 400 }
+      );
+    }
+
+    const existingUser = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!existingUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    const isTargetAdmin = await prisma.administrator.findUnique({
+      where: { userId },
+    });
+
+    if (isTargetAdmin) {
+      const adminCount = await prisma.administrator.count();
+      if (adminCount <= 1) {
+        return NextResponse.json(
+          { error: 'Cannot delete the last administrator' },
+          { status: 400 }
+        );
+      }
+    }
+
+    await prisma.user.delete({
+      where: { id: userId },
+    });
+
+    return NextResponse.json({ message: 'User deleted' }, { status: 200 });
+  } catch (error: any) {
+    console.error('Delete user error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}

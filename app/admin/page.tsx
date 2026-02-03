@@ -69,7 +69,11 @@ export default async function AdminPage() {
 
       <div className="row">
         <div className="col-12">
-          <UserManagement initialUsers={usersWithAdminFlag} initialTotal={total} />
+          <UserManagement
+            initialUsers={usersWithAdminFlag}
+            initialTotal={total}
+            currentUserId={user.id}
+          />
         </div>
       </div>
     </div>

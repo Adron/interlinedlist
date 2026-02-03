@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Avatar } from '@/components/Avatar';
 
 interface User {
@@ -18,9 +18,10 @@ interface User {
 interface UserManagementProps {
   initialUsers: User[];
   initialTotal: number;
+  currentUserId?: string;
 }
 
-export default function UserManagement({ initialUsers, initialTotal }: UserManagementProps) {
+export default function UserManagement({ initialUsers, initialTotal, currentUserId }: UserManagementProps) {
   const [users, setUsers] = useState<User[]>(initialUsers);
   const [total, setTotal] = useState(initialTotal);
   const [loading, setLoading] = useState(false);
@@ -30,7 +31,49 @@ export default function UserManagement({ initialUsers, initialTotal }: UserManag
   const [editFormData, setEditFormData] = useState<Partial<User>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleteModalUser, setDeleteModalUser] = useState<User | null>(null);
+  const [bulkDeleteStep, setBulkDeleteStep] = useState<1 | 2 | null>(null);
+  const [bulkDeleteConfirmText, setBulkDeleteConfirmText] = useState('');
+  const [setStatusModalOpen, setSetStatusModalOpen] = useState(false);
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
+  const [bulkError, setBulkError] = useState<string | null>(null);
   const itemsPerPage = 10;
+
+  const pageUserIds = users.map((u) => u.id);
+  const allOnPageSelected = pageUserIds.length > 0 && pageUserIds.every((id) => selectedIds.has(id));
+  const someOnPageSelected = pageUserIds.some((id) => selectedIds.has(id));
+  const selectAllCheckboxRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const el = selectAllCheckboxRef.current;
+    if (el) el.indeterminate = someOnPageSelected && !allOnPageSelected;
+  }, [someOnPageSelected, allOnPageSelected]);
+
+  const toggleSelectAll = () => {
+    if (allOnPageSelected) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        pageUserIds.forEach((id) => next.delete(id));
+        return next;
+      });
+    } else {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        pageUserIds.forEach((id) => next.add(id));
+        return next;
+      });
+    }
+  };
+
+  const toggleSelect = (userId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
+  };
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -137,6 +180,113 @@ export default function UserManagement({ initialUsers, initialTotal }: UserManag
     }
   };
 
+  const handleSingleDeleteClick = (user: User) => {
+    setDeleteModalUser(user);
+  };
+
+  const handleSingleDeleteConfirm = async () => {
+    if (!deleteModalUser) return;
+    setBulkActionLoading(true);
+    setBulkError(null);
+    try {
+      const response = await fetch(`/api/admin/users/${deleteModalUser.id}`, { method: 'DELETE' });
+      const data = await response.json();
+      if (!response.ok) {
+        setBulkError(data.error || 'Failed to delete user');
+        return;
+      }
+      setUsers((prev) => prev.filter((u) => u.id !== deleteModalUser.id));
+      setTotal((t) => Math.max(0, t - 1));
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(deleteModalUser.id);
+        return next;
+      });
+      setDeleteModalUser(null);
+    } catch (e) {
+      console.error(e);
+      setBulkError('An error occurred');
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  const handleBulkDeleteClick = () => {
+    setBulkDeleteStep(1);
+    setBulkDeleteConfirmText('');
+    setBulkError(null);
+  };
+
+  const handleBulkDeleteStep1Ok = () => {
+    setBulkDeleteStep(2);
+  };
+
+  const handleBulkDeleteStep2Confirm = async () => {
+    if (bulkDeleteConfirmText !== 'Confirm') return;
+    const ids = Array.from(selectedIds).filter((id) => id !== currentUserId);
+    if (ids.length === 0) {
+      setBulkError('No users to delete (current user excluded).');
+      return;
+    }
+    setBulkActionLoading(true);
+    setBulkError(null);
+    try {
+      const response = await fetch('/api/admin/users/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userIds: ids }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setBulkError(data.error || 'Bulk delete failed');
+        return;
+      }
+      setUsers((prev) => prev.filter((u) => !ids.includes(u.id)));
+      setTotal((t) => Math.max(0, t - (data.deleted ?? 0)));
+      setSelectedIds(new Set());
+      setBulkDeleteStep(null);
+    } catch (e) {
+      console.error(e);
+      setBulkError('An error occurred');
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  const handleSetStatusClick = () => {
+    setSetStatusModalOpen(true);
+    setBulkError(null);
+  };
+
+  const handleSetStatusApply = async (emailVerified: boolean) => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setBulkActionLoading(true);
+    setBulkError(null);
+    try {
+      const response = await fetch('/api/admin/users/bulk-status', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userIds: ids, emailVerified }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setBulkError(data.error || 'Failed to update status');
+        return;
+      }
+      setUsers((prev) =>
+        prev.map((u) => (selectedIds.has(u.id) ? { ...u, emailVerified } : u))
+      );
+      setSelectedIds(new Set());
+      setSetStatusModalOpen(false);
+    } catch (e) {
+      console.error(e);
+      setBulkError('An error occurred');
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
   return (
     <div className="card">
       <div className="card-body">
@@ -173,6 +323,41 @@ export default function UserManagement({ initialUsers, initialTotal }: UserManag
           </div>
         </div>
 
+        {/* Bulk actions toolbar */}
+        {selectedIds.size > 0 && (
+          <div className="mb-3 d-flex align-items-center gap-2 flex-wrap">
+            <span className="text-muted small me-2">
+              {selectedIds.size} selected
+            </span>
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-secondary"
+              onClick={toggleSelectAll}
+              disabled={bulkActionLoading}
+            >
+              {allOnPageSelected ? 'Deselect all on page' : 'Select all on page'}
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-danger"
+              onClick={handleBulkDeleteClick}
+              disabled={bulkActionLoading}
+            >
+              <i className="bx bx-trash me-1"></i>
+              Delete All
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-primary"
+              onClick={handleSetStatusClick}
+              disabled={bulkActionLoading}
+            >
+              <i className="bx bx-check-circle me-1"></i>
+              Set Status
+            </button>
+          </div>
+        )}
+
         {/* Users Table */}
         {loading ? (
           <div className="text-center py-4">
@@ -190,6 +375,16 @@ export default function UserManagement({ initialUsers, initialTotal }: UserManag
               <table className="table table-hover">
                 <thead>
                   <tr>
+                    <th style={{ width: '2.5rem' }}>
+                      <input
+                        type="checkbox"
+                        className="form-check-input"
+                        ref={selectAllCheckboxRef}
+                        checked={allOnPageSelected}
+                        onChange={toggleSelectAll}
+                        aria-label="Select all on this page"
+                      />
+                    </th>
                     <th>User</th>
                     <th>Email</th>
                     <th>Username</th>
@@ -201,6 +396,15 @@ export default function UserManagement({ initialUsers, initialTotal }: UserManag
                 <tbody>
                   {users.map((user) => (
                     <tr key={user.id}>
+                      <td>
+                        <input
+                          type="checkbox"
+                          className="form-check-input"
+                          checked={selectedIds.has(user.id)}
+                          onChange={() => toggleSelect(user.id)}
+                          aria-label={`Select ${user.username}`}
+                        />
+                      </td>
                       <td>
                         <div className="d-flex align-items-center gap-2">
                           {user.avatar ? (
@@ -248,13 +452,24 @@ export default function UserManagement({ initialUsers, initialTotal }: UserManag
                         {new Date(user.createdAt).toLocaleDateString()}
                       </td>
                       <td>
-                        <button
-                          className="btn btn-sm btn-outline-primary"
-                          onClick={() => handleEditClick(user)}
-                          title="Edit user"
-                        >
-                          <i className="bx bx-edit"></i>
-                        </button>
+                        <div className="btn-group btn-group-sm">
+                          <button
+                            className="btn btn-outline-primary"
+                            onClick={() => handleEditClick(user)}
+                            title="Edit user"
+                          >
+                            <i className="bx bx-edit"></i>
+                          </button>
+                          {currentUserId !== user.id && (
+                            <button
+                              className="btn btn-outline-danger"
+                              onClick={() => handleSingleDeleteClick(user)}
+                              title="Delete user"
+                            >
+                              <i className="bx bx-trash"></i>
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -517,6 +732,238 @@ export default function UserManagement({ initialUsers, initialTotal }: UserManag
                   ) : (
                     'Save Changes'
                   )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Single delete confirmation modal */}
+      {deleteModalUser && (
+        <div
+          className="modal fade show"
+          style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}
+          tabIndex={-1}
+          role="dialog"
+          aria-labelledby="deleteUserModalLabel"
+        >
+          <div className="modal-dialog modal-dialog-centered" role="document">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title" id="deleteUserModalLabel">
+                  Delete user?
+                </h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => { setDeleteModalUser(null); setBulkError(null); }}
+                  aria-label="Close"
+                  disabled={bulkActionLoading}
+                />
+              </div>
+              <div className="modal-body">
+                {bulkError && (
+                  <div className="alert alert-danger" role="alert">{bulkError}</div>
+                )}
+                <p className="mb-0">
+                  Delete user <strong>{deleteModalUser.email}</strong>? This cannot be undone.
+                </p>
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => { setDeleteModalUser(null); setBulkError(null); }}
+                  disabled={bulkActionLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={handleSingleDeleteConfirm}
+                  disabled={bulkActionLoading}
+                >
+                  {bulkActionLoading ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk delete step 1: confirm intent */}
+      {bulkDeleteStep === 1 && (
+        <div
+          className="modal fade show"
+          style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}
+          tabIndex={-1}
+          role="dialog"
+          aria-labelledby="bulkDeleteStep1Label"
+        >
+          <div className="modal-dialog modal-dialog-centered" role="document">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title" id="bulkDeleteStep1Label">
+                  Delete selected users?
+                </h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => { setBulkDeleteStep(null); setBulkError(null); }}
+                  aria-label="Close"
+                  disabled={bulkActionLoading}
+                />
+              </div>
+              <div className="modal-body">
+                <p className="mb-0">
+                  You are about to permanently delete <strong>{selectedIds.size} user(s)</strong>. This cannot be undone.
+                </p>
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setBulkDeleteStep(null)}
+                  disabled={bulkActionLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={handleBulkDeleteStep1Ok}
+                  disabled={bulkActionLoading}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk delete step 2: type Confirm */}
+      {bulkDeleteStep === 2 && (
+        <div
+          className="modal fade show"
+          style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}
+          tabIndex={-1}
+          role="dialog"
+          aria-labelledby="bulkDeleteStep2Label"
+        >
+          <div className="modal-dialog modal-dialog-centered" role="document">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title" id="bulkDeleteStep2Label">
+                  Confirm deletion
+                </h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => { setBulkDeleteStep(null); setBulkError(null); setBulkDeleteConfirmText(''); }}
+                  aria-label="Close"
+                  disabled={bulkActionLoading}
+                />
+              </div>
+              <div className="modal-body">
+                {bulkError && (
+                  <div className="alert alert-danger" role="alert">{bulkError}</div>
+                )}
+                <p className="mb-2">
+                  Type <strong>Confirm</strong> (case-sensitive) to proceed.
+                </p>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={bulkDeleteConfirmText}
+                  onChange={(e) => setBulkDeleteConfirmText(e.target.value)}
+                  placeholder="Confirm"
+                  disabled={bulkActionLoading}
+                  aria-label="Type Confirm to proceed"
+                />
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => { setBulkDeleteStep(null); setBulkError(null); setBulkDeleteConfirmText(''); }}
+                  disabled={bulkActionLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={handleBulkDeleteStep2Confirm}
+                  disabled={bulkActionLoading || bulkDeleteConfirmText !== 'Confirm'}
+                >
+                  {bulkActionLoading ? 'Deleting...' : 'Confirm'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Set Status modal */}
+      {setStatusModalOpen && (
+        <div
+          className="modal fade show"
+          style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}
+          tabIndex={-1}
+          role="dialog"
+          aria-labelledby="setStatusModalLabel"
+        >
+          <div className="modal-dialog modal-dialog-centered" role="document">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title" id="setStatusModalLabel">
+                  Set status for selected users
+                </h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => { setSetStatusModalOpen(false); setBulkError(null); }}
+                  aria-label="Close"
+                  disabled={bulkActionLoading}
+                />
+              </div>
+              <div className="modal-body">
+                {bulkError && (
+                  <div className="alert alert-danger" role="alert">{bulkError}</div>
+                )}
+                <p className="mb-3">
+                  Set status for <strong>{selectedIds.size} user(s)</strong>:
+                </p>
+                <div className="d-flex gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-success"
+                    onClick={() => handleSetStatusApply(true)}
+                    disabled={bulkActionLoading}
+                  >
+                    Verified
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-warning"
+                    onClick={() => handleSetStatusApply(false)}
+                    disabled={bulkActionLoading}
+                  >
+                    Unverified
+                  </button>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => { setSetStatusModalOpen(false); setBulkError(null); }}
+                  disabled={bulkActionLoading}
+                >
+                  Cancel
                 </button>
               </div>
             </div>
