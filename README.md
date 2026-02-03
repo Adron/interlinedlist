@@ -126,7 +126,53 @@ npm run db:studio
 
 This will open Prisma Studio at `http://localhost:5555` where you can view your database tables.
 
-### 5. Start Development Server
+### 5. Seed Test Data (Optional)
+
+The project includes test data for local development and testing. This includes 71 test user accounts and thousands of test messages.
+
+**Prerequisites:**
+- Database must be set up and migrations must be run (see step 3)
+- `.env.local` must contain a valid `DATABASE_URL`
+
+**To seed test data:**
+
+```bash
+npm run test-data:seed
+```
+
+This command will:
+- Create 71 test user accounts with realistic profiles
+- Generate 10-50 test messages for each user (approximately 1,500-3,500 total messages)
+- Include links in approximately 15% of messages (Instagram, Blue Sky, Threads, Mastodon, etc.)
+- Spread messages over the past 6 months with varied timestamps
+- Mix public and private messages (~80% public, ~20% private)
+
+**Default Test Account Credentials:**
+
+All test accounts use the same password:
+```
+Password: TestAccount123!
+```
+
+All accounts are pre-verified (emailVerified: true) so you can log in immediately without email verification.
+
+**What Gets Created:**
+
+- **71 User Accounts**: Diverse profiles representing various professions (developers, designers, managers, data scientists, etc.)
+- **Test Messages**: Each user gets 10-50 messages with realistic content based on their profession
+- **Message Links**: ~15% of messages contain links to social media platforms for testing link preview functionality
+- **Varied Timestamps**: Messages are spread over the past 6 months to simulate real usage
+
+**Notes:**
+
+- The script safely skips accounts that already exist (by username or email)
+- You can run the script multiple times without creating duplicates
+- To recreate accounts, delete them from the database first, then re-run the script
+- Test data is for **development and testing only** - do not use in production
+
+For more details, see [`test-data/README.md`](test-data/README.md).
+
+### 6. Start Development Server
 
 ```bash
 npm run dev
@@ -146,6 +192,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - `npm run db:studio` - Open Prisma Studio (database GUI)
 - `npm run backup` - Create database backups (production and local)
 - `npm run restore` - Restore database from backup file
+- `npm run test-data:seed` - Seed test accounts and messages into the database
 
 ## Project Structure
 
