@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { getCurrentUser } from '@/lib/auth/session';
 import UserDropdown from './UserDropdown';
+import NavigationTitle from './NavigationTitle';
 
 export default async function Navigation() {
   const user = await getCurrentUser();
@@ -20,25 +21,7 @@ export default async function Navigation() {
         >
           {/* Center - Title text (desktop only) */}
           <div className="d-none d-md-flex align-items-center justify-content-center" style={{ justifySelf: 'start' }}>
-            <Link
-              href="/"
-              style={{
-                textDecoration: 'none',
-                display: 'flex',
-                alignItems: 'center',
-              }}
-            >
-              <span
-                style={{
-                  fontSize: '1.25rem',
-                  fontWeight: 'bold',
-                  color: 'var(--color-text)',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                InterlinedList
-              </span>
-            </Link>
+            <NavigationTitle />
           </div>
 
           {/* Right side - User actions */}

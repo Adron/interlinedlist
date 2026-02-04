@@ -15,12 +15,6 @@ export default async function DashboardPage() {
     <div className="container-fluid container-fluid-max py-4">
       <div className="row mb-3">
         <div className="col-12">
-          <h1 className="h2 mb-0">Dashboard</h1>
-        </div>
-      </div>
-
-      <div className="row mb-3">
-        <div className="col-12">
           <EmailVerificationBanner emailVerified={user.emailVerified} />
         </div>
       </div>

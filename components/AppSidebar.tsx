@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { getCurrentUser } from '@/lib/auth/session';
 import Logo from './Logo';
-import ListsTreeView from './ListsTreeView';
 import AppSidebarUserMenu from './AppSidebarUserMenu';
 
 export default async function AppSidebar() {
@@ -18,15 +17,6 @@ export default async function AppSidebar() {
 
       <div className="scrollbar" data-simplebar>
         <ul className="navbar-nav" id="navbar-nav">
-          {/* ListsTreeView at top */}
-          {user && (
-            <li className="nav-item">
-              <div className="px-2 mb-2">
-                <ListsTreeView />
-              </div>
-            </li>
-          )}
-
           {/* Menu Title */}
           <li className="menu-title">Menu...</li>
 

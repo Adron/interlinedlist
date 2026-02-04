@@ -15,12 +15,6 @@ export default async function SettingsPage() {
 
   return (
     <div className="container-fluid py-4">
-      <div className="row mb-4">
-        <div className="col-12">
-          <h1 className="h2 mb-0">Settings</h1>
-        </div>
-      </div>
-
       <div className="row g-4">
         {/* Column 1: Profile Settings */}
         {/* Large: 3 columns (4/12), Medium: left column (6/12), Small: stacked (12/12) */}
