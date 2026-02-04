@@ -14,9 +14,6 @@ export default async function AppSidebar() {
         <Link href="/" className="logo-dark d-block">
           <Logo size="medium" iconOnly={true} />
         </Link>
-        <Link href="/" className="logo-light d-block">
-          <Logo size="medium" iconOnly={true} />
-        </Link>
       </div>
 
       <div className="scrollbar" data-simplebar>

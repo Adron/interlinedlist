@@ -31,16 +31,6 @@ export default function AppSidebarUserMenu({ user }: AppSidebarUserMenuProps) {
 
   return (
     <>
-      {/* My Account */}
-      <li className="nav-item">
-        <Link className="nav-link" href="/settings">
-          <span className="nav-icon">
-            <i className="bx bx-user"></i>
-          </span>
-          <span className="nav-text">My Account</span>
-        </Link>
-      </li>
-
       {/* Settings */}
       <li className="nav-item">
         <Link className="nav-link" href="/settings">
