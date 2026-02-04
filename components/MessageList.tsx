@@ -24,9 +24,11 @@ interface MessageListProps {
   initialTotal?: number;
   showPreviews?: boolean;
   messagesPerPage?: number;
+  /** When set, refresh and load-more use this URL (e.g. /api/user/username/messages) instead of /api/messages */
+  messagesApiUrl?: string;
 }
 
-export default function MessageList({ initialMessages, currentUserId, initialTotal, showPreviews = true, messagesPerPage = 20 }: MessageListProps) {
+export default function MessageList({ initialMessages, currentUserId, initialTotal, showPreviews = true, messagesPerPage = 20, messagesApiUrl }: MessageListProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -80,10 +82,17 @@ export default function MessageList({ initialMessages, currentUserId, initialTot
   const refreshMessages = async () => {
     setIsRefreshing(true);
     try {
-      const response = await fetch('/api/messages');
+      const baseUrl = messagesApiUrl ?? '/api/messages';
+      const response = await fetch(`${baseUrl}?limit=${messagesPerPage}&offset=0`);
       if (response.ok) {
         const data = await response.json();
-        setMessages(data.messages || []);
+        const list = data.messages || [];
+        setMessages(list.map((m: any) => ({
+          ...m,
+          createdAt: typeof m.createdAt === 'string' ? m.createdAt : new Date(m.createdAt).toISOString(),
+        })));
+        setCurrentOffset(list.length);
+        setHasMore(data.pagination?.hasMore ?? false);
       }
     } catch (error) {
       console.error('Failed to refresh messages:', error);
@@ -117,7 +126,8 @@ export default function MessageList({ initialMessages, currentUserId, initialTot
 
     setIsLoadingMore(true);
     try {
-      const response = await fetch(`/api/messages?limit=${messagesPerPage}&offset=${currentOffset}`);
+      const baseUrl = messagesApiUrl ?? '/api/messages';
+      const response = await fetch(`${baseUrl}?limit=${messagesPerPage}&offset=${currentOffset}`);
       if (response.ok) {
         const data = await response.json();
         const newMessages = (data.messages || []).map((message: any) => ({

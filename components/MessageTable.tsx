@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils/relativeTime';
 import { linkifyText } from '@/lib/messages/linkify';
 import { Message as MessageType, LinkMetadataItem } from '@/lib/types';
@@ -24,7 +25,9 @@ interface MessageTableProps {
   currentUserId?: string;
   itemsPerPage?: number;
   showPreviews?: boolean;
-  onlyMine?: boolean; // If true, only fetch user's own messages
+  onlyMine?: boolean; // If true, only fetch user's own messages (used when messagesApiUrl is not set)
+  /** When set, pagination fetches use this URL (e.g. /api/user/adron/messages) instead of /api/messages */
+  messagesApiUrl?: string;
 }
 
 export default function MessageTable({ 
@@ -33,7 +36,8 @@ export default function MessageTable({
   currentUserId,
   itemsPerPage = 12,
   showPreviews = true,
-  onlyMine = false
+  onlyMine = false,
+  messagesApiUrl
 }: MessageTableProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [currentPage, setCurrentPage] = useState(1);
@@ -68,8 +72,9 @@ export default function MessageTable({
     
     try {
       const offset = (page - 1) * localItemsPerPage;
-      const onlyMineParam = onlyMine ? '&onlyMine=true' : '';
-      const response = await fetch(`/api/messages?limit=${localItemsPerPage}&offset=${offset}${onlyMineParam}`);
+      const baseUrl = messagesApiUrl ?? '/api/messages';
+      const onlyMineParam = !messagesApiUrl && onlyMine ? '&onlyMine=true' : '';
+      const response = await fetch(`${baseUrl}?limit=${localItemsPerPage}&offset=${offset}${onlyMineParam}`);
       
       if (response.ok) {
         const data = await response.json();
@@ -94,7 +99,7 @@ export default function MessageTable({
         setIsLoading(false);
       }
     }
-  }, [localItemsPerPage, onlyMine]);
+  }, [localItemsPerPage, onlyMine, messagesApiUrl]);
 
   // Only fetch when page changes, not on initial mount
   useEffect(() => {
@@ -751,7 +756,10 @@ export default function MessageTable({
                       </span>
                     </td>
                     <td style={{ padding: '0.25rem 0.5rem' }}>
-                      <div className="d-flex align-items-center">
+                      <Link
+                        href={`/user/${encodeURIComponent(message.user.username)}`}
+                        className="d-flex align-items-center text-decoration-none text-body"
+                      >
                         {message.user.avatar ? (
                           <img
                             src={message.user.avatar}
@@ -778,7 +786,7 @@ export default function MessageTable({
                         <span className="align-middle" style={{ fontSize: '0.85rem' }}>
                           {message.user.displayName || message.user.username}
                         </span>
-                      </div>
+                      </Link>
                     </td>
                     <td style={{ padding: '0.25rem 0.5rem' }}>
                       {message.publiclyVisible ? (

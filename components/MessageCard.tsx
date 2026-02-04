@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Avatar } from './Avatar';
 import { formatRelativeTime } from '@/lib/utils/relativeTime';
 import { linkifyText } from '@/lib/messages/linkify';
@@ -119,12 +120,17 @@ export default function MessageCard({
           <div className="flex-grow-1" style={{ minWidth: 0 }}>
             <div className="d-flex align-items-center justify-content-between mb-1">
               <div>
-                <strong className="text-break" style={{ fontSize: '0.9rem' }}>
-                  {message.user.displayName || message.user.username}
-                </strong>
-                <span className="text-muted ms-2" style={{ fontSize: '0.8rem' }}>
-                  @{message.user.username}
-                </span>
+                <Link
+                  href={`/user/${encodeURIComponent(message.user.username)}`}
+                  className="text-decoration-none text-body"
+                >
+                  <strong className="text-break" style={{ fontSize: '0.9rem' }}>
+                    {message.user.displayName || message.user.username}
+                  </strong>
+                  <span className="text-muted ms-2" style={{ fontSize: '0.8rem' }}>
+                    @{message.user.username}
+                  </span>
+                </Link>
                 <span className="text-muted ms-2" style={{ fontSize: '0.75rem' }}>
                   · {formatRelativeTime(message.createdAt)}
                 </span>

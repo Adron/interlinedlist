@@ -28,6 +28,8 @@ model User {
   messagesPerPage            Int       @default(20)
   viewingPreference         String    @default("all_messages")
   showPreviews              Boolean   @default(true)
+  latitude                  Float?
+  longitude                 Float?
   messages             Message[]
   lists                List[]
   administrator        Administrator?

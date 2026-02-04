@@ -26,6 +26,8 @@ export async function PATCH(request: NextRequest) {
       messagesPerPage,
       viewingPreference,
       showPreviews,
+      latitude,
+      longitude,
     } = body;
 
     // Validate maxMessageLength if provided
@@ -61,6 +63,26 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
+    // Validate latitude/longitude if provided
+    if (latitude !== undefined) {
+      const lat = typeof latitude === 'number' ? latitude : parseFloat(latitude);
+      if (isNaN(lat) || lat < -90 || lat > 90) {
+        return NextResponse.json(
+          { error: 'latitude must be a number between -90 and 90' },
+          { status: 400 }
+        );
+      }
+    }
+    if (longitude !== undefined) {
+      const lon = typeof longitude === 'number' ? longitude : parseFloat(longitude);
+      if (isNaN(lon) || lon < -180 || lon > 180) {
+        return NextResponse.json(
+          { error: 'longitude must be a number between -180 and 180' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Update user
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
@@ -74,6 +96,8 @@ export async function PATCH(request: NextRequest) {
         ...(messagesPerPage !== undefined && { messagesPerPage: parseInt(messagesPerPage, 10) }),
         ...(viewingPreference !== undefined && { viewingPreference }),
         ...(showPreviews !== undefined && { showPreviews: Boolean(showPreviews) }),
+        ...(latitude !== undefined && { latitude: latitude === null ? null : (typeof latitude === 'number' ? latitude : parseFloat(latitude)) }),
+        ...(longitude !== undefined && { longitude: longitude === null ? null : (typeof longitude === 'number' ? longitude : parseFloat(longitude)) }),
       },
       select: {
         id: true,
@@ -89,6 +113,8 @@ export async function PATCH(request: NextRequest) {
         messagesPerPage: true,
         viewingPreference: true,
         showPreviews: true,
+        latitude: true,
+        longitude: true,
         createdAt: true,
       },
     });

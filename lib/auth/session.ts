@@ -47,6 +47,8 @@ export async function getCurrentUser() {
           messagesPerPage: true,
           viewingPreference: true,
           showPreviews: true,
+          latitude: true,
+          longitude: true,
           createdAt: true,
         },
       });
@@ -122,6 +124,8 @@ export async function getCurrentUser() {
           messagesPerPage: 20,
           viewingPreference: 'all_messages',
           showPreviews: true,
+          latitude: null,
+          longitude: null,
           isAdministrator,
         };
       }

@@ -24,6 +24,23 @@ export function buildMessageWhereClause(userId: string | null): Prisma.MessageWh
 }
 
 /**
+ * Builds the where clause for a user's "wall" of messages.
+ * Owner sees all their messages; everyone else sees only public messages from that user.
+ * @param profileUserId - The user whose wall we're viewing
+ * @param viewerUserId - The current viewer's user ID, or null if not authenticated
+ */
+export function buildWallMessageWhereClause(
+  profileUserId: string,
+  viewerUserId: string | null
+): Prisma.MessageWhereInput {
+  const isOwner = viewerUserId === profileUserId;
+  return {
+    userId: profileUserId,
+    ...(isOwner ? {} : { publiclyVisible: true }),
+  };
+}
+
+/**
  * Standard user select fields for message queries
  * Ensures consistent user data structure across all message queries
  */

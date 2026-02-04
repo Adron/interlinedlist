@@ -4,6 +4,7 @@ import ProfileSettings from './ProfileSettings';
 import PermissionsSection from './PermissionsSection';
 import ViewPreferencesSection from './ViewPreferencesSection';
 import SecuritySection from './SecuritySection';
+import ProfileLocationSection from './ProfileLocationSection';
 
 export default async function SettingsPage() {
   const user = await getCurrentUser();
@@ -33,7 +34,8 @@ export default async function SettingsPage() {
           <div className="d-flex flex-column gap-4">
             {/* Permissions Section */}
             <PermissionsSection emailVerified={user.emailVerified} />
-            
+            {/* Profile location (for wall page) */}
+            <ProfileLocationSection latitude={user.latitude ?? null} longitude={user.longitude ?? null} />
             {/* View Preferences Section */}
             <ViewPreferencesSection
               messagesPerPage={user.messagesPerPage ?? 20}
