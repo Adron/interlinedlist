@@ -5,7 +5,7 @@ import { useState, FormEvent, useRef, useEffect } from 'react';
 interface MessageInputProps {
   maxLength: number;
   defaultPubliclyVisible?: boolean;
-  onSubmit: () => void;
+  onSubmit?: () => void;
 }
 
 export default function MessageInput({ maxLength, defaultPubliclyVisible = false, onSubmit }: MessageInputProps) {
@@ -74,8 +74,8 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
       // Trigger refresh of message list
       window.dispatchEvent(new Event('messageAdded'));
       
-      // Call onSubmit callback (currently a no-op, but kept for compatibility)
-      onSubmit();
+      // Call onSubmit callback if provided
+      onSubmit?.();
     } catch (err) {
       setError('An error occurred. Please try again.');
       setLoading(false);

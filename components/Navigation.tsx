@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { getCurrentUser } from '@/lib/auth/session';
-import Logo from './Logo';
 import UserDropdown from './UserDropdown';
 
 export default async function Navigation() {
@@ -8,26 +7,19 @@ export default async function Navigation() {
 
   return (
     <header className="app-topbar">
-      <div className="container-fluid">
-        <div className="navbar-header" style={{ position: 'relative' }}>
-          {/* Left side - Logo icon (always visible) */}
-          <div className="d-flex align-items-center gap-2" style={{ flex: '0 0 auto', marginRight: 'auto' }}>
-            <div className="topbar-item">
-              <Link
-                href="/"
-                className="topbar-button btn btn-link text-decoration-none d-flex align-items-center"
-                style={{
-                  color: 'var(--bs-topbar-item-color, var(--color-text))',
-                }}
-                title="Home"
-              >
-                <Logo size="medium" iconOnly={true} />
-              </Link>
-            </div>
-          </div>
-
+      <div className="container-fluid container-fluid-max">
+        <div 
+          className="navbar-header" 
+          style={{ 
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            alignItems: 'center',
+            width: '100%',
+            gap: '1rem'
+          }}
+        >
           {/* Center - Title text (desktop only) */}
-          <div className="d-none d-md-flex align-items-center justify-content-center" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', pointerEvents: 'auto' }}>
+          <div className="d-none d-md-flex align-items-center justify-content-center" style={{ justifySelf: 'start' }}>
             <Link
               href="/"
               style={{
@@ -50,7 +42,13 @@ export default async function Navigation() {
           </div>
 
           {/* Right side - User actions */}
-          <div className="d-flex align-items-center gap-2" style={{ flex: '0 0 auto', marginLeft: 'auto' }}>
+          <div 
+            className="d-flex align-items-center gap-2" 
+            style={{ 
+              justifySelf: 'end',
+              marginRight: '-1rem'
+            }}
+          >
             {user ? (
               <>
                 <div className="topbar-item">
