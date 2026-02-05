@@ -2,6 +2,7 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/prisma';
 import { LinkMetadata } from '@/lib/types';
 import MessageList from './MessageList';
+import MessageInput from './MessageInput';
 
 export default async function MessageFeed() {
   const user = await getCurrentUser();
@@ -59,13 +60,23 @@ export default async function MessageFeed() {
     }));
 
     return (
-      <MessageList
-        initialMessages={serializedMessages}
-        currentUserId={user?.id}
-        initialTotal={total}
-        showPreviews={user?.showPreviews ?? true}
-        messagesPerPage={messagesPerPage}
-      />
+      <>
+        {user && user.emailVerified && (
+          <div className="mb-3">
+            <MessageInput
+              maxLength={user.maxMessageLength || 666}
+              defaultPubliclyVisible={user.defaultPubliclyVisible ?? false}
+            />
+          </div>
+        )}
+        <MessageList
+          initialMessages={serializedMessages}
+          currentUserId={user?.id}
+          initialTotal={total}
+          showPreviews={user?.showPreviews ?? true}
+          messagesPerPage={messagesPerPage}
+        />
+      </>
     );
   } catch (error: any) {
     // Log the actual error for debugging

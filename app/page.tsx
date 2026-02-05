@@ -1,6 +1,5 @@
 import { getCurrentUser } from '@/lib/auth/session';
 import MessageFeed from '@/components/MessageFeed';
-import LeftSidebar from '@/components/LeftSidebar';
 import EmailVerificationBanner from '@/components/EmailVerificationBanner';
 import RightSidebar from '@/components/RightSidebar';
 
@@ -17,18 +16,13 @@ export default async function Home() {
         </div>
       )}
       <div className="row">
-        {/* Left Column - Sidebar */}
-        <div className="col-lg-3 col-md-4 mb-4">
-          <LeftSidebar user={user} />
-        </div>
-
         {/* Center Column - Messages Feed */}
-        <div className="col-lg-6 col-md-8 mb-4">
+        <div className="col-lg-8 col-md-12 mb-4">
           <MessageFeed />
         </div>
 
         {/* Right Column - Sidebar */}
-        <div className="col-lg-3 col-12 mb-4 order-lg-3">
+        <div className="col-lg-4 col-12 mb-4">
           <RightSidebar showLocation={!!user} />
         </div>
       </div>

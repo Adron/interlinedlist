@@ -36,35 +36,7 @@ export default async function ListDetailPage({ params, searchParams }: ListDetai
   return (
     <div className="container-fluid container-fluid-max py-4">
       <div className="row mb-4">
-        <div className="col-12">
-          <nav aria-label="breadcrumb">
-            <ol className="breadcrumb">
-              <li className="breadcrumb-item">
-                <Link href="/lists">Lists</Link>
-              </li>
-              <li className="breadcrumb-item active" aria-current="page">
-                {list.title}
-              </li>
-            </ol>
-          </nav>
-        </div>
-      </div>
-
-      <div className="row mb-4">
-        <div className="col-12 d-flex justify-content-between align-items-center">
-          <div>
-            <h1 className="h2 mb-1">{list.title}</h1>
-            {list.description && (
-              <p className="text-muted mb-0">{list.description}</p>
-            )}
-            {list.parent ? (
-              <p className="text-muted small mb-0">
-                Parent: <Link href={`/lists/${list.parent.id}`} className="text-decoration-none">{list.parent.title}</Link>
-              </p>
-            ) : (
-              <p className="text-muted small mb-0">No parent</p>
-            )}
-          </div>
+        <div className="col-12 d-flex justify-content-end">
           <div className="d-flex gap-2">
             {!isEditMode && !isAddMode && (
               <>

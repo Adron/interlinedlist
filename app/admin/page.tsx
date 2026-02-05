@@ -56,11 +56,7 @@ export default async function AdminPage() {
   return (
     <div className="container-fluid container-fluid-max py-4">
       <div className="row mb-4">
-        <div className="col-12 d-flex justify-content-between align-items-center">
-          <div>
-            <h1 className="h2 mb-0">Administration</h1>
-            <p className="text-muted mb-0">Manage users and site settings</p>
-          </div>
+        <div className="col-12 d-flex justify-content-end">
           <a href="/admin/users/new" className="btn btn-primary">
             <i className="bx bx-plus me-2"></i>Add User
           </a>

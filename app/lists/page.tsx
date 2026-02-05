@@ -20,8 +20,7 @@ export default async function ListsPage() {
   return (
     <div className="container-fluid container-fluid-max py-4">
       <div className="row mb-4">
-        <div className="col-12 d-flex justify-content-between align-items-center">
-          <h1 className="h2 mb-0">My Lists</h1>
+        <div className="col-12 d-flex justify-content-end">
           <Link href="/lists/new" className="btn btn-primary">
             <i className="bx bx-plus me-2"></i>
             Create New List

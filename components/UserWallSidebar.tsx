@@ -101,41 +101,6 @@ export default function UserWallSidebar({ profileUser, showViewerLocation = fals
 
   return (
     <div className="d-block">
-      {/* Their location */}
-      <div className="card mb-3">
-        <div className="card-body">
-          <h5 className="card-title mb-2">
-            <i className="bx bx-map me-2 text-primary"></i>
-            {displayName}&apos;s Location
-          </h5>
-          {!hasTheirLocation ? (
-            <p className="text-muted small mb-0">Location not set</p>
-          ) : theirLoading ? (
-            <div className="d-flex align-items-center">
-              <div className="spinner-border spinner-border-sm me-2" role="status">
-                <span className="visually-hidden">Loading...</span>
-              </div>
-              <span className="text-muted small">Loading...</span>
-            </div>
-          ) : theirError ? (
-            <p className="text-warning small mb-0">{theirError}</p>
-          ) : (
-            <>
-              <div className="mb-2">
-                <div className="fw-semibold small">{theirLocationName || '—'}</div>
-              </div>
-              {theirWeather && (
-                <div className="d-flex align-items-center gap-2 small">
-                  <i className={`bx ${theirWeather.conditionIcon} text-primary`}></i>
-                  <span>{theirWeather.condition}</span>
-                  <span className="text-muted">{theirWeather.temperature}°F</span>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-
       {/* Your location (viewer) - only when logged in */}
       {showViewerLocation && (
         <>
