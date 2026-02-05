@@ -7,7 +7,7 @@ export default async function Home() {
   const user = await getCurrentUser();
 
   return (
-    <div className="container-fluid py-4">
+    <div className="container-fluid container-fluid-max py-4">
       {user && !user.emailVerified && (
         <div className="row mb-3">
           <div className="col-12">
