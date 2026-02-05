@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
+import { syncThemeToStorage } from '@/lib/theme/theme-sync';
 
 export default function RegisterForm() {
   const [formData, setFormData] = useState({
@@ -34,6 +35,14 @@ export default function RegisterForm() {
         setError(data.error || 'Registration failed');
         setLoading(false);
         return;
+      }
+
+      // Sync theme to localStorage if available (defaults to 'system' for new users)
+      if (data.user?.theme) {
+        syncThemeToStorage(data.user.theme);
+      } else {
+        // Default to 'system' if theme not returned
+        syncThemeToStorage('system');
       }
 
       // Redirect to dashboard on success

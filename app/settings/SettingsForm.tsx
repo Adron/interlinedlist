@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Avatar } from '@/components/Avatar';
 import EmailVerificationResend from './EmailVerificationResend';
+import { syncThemeToStorage } from '@/lib/theme/theme-sync';
 
 interface User {
   id: string;
@@ -147,6 +148,11 @@ export default function SettingsForm({ user }: SettingsFormProps) {
         setError(data.error || 'Update failed');
         setLoading(false);
         return;
+      }
+
+      // Sync theme to localStorage if theme was updated
+      if (formData.theme !== undefined) {
+        syncThemeToStorage(formData.theme);
       }
 
       setSuccess('Settings updated successfully!');

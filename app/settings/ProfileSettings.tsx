@@ -3,6 +3,7 @@
 import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Avatar } from '@/components/Avatar';
+import { syncThemeToStorage } from '@/lib/theme/theme-sync';
 
 interface User {
   id: string;
@@ -143,6 +144,11 @@ export default function ProfileSettings({ user }: ProfileSettingsProps) {
         setError(data.error || 'Update failed');
         setLoading(false);
         return;
+      }
+
+      // Sync theme to localStorage if theme was updated
+      if (formData.theme !== undefined) {
+        syncThemeToStorage(formData.theme);
       }
 
       setSuccess('Settings updated successfully!');

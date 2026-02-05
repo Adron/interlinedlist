@@ -44,9 +44,13 @@ export function syncThemeAttributes(theme: string | null): void {
 export function initializeThemeBridge(): () => void {
   if (typeof window === 'undefined') return () => {};
 
-  // Initial sync
-  const currentTheme = document.documentElement.getAttribute('data-theme') || 'system';
-  syncThemeAttributes(currentTheme);
+  // Check localStorage first, then DOM attribute
+  const storedTheme = localStorage.getItem('theme');
+  const domTheme = document.documentElement.getAttribute('data-theme');
+  const initialTheme = storedTheme || domTheme || 'system';
+  
+  // Initial sync with localStorage value (or DOM fallback)
+  syncThemeAttributes(initialTheme);
 
   // Watch for changes to data-theme attribute (but ignore our own changes)
   const observer = new MutationObserver((mutations) => {

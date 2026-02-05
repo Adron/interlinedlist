@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
         displayName: true,
         avatar: true,
         bio: true,
+        theme: true,
         emailVerified: true,
         createdAt: true,
       },
@@ -61,6 +62,7 @@ export async function POST(request: NextRequest) {
         displayName: user.displayName,
       avatar: user.avatar,
       bio: user.bio,
+        theme: user.theme,
         emailVerified: user.emailVerified,
       createdAt: user.createdAt,
     };

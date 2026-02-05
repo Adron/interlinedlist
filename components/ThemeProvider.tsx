@@ -10,11 +10,17 @@ interface ThemeProviderProps {
 
 export default function ThemeProvider({ theme = 'system', children }: ThemeProviderProps) {
   useEffect(() => {
+    const themeValue = theme || 'system';
+    
+    // Sync localStorage with prop (always store the theme value, even if 'system')
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('theme', themeValue);
+    }
+    
     // Use the bridge system to sync both theme attributes
-    syncThemeAttributes(theme || 'system');
+    syncThemeAttributes(themeValue);
 
     // Listen for system preference changes if theme is 'system'
-    const themeValue = theme || 'system';
     if (themeValue === 'system') {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
       const handleChange = () => syncThemeAttributes('system');

@@ -3,6 +3,7 @@
 import { useState, FormEvent, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { syncThemeToStorage } from '@/lib/theme/theme-sync';
 
 export default function LoginForm() {
   const searchParams = useSearchParams();
@@ -48,6 +49,11 @@ export default function LoginForm() {
 
       // Verify login was successful
       if (data.message === 'Login successful') {
+        // Sync theme to localStorage if available
+        if (data.user?.theme) {
+          syncThemeToStorage(data.user.theme);
+        }
+        
         // Use a delay to ensure browser fully processes the Set-Cookie header
         // The cookie needs to be stored before we navigate
         setTimeout(() => {
