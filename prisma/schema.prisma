@@ -60,6 +60,7 @@ model List {
   parentId    String?
   title       String
   description String?
+  isPublic    Boolean  @default(false)
   metadata    Json?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -76,6 +77,7 @@ model List {
   @@index([messageId])
   @@index([createdAt])
   @@index([parentId])
+  @@index([isPublic])
   @@map("lists")
 }
 

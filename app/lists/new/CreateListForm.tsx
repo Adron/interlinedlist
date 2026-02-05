@@ -10,7 +10,7 @@ export default function CreateListForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async (schema: DSLSchema, parentId: string | null) => {
+  const handleSubmit = async (schema: DSLSchema, parentId: string | null, isPublic: boolean) => {
     setLoading(true);
     setError('');
 
@@ -25,6 +25,7 @@ export default function CreateListForm() {
           description: schema.description,
           schema: schema,
           parentId: parentId,
+          isPublic: isPublic,
         }),
       });
 

@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, messageId, metadata, schema, parentId } = body;
+    const { title, description, messageId, metadata, schema, parentId, isPublic } = body;
 
     // Validate required fields
     if (!title || typeof title !== "string" || title.trim().length === 0) {
@@ -106,6 +106,7 @@ export async function POST(request: NextRequest) {
         messageId: messageId || null,
         metadata: metadata || null,
         parentId: parentId || null,
+        isPublic: isPublic === true,
       },
     });
 

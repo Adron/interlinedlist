@@ -195,16 +195,23 @@ export async function getListById(listId: string, userId: string) {
  */
 export async function getUserLists(
   userId: string,
-  pagination: PaginationParams = {}
+  pagination: PaginationParams = {},
+  options?: { isPublic?: boolean }
 ) {
   const { take, skip } = buildPagination(pagination);
 
+  const whereClause: any = {
+    userId,
+    deletedAt: null,
+  };
+
+  if (options?.isPublic !== undefined) {
+    whereClause.isPublic = options.isPublic;
+  }
+
   const [lists, total] = await Promise.all([
     prisma.list.findMany({
-      where: {
-        userId,
-        deletedAt: null,
-      },
+      where: whereClause,
       include: {
         parent: {
           select: {
@@ -215,6 +222,7 @@ export async function getUserLists(
         children: {
           where: {
             deletedAt: null,
+            ...(options?.isPublic !== undefined && { isPublic: options.isPublic }),
           },
           select: {
             id: true,
@@ -229,10 +237,7 @@ export async function getUserLists(
       skip,
     }),
     prisma.list.count({
-      where: {
-        userId,
-        deletedAt: null,
-      },
+      where: whereClause,
     }),
   ]);
 
@@ -245,6 +250,16 @@ export async function getUserLists(
       hasMore: skip + take < total,
     },
   };
+}
+
+/**
+ * Gets public lists for a user with pagination
+ */
+export async function getPublicListsByUser(
+  userId: string,
+  pagination: PaginationParams = {}
+) {
+  return getUserLists(userId, pagination, { isPublic: true });
 }
 
 /**

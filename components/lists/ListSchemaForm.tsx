@@ -8,8 +8,9 @@ import { List } from "@/lib/types";
 interface ListSchemaFormProps {
   initialSchema?: DSLSchema;
   initialParentId?: string | null;
+  initialIsPublic?: boolean;
   currentListId?: string; // For excluding current list when editing
-  onSubmit: (schema: DSLSchema, parentId: string | null) => Promise<void> | void;
+  onSubmit: (schema: DSLSchema, parentId: string | null, isPublic: boolean) => Promise<void> | void;
   onCancel?: () => void;
   submitLabel?: string;
   cancelLabel?: string;
@@ -68,6 +69,7 @@ const generateDefaultFieldName = (): string => {
 export default function ListSchemaForm({
   initialSchema,
   initialParentId,
+  initialIsPublic = false,
   currentListId,
   onSubmit,
   onCancel,
@@ -78,6 +80,7 @@ export default function ListSchemaForm({
   const [name, setName] = useState(initialSchema?.name || "");
   const [description, setDescription] = useState(initialSchema?.description || "");
   const [parentId, setParentId] = useState<string | null>(initialParentId || null);
+  const [isPublic, setIsPublic] = useState(initialIsPublic);
   const [availableParents, setAvailableParents] = useState<List[]>([]);
   const [loadingParents, setLoadingParents] = useState(false);
   
@@ -215,7 +218,7 @@ export default function ListSchemaForm({
     }
 
     try {
-      await onSubmit(schema, parentId);
+      await onSubmit(schema, parentId, isPublic);
     } catch (err: any) {
       setError(err.message || "An error occurred");
     } finally {
@@ -278,6 +281,42 @@ export default function ListSchemaForm({
           <small className="form-text text-muted">
             Select a parent list to organize lists hierarchically. A list can reference itself.
           </small>
+        </div>
+      </div>
+
+      <div className="row g-1 mb-1">
+        <div className="col-md-12">
+          <label className="form-label small mb-0">Visibility</label>
+          <div className="d-flex flex-column gap-2">
+            <div className="form-check">
+              <input
+                className="form-check-input"
+                type="radio"
+                name="isPublic"
+                id="isPublic-private"
+                checked={!isPublic}
+                onChange={() => setIsPublic(false)}
+                disabled={loading || isSubmitting}
+              />
+              <label className="form-check-label" htmlFor="isPublic-private">
+                Private (only you can see this list)
+              </label>
+            </div>
+            <div className="form-check">
+              <input
+                className="form-check-input"
+                type="radio"
+                name="isPublic"
+                id="isPublic-public"
+                checked={isPublic}
+                onChange={() => setIsPublic(true)}
+                disabled={loading || isSubmitting}
+              />
+              <label className="form-check-label" htmlFor="isPublic-public">
+                Public (visible on your profile page)
+              </label>
+            </div>
+          </div>
         </div>
       </div>
 
