@@ -106,6 +106,8 @@ export default function ListSchemaForm({
   const [fields, setFields] = useState<DSLField[]>(getInitialFields());
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Track raw input values for options fields to allow commas during typing
+  const [optionsInputValues, setOptionsInputValues] = useState<Record<number, string>>({});
 
   // Fetch available parent lists
   useEffect(() => {
@@ -154,6 +156,22 @@ export default function ListSchemaForm({
 
   const removeField = (index: number) => {
     setFields((prev) => prev.filter((_, i) => i !== index));
+    // Clean up options input value for removed field
+    setOptionsInputValues((prev) => {
+      const updated = { ...prev };
+      delete updated[index];
+      // Shift indices for fields after the removed one
+      const newUpdated: Record<number, string> = {};
+      Object.keys(updated).forEach((key) => {
+        const oldIndex = parseInt(key);
+        if (oldIndex > index) {
+          newUpdated[oldIndex - 1] = updated[oldIndex];
+        } else if (oldIndex < index) {
+          newUpdated[oldIndex] = updated[oldIndex];
+        }
+      });
+      return newUpdated;
+    });
   };
 
   const moveField = (index: number, direction: "up" | "down") => {
@@ -164,14 +182,38 @@ export default function ListSchemaForm({
       return;
     }
 
+    const newIndex = direction === "up" ? index - 1 : index + 1;
+    
     setFields((prev) => {
       const updated = [...prev];
-      const newIndex = direction === "up" ? index - 1 : index + 1;
       [updated[index], updated[newIndex]] = [updated[newIndex], updated[index]];
       // Update display orders
       updated.forEach((field, i) => {
         field.displayOrder = i;
       });
+      return updated;
+    });
+    
+    // Update optionsInputValues indices to match reordered fields
+    setOptionsInputValues((prev) => {
+      const updated = { ...prev };
+      const indexValue = updated[index];
+      const newIndexValue = updated[newIndex];
+      
+      if (indexValue !== undefined || newIndexValue !== undefined) {
+        // Swap the values
+        if (indexValue !== undefined) {
+          updated[newIndex] = indexValue;
+        } else {
+          delete updated[newIndex];
+        }
+        if (newIndexValue !== undefined) {
+          updated[index] = newIndexValue;
+        } else {
+          delete updated[index];
+        }
+      }
+      
       return updated;
     });
   };
@@ -402,12 +444,25 @@ export default function ListSchemaForm({
                   <select
                     className="form-select form-select-sm"
                     value={field.type}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const newType = e.target.value as FieldType;
+                      const wasSelectType = field.type === "select" || field.type === "multiselect";
+                      const isSelectType = newType === "select" || newType === "multiselect";
+                      
                       updateField(index, {
-                        type: e.target.value as FieldType,
+                        type: newType,
                         options: undefined,
-                      })
-                    }
+                      });
+                      
+                      // Clear options input value if changing away from select/multiselect
+                      if (wasSelectType && !isSelectType) {
+                        setOptionsInputValues((prev) => {
+                          const updated = { ...prev };
+                          delete updated[index];
+                          return updated;
+                        });
+                      }
+                    }}
                     required
                     disabled={loading || isSubmitting}
                   >
@@ -456,15 +511,32 @@ export default function ListSchemaForm({
                   <input
                     type="text"
                     className="form-control form-control-sm"
-                    value={field.options?.join(", ") || ""}
-                    onChange={(e) =>
+                    value={optionsInputValues[index] !== undefined 
+                      ? optionsInputValues[index] 
+                      : (field.options?.join(", ") || "")}
+                    onChange={(e) => {
+                      // Store raw input value to allow commas during typing
+                      setOptionsInputValues(prev => ({
+                        ...prev,
+                        [index]: e.target.value
+                      }));
+                    }}
+                    onBlur={(e) => {
+                      // Parse options when user finishes editing
+                      const parsedOptions = e.target.value
+                        .split(",")
+                        .map((opt) => opt.trim())
+                        .filter((opt) => opt.length > 0);
                       updateField(index, {
-                        options: e.target.value
-                          .split(",")
-                          .map((opt) => opt.trim())
-                          .filter((opt) => opt.length > 0),
-                      })
-                    }
+                        options: parsedOptions,
+                      });
+                      // Clear the raw input value so it uses field.options on next render
+                      setOptionsInputValues(prev => {
+                        const updated = { ...prev };
+                        delete updated[index];
+                        return updated;
+                      });
+                    }}
                     placeholder="option1, option2, option3"
                     required
                     disabled={loading || isSubmitting}
