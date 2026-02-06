@@ -96,6 +96,7 @@ export interface List {
   parentId: string | null;
   title: string;
   description: string | null;
+  isPublic?: boolean;
   metadata: any | null;
   createdAt: Date | string;
   updatedAt: Date | string;

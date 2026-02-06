@@ -5,7 +5,7 @@ import { buildWallMessageWhereClause, getMessageUserSelect } from '@/lib/message
 import { LinkMetadata } from '@/lib/types';
 import ProfileHeader from '@/components/ProfileHeader';
 import MessageList from '@/components/MessageList';
-import UserWallSidebar from '@/components/UserWallSidebar';
+import PublicListsTreeView from '@/components/PublicListsTreeView';
 
 const DEFAULT_MESSAGES_PER_PAGE = 20;
 
@@ -61,17 +61,9 @@ export default async function UserProfilePage({
   return (
     <div className="container-fluid container-fluid-max py-4">
       <div className="row">
-        {/* Left column - their location, your location, weather comparison */}
+        {/* Left column - public lists tree view */}
         <div className="col-lg-3 col-md-4 mb-4">
-          <UserWallSidebar
-            profileUser={{
-              displayName: profileUser.displayName,
-              username: profileUser.username,
-              latitude: profileUser.latitude,
-              longitude: profileUser.longitude,
-            }}
-            showViewerLocation={!!currentUser}
-          />
+          <PublicListsTreeView username={username} />
         </div>
 
         {/* Center - profile header + message cards (main-page style) */}

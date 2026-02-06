@@ -95,7 +95,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { schema, parentId } = body;
+    const { schema, parentId, isPublic } = body;
 
     if (!schema) {
       return NextResponse.json({ error: "Schema is required" }, { status: 400 });
@@ -147,13 +147,14 @@ export async function PUT(
       );
     }
 
-    // Update list title, description, and parentId from parsed schema
+    // Update list title, description, parentId, and isPublic from parsed schema
     await prisma.list.update({
       where: { id: params.id },
       data: {
         title: parsedSchema.title,
         description: parsedSchema.description,
         ...(parentId !== undefined && { parentId: parentId || null }),
+        ...(isPublic !== undefined && { isPublic: isPublic === true }),
       },
     });
 
