@@ -2,12 +2,14 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Avatar } from './Avatar';
 import { formatRelativeTime } from '@/lib/utils/relativeTime';
 import { linkifyText } from '@/lib/messages/linkify';
 import LinkMetadataCard from './messages/LinkMetadataCard';
 import { Message as MessageType, LinkMetadataItem } from '@/lib/types';
 import { detectLinks } from '@/lib/messages/link-detector';
+import { extractListNameFromMessage } from '@/lib/utils/message-extractor';
 
 interface MessageUser {
   id: string;
@@ -39,6 +41,7 @@ export default function MessageCard({
   showCheckbox = false,
   showPreviews = true
 }: MessageCardProps) {
+  const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -141,39 +144,62 @@ export default function MessageCard({
                 )}
               </div>
               
-              {isOwner && onDelete && (
-                <div className="position-relative">
-                  {!showDeleteConfirm ? (
-                    <button
-                      className="btn btn-sm btn-link text-danger p-0"
-                      onClick={() => setShowDeleteConfirm(true)}
-                      style={{ fontSize: '0.75rem' }}
-                      title="Delete message"
-                    >
-                      <i className="bx bx-trash"></i>
-                    </button>
-                  ) : (
-                    <div className="d-flex gap-1">
+              <div className="d-flex align-items-center gap-2">
+                {currentUserId && (
+                  <button
+                    className="btn btn-sm btn-link text-primary p-0"
+                    onClick={() => {
+                      const listName = extractListNameFromMessage(message.content);
+                      const isOwner = currentUserId === message.user.id;
+                      sessionStorage.setItem('createListFromMessage', JSON.stringify({
+                        name: listName,
+                        description: message.content,
+                        publiclyVisible: message.publiclyVisible,
+                        isOwner: isOwner
+                      }));
+                      router.push('/lists/new');
+                    }}
+                    style={{ fontSize: '0.75rem' }}
+                    title="Create list from this message"
+                  >
+                    <i className="bx bx-list-plus"></i>
+                  </button>
+                )}
+                
+                {isOwner && onDelete && (
+                  <div className="position-relative">
+                    {!showDeleteConfirm ? (
                       <button
-                        className="btn btn-sm btn-danger"
-                        onClick={handleDelete}
-                        disabled={isDeleting}
-                        style={{ fontSize: '0.7rem', padding: '0.2rem 0.4rem' }}
+                        className="btn btn-sm btn-link text-danger p-0"
+                        onClick={() => setShowDeleteConfirm(true)}
+                        style={{ fontSize: '0.75rem' }}
+                        title="Delete message"
                       >
-                        {isDeleting ? '...' : 'Delete'}
+                        <i className="bx bx-trash"></i>
                       </button>
-                      <button
-                        className="btn btn-sm btn-secondary"
-                        onClick={() => setShowDeleteConfirm(false)}
-                        disabled={isDeleting}
-                        style={{ fontSize: '0.7rem', padding: '0.2rem 0.4rem' }}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
+                    ) : (
+                      <div className="d-flex gap-1">
+                        <button
+                          className="btn btn-sm btn-danger"
+                          onClick={handleDelete}
+                          disabled={isDeleting}
+                          style={{ fontSize: '0.7rem', padding: '0.2rem 0.4rem' }}
+                        >
+                          {isDeleting ? '...' : 'Delete'}
+                        </button>
+                        <button
+                          className="btn btn-sm btn-secondary"
+                          onClick={() => setShowDeleteConfirm(false)}
+                          disabled={isDeleting}
+                          style={{ fontSize: '0.7rem', padding: '0.2rem 0.4rem' }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
             
             <p className="mb-0 text-break" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.9rem' }}>

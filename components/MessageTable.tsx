@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils/relativeTime';
 import { linkifyText } from '@/lib/messages/linkify';
 import { Message as MessageType, LinkMetadataItem } from '@/lib/types';
 import { detectLinks } from '@/lib/messages/link-detector';
 import LinkMetadataCard from './messages/LinkMetadataCard';
+import { extractListNameFromMessage } from '@/lib/utils/message-extractor';
 
 interface MessageUser {
   id: string;
@@ -39,6 +41,7 @@ export default function MessageTable({
   onlyMine = false,
   messagesApiUrl
 }: MessageTableProps) {
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalMessages, setTotalMessages] = useState(initialTotal ?? initialMessages.length);
@@ -855,8 +858,15 @@ export default function MessageTable({
                           <button
                             className="btn btn-sm btn-link text-primary p-0"
                             onClick={() => {
-                              // Placeholder - will be implemented later
-                              console.log('Create list for message:', message.id);
+                              const listName = extractListNameFromMessage(message.content);
+                              const isOwner = currentUserId === message.user.id;
+                              sessionStorage.setItem('createListFromMessage', JSON.stringify({
+                                name: listName,
+                                description: message.content,
+                                publiclyVisible: message.publiclyVisible,
+                                isOwner: isOwner
+                              }));
+                              router.push('/lists/new');
                             }}
                             disabled={isLoading}
                             title="Create list from this message"
