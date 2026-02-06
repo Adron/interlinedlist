@@ -440,6 +440,96 @@ export async function getListDataRows(
 }
 
 /**
+ * Gets list properties (schema) for a public list
+ * No authentication required - verifies list exists and is public
+ */
+export async function getPublicListProperties(
+  listId: string
+): Promise<ParsedField[] | null> {
+  // Verify list exists and is public
+  const list = await prisma.list.findFirst({
+    where: {
+      id: listId,
+      isPublic: true,
+      deletedAt: null,
+    },
+  });
+
+  if (!list) {
+    return null;
+  }
+
+  const properties = await prisma.listProperty.findMany({
+    where: {
+      listId,
+    },
+    orderBy: {
+      displayOrder: "asc",
+    },
+  });
+
+  return properties.map(convertToParsedField);
+}
+
+/**
+ * Gets list data rows for a public list
+ * No authentication required - verifies list exists and is public
+ */
+export async function getPublicListDataRows(
+  listId: string,
+  options: {
+    pagination?: PaginationParams;
+    filter?: ListDataFilter;
+    sort?: ListDataSort;
+  } = {}
+) {
+  // Verify list exists and is public
+  const list = await prisma.list.findFirst({
+    where: {
+      id: listId,
+      isPublic: true,
+      deletedAt: null,
+    },
+  });
+
+  if (!list) {
+    throw new Error("List not found or not public");
+  }
+
+  const { take, skip } = buildPagination(options.pagination ?? {});
+  const jsonbFilterConditions = buildJSONBFilterConditions(options.filter ?? {});
+  const orderBy = buildOrderBy(options.sort);
+
+  const where: Prisma.ListDataRowWhereInput = {
+    listId,
+    deletedAt: null,
+    ...(jsonbFilterConditions && {
+      AND: jsonbFilterConditions,
+    }),
+  };
+
+  const [rows, total] = await Promise.all([
+    prisma.listDataRow.findMany({
+      where,
+      orderBy,
+      take,
+      skip,
+    }),
+    prisma.listDataRow.count({ where }),
+  ]);
+
+  return {
+    rows,
+    pagination: {
+      total,
+      limit: take,
+      offset: skip,
+      hasMore: skip + take < total,
+    },
+  };
+}
+
+/**
  * Gets a single list data row by ID
  */
 export async function getListDataRowById(

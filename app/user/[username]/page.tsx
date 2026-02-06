@@ -6,6 +6,8 @@ import { LinkMetadata } from '@/lib/types';
 import ProfileHeader from '@/components/ProfileHeader';
 import MessageList from '@/components/MessageList';
 import PublicListsTreeView from '@/components/PublicListsTreeView';
+import ListPreview from '@/components/ListPreview';
+import { getPublicListsByUser, buildListTree, getPublicListProperties, getPublicListDataRows } from '@/lib/lists/queries';
 
 const DEFAULT_MESSAGES_PER_PAGE = 20;
 
@@ -58,12 +60,65 @@ export default async function UserProfilePage({
     linkMetadata: message.linkMetadata as LinkMetadata | null,
   }));
 
+  // Fetch public lists to get the first root-level list for preview
+  let firstListPreview = null;
+  try {
+    const publicListsResult = await getPublicListsByUser(profileUser.id, { limit: 100 });
+    const publicLists = publicListsResult.lists || [];
+    
+    if (publicLists.length > 0) {
+      // Build tree to get root-level lists
+      const tree = buildListTree(publicLists);
+      
+      // Get first root-level list
+      if (tree.length > 0) {
+        const firstList = tree[0].list;
+        
+        // Fetch properties and first 3 items
+        const [properties, dataResult] = await Promise.all([
+          getPublicListProperties(firstList.id),
+          getPublicListDataRows(firstList.id, {
+            pagination: { limit: 3, offset: 0 }
+          })
+        ]);
+        
+        if (properties && properties.length > 0) {
+          // Take only first 2 fields
+          const firstTwoFields = properties.slice(0, 2);
+          
+          firstListPreview = {
+            listId: firstList.id,
+            listTitle: firstList.title,
+            fields: firstTwoFields,
+            items: dataResult.rows.map(row => ({
+              id: row.id,
+              rowData: row.rowData as Record<string, any>,
+              createdAt: row.createdAt.toISOString(),
+              updatedAt: row.updatedAt?.toISOString(),
+            }))
+          };
+        }
+      }
+    }
+  } catch (error) {
+    // Silently fail - preview is optional
+    console.error('Failed to fetch list preview:', error);
+  }
+
   return (
     <div className="container-fluid container-fluid-max py-4">
       <div className="row">
         {/* Left column - public lists tree view */}
         <div className="col-lg-3 col-md-4 mb-4">
           <PublicListsTreeView username={username} />
+          {firstListPreview && (
+            <ListPreview
+              listId={firstListPreview.listId}
+              listTitle={firstListPreview.listTitle}
+              fields={firstListPreview.fields}
+              items={firstListPreview.items}
+            />
+          )}
         </div>
 
         {/* Center - profile header + message cards (main-page style) */}
