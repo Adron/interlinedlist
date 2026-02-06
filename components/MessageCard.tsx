@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Avatar } from './Avatar';
-import { formatRelativeTime } from '@/lib/utils/relativeTime';
+import { formatDateTime } from '@/lib/utils/relativeTime';
 import { linkifyText } from '@/lib/messages/linkify';
 import LinkMetadataCard from './messages/LinkMetadataCard';
 import { Message as MessageType, LinkMetadataItem } from '@/lib/types';
@@ -135,7 +135,7 @@ export default function MessageCard({
                   </span>
                 </Link>
                 <span className="text-muted ms-2" style={{ fontSize: '0.75rem' }}>
-                  · {formatRelativeTime(message.createdAt)}
+                  · {formatDateTime(message.createdAt)}
                 </span>
                 {!message.publiclyVisible && (
                   <span className="badge bg-secondary ms-2" style={{ fontSize: '0.65rem' }}>

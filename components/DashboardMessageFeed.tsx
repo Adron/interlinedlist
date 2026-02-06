@@ -63,6 +63,7 @@ export default async function DashboardMessageFeed() {
         itemsPerPage={messagesPerPage}
         showPreviews={user?.showPreviews ?? true}
         onlyMine={true}
+        dateFormat="datagrid"
       />
     );
   } catch (error: any) {

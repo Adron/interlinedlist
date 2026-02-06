@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { formatRelativeTime } from '@/lib/utils/relativeTime';
+import { formatDateTime, formatDatagridDateTime } from '@/lib/utils/relativeTime';
 import { linkifyText } from '@/lib/messages/linkify';
 import { Message as MessageType, LinkMetadataItem } from '@/lib/types';
 import { detectLinks } from '@/lib/messages/link-detector';
@@ -30,6 +30,8 @@ interface MessageTableProps {
   onlyMine?: boolean; // If true, only fetch user's own messages (used when messagesApiUrl is not set)
   /** When set, pagination fetches use this URL (e.g. /api/user/adron/messages) instead of /api/messages */
   messagesApiUrl?: string;
+  /** Date format to use: 'datetime' for full date/time, 'datagrid' for DD/MM/YYYY HH:MM:SS */
+  dateFormat?: 'datetime' | 'datagrid';
 }
 
 export default function MessageTable({ 
@@ -39,7 +41,8 @@ export default function MessageTable({
   itemsPerPage = 12,
   showPreviews = true,
   onlyMine = false,
-  messagesApiUrl
+  messagesApiUrl,
+  dateFormat = 'datetime'
 }: MessageTableProps) {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
@@ -723,9 +726,8 @@ export default function MessageTable({
                   </th>
                 )}
                 <th style={{ padding: '0.25rem 0.5rem' }}>Date</th>
-                <th style={{ padding: '0.25rem 0.5rem' }}>User</th>
-                <th style={{ padding: '0.25rem 0.5rem' }}>Visibility</th>
                 <th style={{ padding: '0.25rem 0.5rem' }}>Content</th>
+                <th style={{ padding: '0.25rem 0.5rem' }}>Visibility</th>
                 {currentUserId && <th style={{ padding: '0.25rem 0.5rem' }}>Actions</th>}
               </tr>
             </thead>
@@ -755,48 +757,10 @@ export default function MessageTable({
                     )}
                     <td style={{ padding: '0.25rem 0.5rem' }}>
                       <span className="text-muted" style={{ fontSize: '0.85rem' }}>
-                        {formatRelativeTime(message.createdAt)}
+                        {dateFormat === 'datagrid' 
+                          ? formatDatagridDateTime(message.createdAt)
+                          : formatDateTime(message.createdAt)}
                       </span>
-                    </td>
-                    <td style={{ padding: '0.25rem 0.5rem' }}>
-                      <Link
-                        href={`/user/${encodeURIComponent(message.user.username)}`}
-                        className="d-flex align-items-center text-decoration-none text-body"
-                      >
-                        {message.user.avatar ? (
-                          <img
-                            src={message.user.avatar}
-                            alt={message.user.displayName || message.user.username}
-                            className="img-fluid avatar-xs rounded-circle me-1"
-                            style={{ width: '24px', height: '24px', objectFit: 'cover' }}
-                          />
-                        ) : (
-                          <div
-                            className="rounded-circle d-flex align-items-center justify-content-center me-1 avatar-xs"
-                            style={{
-                              width: '24px',
-                              height: '24px',
-                              backgroundColor: 'var(--bs-secondary)',
-                              color: 'white',
-                              fontSize: '0.7rem',
-                              fontWeight: 'bold',
-                              flexShrink: 0,
-                            }}
-                          >
-                            {(message.user.displayName || message.user.username)[0].toUpperCase()}
-                          </div>
-                        )}
-                        <span className="align-middle" style={{ fontSize: '0.85rem' }}>
-                          {message.user.displayName || message.user.username}
-                        </span>
-                      </Link>
-                    </td>
-                    <td style={{ padding: '0.25rem 0.5rem' }}>
-                      {message.publiclyVisible ? (
-                        <span className="badge badge-soft-success" style={{ fontSize: '0.75rem' }}>Public</span>
-                      ) : (
-                        <span className="badge badge-soft-warning" style={{ fontSize: '0.75rem' }}>Private</span>
-                      )}
                     </td>
                     <td style={{ padding: '0.25rem 0.5rem' }}>
                       <div 
@@ -851,6 +815,13 @@ export default function MessageTable({
                           </div>
                         );
                       })()}
+                    </td>
+                    <td style={{ padding: '0.25rem 0.5rem' }}>
+                      {message.publiclyVisible ? (
+                        <span className="badge badge-soft-success" style={{ fontSize: '0.75rem' }}>Public</span>
+                      ) : (
+                        <span className="badge badge-soft-warning" style={{ fontSize: '0.75rem' }}>Private</span>
+                      )}
                     </td>
                     {currentUserId && (
                       <td style={{ padding: '0.25rem 0.5rem' }}>
