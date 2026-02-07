@@ -122,6 +122,12 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
         // Revert on error
         setShowSettingsMenu(previousValue);
         setError(data.error || 'Failed to update setting');
+      } else {
+        // Update state with the persisted value from the database
+        // This ensures we're using the actual saved value
+        if (data.user && typeof data.user.showAdvancedPostSettings === 'boolean') {
+          setShowSettingsMenu(data.user.showAdvancedPostSettings);
+        }
       }
     } catch (err) {
       // Revert on error
