@@ -54,6 +54,18 @@ export default async function AppSidebar() {
             </li>
           )}
 
+          {/* Organizations */}
+          {user && (
+            <li className="nav-item">
+              <Link className="nav-link" href="/organizations">
+                <span className="nav-icon">
+                  <i className="bx bx-group"></i>
+                </span>
+                <span className="nav-text">Organizations</span>
+              </Link>
+            </li>
+          )}
+
           {/* Admin */}
           {user?.isAdministrator && (
             <li className="nav-item">

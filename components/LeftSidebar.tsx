@@ -9,6 +9,7 @@ interface LeftSidebarProps {
     id: string;
     maxMessageLength: number | null;
     defaultPubliclyVisible: boolean | null;
+    showAdvancedPostSettings?: boolean | null;
     emailVerified: boolean;
   } | null;
 }
@@ -39,6 +40,7 @@ export default function LeftSidebar({ user }: LeftSidebarProps) {
             <MessageInput
               maxLength={user.maxMessageLength || 666}
               defaultPubliclyVisible={user.defaultPubliclyVisible ?? false}
+              showAdvancedPostSettings={user.showAdvancedPostSettings ?? false}
               onSubmit={() => {}}
             />
           )}

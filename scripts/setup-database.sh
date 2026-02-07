@@ -165,7 +165,21 @@ else
 fi
 
 echo ""
+log_info "Seeding initial data (The Public organization and seed user)..."
+if node scripts/seed-initial-data.js; then
+  log_success "Initial data seeding completed"
+else
+  log_error "Initial data seeding failed"
+  exit 1
+fi
+
+echo ""
 log_success "Database setup complete!"
 log_info "Database: $DB_NAME"
 log_info "User: $DB_USER"
 log_info "Connection: postgresql://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME?schema=public"
+log_info ""
+log_info "Initial seed user created:"
+log_info "  Username: Adron"
+log_info "  Email: adronhall@proton.me"
+log_info "  Password: changeme123 (please change on first login)"

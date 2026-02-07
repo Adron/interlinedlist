@@ -66,6 +66,7 @@ export default async function MessageFeed() {
             <MessageInput
               maxLength={user.maxMessageLength || 666}
               defaultPubliclyVisible={user.defaultPubliclyVisible ?? false}
+              showAdvancedPostSettings={user.showAdvancedPostSettings ?? false}
             />
           </div>
         )}

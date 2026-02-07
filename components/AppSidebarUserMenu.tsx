@@ -41,6 +41,16 @@ export default function AppSidebarUserMenu({ user }: AppSidebarUserMenuProps) {
         </Link>
       </li>
 
+      {/* My Organizations */}
+      <li className="nav-item">
+        <Link className="nav-link" href="/user/organizations">
+          <span className="nav-icon">
+            <i className="bx bx-group"></i>
+          </span>
+          <span className="nav-text">My Organizations</span>
+        </Link>
+      </li>
+
       {/* Help */}
       <li className="nav-item">
         <Link className="nav-link" href="/help">

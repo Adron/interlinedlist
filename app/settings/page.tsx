@@ -35,6 +35,7 @@ export default async function SettingsPage() {
               messagesPerPage={user.messagesPerPage ?? 20}
               viewingPreference={user.viewingPreference ?? 'all_messages'}
               showPreviews={user.showPreviews ?? true}
+              showAdvancedPostSettings={user.showAdvancedPostSettings ?? false}
             />
           </div>
         </div>

@@ -5,6 +5,7 @@ import { generateEmailVerificationToken, getEmailVerificationExpiration } from '
 import { resend, FROM_EMAIL } from '@/lib/email/resend';
 import { getEmailVerificationEmailHtml, getEmailVerificationEmailText } from '@/lib/email/templates/email-verification';
 import { SESSION_COOKIE_NAME, SESSION_MAX_AGE, APP_CONFIG } from '@/lib/config/app';
+import { ensureUserInPublicOrganization } from '@/lib/organizations/queries';
 
 export const dynamic = 'force-dynamic';
 
@@ -106,6 +107,15 @@ export async function POST(request: NextRequest) {
       } else {
         throw error;
       }
+    }
+
+    // Add user to "The Public" organization
+    try {
+      await ensureUserInPublicOrganization(user.id);
+    } catch (orgError: any) {
+      console.error('Failed to add user to public organization:', orgError);
+      // Don't fail registration if this fails - log it
+      // The user can still use the system, they just won't be in the public org initially
     }
 
     // Session will be set on the response below

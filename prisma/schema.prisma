@@ -28,10 +28,12 @@ model User {
   messagesPerPage            Int       @default(20)
   viewingPreference         String    @default("all_messages")
   showPreviews              Boolean   @default(true)
+  showAdvancedPostSettings  Boolean   @default(false)
   latitude                  Float?
   longitude                 Float?
   messages             Message[]
   lists                List[]
+  organizations        UserOrganization[]
   administrator        Administrator?
 
   @@map("users")
@@ -130,4 +132,48 @@ model Administrator {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("administrators")
+}
+
+model Organization {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  avatar      String?
+  isPublic    Boolean  @default(true)
+  isSystem    Boolean  @default(false)
+  settings    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  members     UserOrganization[]
+
+  @@index([isPublic, deletedAt])
+  @@index([isSystem])
+  @@index([slug])
+  @@index([deletedAt])
+  @@map("organizations")
+}
+
+model UserOrganization {
+  id             String       @id @default(uuid())
+  userId         String
+  organizationId String
+  role           String       @default("member")
+  active         Boolean      @default(true)
+  joinedAt       DateTime     @default(now())
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([userId])
+  @@index([organizationId])
+  @@index([userId, role])
+  @@index([organizationId, role])
+  @@index([organizationId, active])
+  @@map("user_organizations")
 }

@@ -26,6 +26,7 @@ export async function PATCH(request: NextRequest) {
       messagesPerPage,
       viewingPreference,
       showPreviews,
+      showAdvancedPostSettings,
       latitude,
       longitude,
     } = body;
@@ -96,6 +97,7 @@ export async function PATCH(request: NextRequest) {
         ...(messagesPerPage !== undefined && { messagesPerPage: parseInt(messagesPerPage, 10) }),
         ...(viewingPreference !== undefined && { viewingPreference }),
         ...(showPreviews !== undefined && { showPreviews: Boolean(showPreviews) }),
+        ...(showAdvancedPostSettings !== undefined && { showAdvancedPostSettings: Boolean(showAdvancedPostSettings) }),
         ...(latitude !== undefined && { latitude: latitude === null ? null : (typeof latitude === 'number' ? latitude : parseFloat(latitude)) }),
         ...(longitude !== undefined && { longitude: longitude === null ? null : (typeof longitude === 'number' ? longitude : parseFloat(longitude)) }),
       },
@@ -113,6 +115,7 @@ export async function PATCH(request: NextRequest) {
         messagesPerPage: true,
         viewingPreference: true,
         showPreviews: true,
+        showAdvancedPostSettings: true,
         latitude: true,
         longitude: true,
         createdAt: true,

@@ -5,14 +5,17 @@ import { useState, FormEvent, useRef, useEffect } from 'react';
 interface MessageInputProps {
   maxLength: number;
   defaultPubliclyVisible?: boolean;
+  showAdvancedPostSettings?: boolean;
   onSubmit?: () => void;
 }
 
-export default function MessageInput({ maxLength, defaultPubliclyVisible = false, onSubmit }: MessageInputProps) {
+export default function MessageInput({ maxLength, defaultPubliclyVisible = false, showAdvancedPostSettings = false, onSubmit }: MessageInputProps) {
   const [content, setContent] = useState('');
   const [publiclyVisible, setPubliclyVisible] = useState(defaultPubliclyVisible);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showSettingsMenu, setShowSettingsMenu] = useState(showAdvancedPostSettings);
+  const [updatingSetting, setUpdatingSetting] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto-resize textarea
@@ -27,6 +30,11 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
   useEffect(() => {
     setPubliclyVisible(defaultPubliclyVisible);
   }, [defaultPubliclyVisible]);
+
+  // Synchronize showSettingsMenu with prop
+  useEffect(() => {
+    setShowSettingsMenu(showAdvancedPostSettings);
+  }, [showAdvancedPostSettings]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -86,6 +94,44 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
   const isNearLimit = remainingChars < 50;
   const isOverLimit = remainingChars < 0;
 
+  const toggleSettingsMenu = async () => {
+    const newValue = !showSettingsMenu;
+    const previousValue = showSettingsMenu;
+    
+    // Clear any previous errors
+    setError('');
+    
+    // Optimistically update UI
+    setShowSettingsMenu(newValue);
+    setUpdatingSetting(true);
+
+    try {
+      const response = await fetch('/api/user/update', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          showAdvancedPostSettings: newValue,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Revert on error
+        setShowSettingsMenu(previousValue);
+        setError(data.error || 'Failed to update setting');
+      }
+    } catch (err) {
+      // Revert on error
+      setShowSettingsMenu(previousValue);
+      setError('Failed to update setting. Please try again.');
+    } finally {
+      setUpdatingSetting(false);
+    }
+  };
+
   return (
     <div className="card mb-3">
       <div className="card-body">
@@ -106,12 +152,114 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
               maxLength={maxLength + 100} // Allow typing past limit to show error
             />
             <div className="d-flex justify-content-between align-items-center mt-2">
-              <div>
+              <div className="d-flex align-items-center gap-2">
                 <span
                   className={`small ${isOverLimit ? 'text-danger' : isNearLimit ? 'text-warning' : 'text-muted'}`}
                 >
                   {remainingChars} characters remaining
                 </span>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-link p-1 text-muted"
+                  onClick={toggleSettingsMenu}
+                  aria-label="Posting options"
+                  disabled={updatingSetting}
+                  style={{ 
+                    border: 'none',
+                    lineHeight: 1,
+                    minWidth: 'auto',
+                    transition: 'transform 0.3s ease-in-out',
+                  }}
+                >
+                  <i 
+                    className="bx bx-cog" 
+                    style={{ 
+                      fontSize: '1.1rem',
+                      transform: showSettingsMenu ? 'rotate(90deg)' : 'rotate(0deg)',
+                      display: 'inline-block',
+                      transition: 'transform 0.3s ease-in-out',
+                    }}
+                  ></i>
+                </button>
+                {showSettingsMenu && (
+                  <div 
+                    className="d-flex align-items-center gap-2"
+                    style={{
+                      animation: 'slideIn 0.3s ease-in-out',
+                    }}
+                  >
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-link p-1 text-muted"
+                      disabled
+                      aria-label="Thread"
+                      style={{ 
+                        border: 'none',
+                        lineHeight: 1,
+                        minWidth: 'auto',
+                      }}
+                      title="Thread"
+                    >
+                      <i className="bx bx-yarn" style={{ fontSize: '1.1rem' }}></i>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-link p-1 text-muted"
+                      disabled
+                      aria-label="Image"
+                      style={{ 
+                        border: 'none',
+                        lineHeight: 1,
+                        minWidth: 'auto',
+                      }}
+                      title="Image"
+                    >
+                      <i className="bx bx-image" style={{ fontSize: '1.1rem' }}></i>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-link p-1 text-muted"
+                      disabled
+                      aria-label="Video"
+                      style={{ 
+                        border: 'none',
+                        lineHeight: 1,
+                        minWidth: 'auto',
+                      }}
+                      title="Video"
+                    >
+                      <i className="bx bx-video" style={{ fontSize: '1.1rem' }}></i>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-link p-1 text-muted"
+                      disabled
+                      aria-label="Organization"
+                      style={{ 
+                        border: 'none',
+                        lineHeight: 1,
+                        minWidth: 'auto',
+                      }}
+                      title="Organization"
+                    >
+                      <i className="bx bx-group" style={{ fontSize: '1.1rem' }}></i>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-link p-1 text-muted"
+                      disabled
+                      aria-label="Scheduled"
+                      style={{ 
+                        border: 'none',
+                        lineHeight: 1,
+                        minWidth: 'auto',
+                      }}
+                      title="Scheduled"
+                    >
+                      <i className="bx bx-calendar-alt" style={{ fontSize: '1.1rem' }}></i>
+                    </button>
+                  </div>
+                )}
               </div>
               <div className="form-check">
                 <input

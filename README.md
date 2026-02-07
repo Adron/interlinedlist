@@ -72,6 +72,7 @@ The project includes an automated database setup script that handles user creati
    - Create database `interlinedlist` (if it doesn't exist)
    - Grant all necessary permissions
    - Run Prisma migrations automatically
+   - Seed initial data ("The Public" organization and seed user "Adron")
 
 **What the script does:**
 - Creates a PostgreSQL user with the configured password
@@ -79,6 +80,11 @@ The project includes an automated database setup script that handles user creati
 - Creates the database owned by the new user
 - Grants all privileges on the database and schema
 - Runs Prisma migrations to set up all tables
+- Seeds initial data:
+  - Creates "The Public" system organization
+  - Creates initial seed user "Adron" (email: `adronhall@proton.me`, password: `changeme123`)
+  - Adds seed user to "The Public" organization
+  - Adds any existing users to "The Public" organization
 
 #### Manual Setup (Alternative)
 
@@ -126,7 +132,20 @@ npm run db:studio
 
 This will open Prisma Studio at `http://localhost:5555` where you can view your database tables.
 
-### 5. Seed Test Data (Optional)
+### 5. Initial Seed Data
+
+After running `setup-database.sh`, the following initial data is automatically created:
+
+- **"The Public" Organization**: A system organization that all users belong to by default
+- **Seed User "Adron"**: 
+  - Username: `Adron`
+  - Email: `adronhall@proton.me`
+  - Password: `changeme123` (please change on first login)
+  - Email Verified: `true`
+
+You can log in with these credentials immediately after setup.
+
+### 6. Seed Test Data (Optional)
 
 The project includes test data for local development and testing. This includes 71 test user accounts and thousands of test messages.
 
@@ -172,7 +191,7 @@ All accounts are pre-verified (emailVerified: true) so you can log in immediatel
 
 For more details, see [`test-data/README.md`](test-data/README.md).
 
-### 6. Start Development Server
+### 7. Start Development Server
 
 ```bash
 npm run dev
@@ -186,13 +205,15 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
-- `npm run db:migrate` - Run database migrations locally (creates new migrations)
-- `npm run db:migrate:deploy` - Apply migrations to production database
+- `npm run db:migrate` - Safe migration script (checks status, prevents destructive resets, applies pending migrations safely)
+- `npm run db:migrate:deploy` - Apply migrations to production database (non-destructive, only applies existing migrations)
+- `npm run db:migrate:force` - Force migration with `prisma migrate dev` (may prompt for reset - use with caution)
 - `npm run db:generate` - Generate Prisma Client
 - `npm run db:studio` - Open Prisma Studio (database GUI)
 - `npm run backup` - Create database backups (production and local)
 - `npm run restore` - Restore database from backup file
 - `npm run test-data:seed` - Seed test accounts and messages into the database
+- `node scripts/seed-initial-data.js` - Seed initial data ("The Public" organization and seed user)
 
 ## Project Structure
 
@@ -221,20 +242,34 @@ interlinedlist/
 │   │   │   └── route.ts         # GET/POST lists
 │   │   ├── location/             # Location widget endpoint
 │   │   ├── messages/             # Message endpoints
+│   │   ├── organizations/        # Organization endpoints
+│   │   │   ├── [id]/            # Individual organization operations
+│   │   │   │   ├── members/     # Organization member management
+│   │   │   │   │   ├── [userId]/ # Individual member operations
+│   │   │   │   │   └── route.ts
+│   │   │   │   └── route.ts
+│   │   │   └── route.ts         # GET/POST organizations
 │   │   │   ├── [id]/            # Individual message operations
 │   │   │   │   ├── metadata/   # Link metadata fetching
 │   │   │   │   └── route.ts
 │   │   │   └── route.ts         # GET/POST messages
 │   │   ├── test-db/             # Database connection test endpoint
 │   │   ├── user/                 # User management endpoints
+│   │   │   ├── organizations/    # User's organizations
 │   │   │   └── update/           # Update user profile/settings
 │   │   └── weather/              # Weather widget endpoint
 │   ├── dashboard/                # Dashboard page
 │   ├── forgot-password/          # Password reset page
 │   ├── login/                    # Login page and form
+│   ├── organizations/            # Organization pages
+│   │   ├── [slug]/              # Organization detail page
+│   │   ├── new/                 # Create organization page
+│   │   └── page.tsx             # Organizations list page
 │   ├── register/                 # Registration page and form
 │   ├── reset-password/           # Password reset page
 │   ├── settings/                 # User settings page
+│   ├── user/                     # User pages
+│   │   └── organizations/        # User's organizations page
 │   │   ├── EmailVerificationResend.tsx
 │   │   ├── EmailVerificationSection.tsx
 │   │   ├── PermissionsSection.tsx # Permissions settings
@@ -258,6 +293,12 @@ interlinedlist/
 │   │   ├── ListDataTable.tsx
 │   │   └── ListSchemaForm.tsx
 │   ├── ListsTreeView.tsx         # Lists tree navigation
+│   ├── organizations/             # Organization-related components
+│   │   ├── CreateOrganizationForm.tsx
+│   │   ├── OrganizationCard.tsx
+│   │   ├── OrganizationList.tsx
+│   │   ├── OrganizationMembers.tsx
+│   │   └── UserOrganizations.tsx
 │   ├── LocationWidget.tsx        # Location widget component
 │   ├── LeftSidebar.tsx           # Left sidebar with message input
 │   ├── Logo.tsx                  # Logo component
@@ -380,16 +421,18 @@ interlinedlist/
   - `lists/`: List CRUD operations, schema management, and data row operations
   - `location/`: Location widget API endpoint
   - `messages/`: Message CRUD operations and link metadata fetching
-  - `user/`: User profile and settings management
+  - `organizations/`: Organization CRUD operations and member management
+  - `user/`: User profile and settings management (including user organizations)
   - `weather/`: Weather widget API endpoint
   - `test-db/`: Database connection testing utility
 
 - **`components/`**: Reusable React components organized by feature:
   - Message-related: `MessageInput`, `MessageCard`, `MessageFeed`, `MessageList`, `MessageGrid`, `MessageTable`, `LinkMetadataCard`
   - List-related: `ListsTreeView`, `DynamicListForm`, `ListDataTable`, `ListSchemaForm`, `DeleteListButton`
+  - Organization-related: `OrganizationCard`, `OrganizationList`, `OrganizationMembers`, `CreateOrganizationForm`, `UserOrganizations`
   - UI components: `Avatar`, `Navigation`, `Footer`, `Logo`, `UserDropdown`, `SidebarToggle`
   - Widgets: `LocationWidget`, `WeatherWidget`
-  - Feature-specific: `LeftSidebar`, `RightSidebar`, `EmailVerificationBanner`, `ThemeProvider`
+  - Feature-specific: `LeftSidebar`, `RightSidebar`, `EmailVerificationBanner`, `ThemeProvider`, `AppSidebar`, `AppSidebarUserMenu`
 
 - **`DSL/`**: Domain Specific Language for defining dynamic list schemas:
   - `docs/`: Complete DSL documentation (syntax, field types, validation, conditional logic)
@@ -402,6 +445,7 @@ interlinedlist/
   - `email/`: Email sending utilities using Resend API
   - `lists/`: List utilities (DSL parsing, validation, form generation, queries)
   - `messages/`: Message utilities (link detection, metadata fetching, link rendering)
+  - `organizations/`: Organization utilities (queries, permissions, slug generation)
   - `theme/`: Theme management and DarkOne theme integration
   - `types/`: Shared TypeScript type definitions
   - `utils/`: General utility functions (time formatting, error handling)
@@ -416,6 +460,11 @@ interlinedlist/
 - **`styles/`**: Global stylesheets and theme files (DarkOne SCSS framework)
 
 - **`scripts/`**: Automation scripts for database setup and other tasks
+  - `setup-database.sh`: Automated database setup (user, database, migrations, initial seed)
+  - `seed-initial-data.js`: Seed initial data ("The Public" organization and seed user)
+  - `seed-public-organization.js`: Legacy script for seeding "The Public" organization
+  - `backup-database.js`: Database backup automation
+  - `restore-database.js`: Database restore automation
 
 ## Database
 
@@ -449,6 +498,15 @@ The application includes the following models:
 - **ListDataRow**: Data rows within lists
   - Stores JSONB rowData matching the list's schema
   - Supports row numbering and soft deletes
+- **Organization**: Organizations that users can belong to
+  - Properties: name, slug, description, avatar, public/private visibility
+  - System organizations: Special organizations like "The Public" that cannot be deleted
+  - Settings: JSONB field for flexible configuration
+  - Soft deletes: deletedAt timestamp for soft deletion
+- **UserOrganization**: Many-to-many relationship between users and organizations
+  - Roles: owner, admin, member (with hierarchical permissions)
+  - Tracks when users joined organizations
+  - Unique constraint prevents duplicate memberships
 
 ### Database Migrations
 
@@ -466,10 +524,18 @@ npm run db:migrate
 # 3. Regenerate the Prisma Client
 ```
 
-**Note**: The `db:migrate` script uses `prisma migrate dev`, which:
-- Creates new migration files based on schema changes
-- Applies migrations to your local database
+**Note**: The `db:migrate` script uses a safe migration wrapper that:
+- Checks migration status before proceeding
+- Uses `prisma migrate deploy` to safely apply pending migrations (non-destructive)
+- Only uses `prisma migrate dev` when safe (no migration mismatches)
+- Prevents destructive database resets
+- Creates new migration files based on schema changes when appropriate
 - Regenerates the Prisma Client automatically
+
+If you encounter migration history mismatches, the script will:
+1. Attempt to resolve by applying pending migrations safely
+2. Provide clear error messages and options if resolution fails
+3. Prevent database resets unless explicitly using `db:migrate:force`
 
 #### Production Deployment
 
@@ -501,12 +567,23 @@ npx prisma migrate deploy
    ```bash
    npm run db:migrate
    ```
-   This creates a migration file with a timestamp (e.g., `20260104235810_add_email_verification_fields`)
+   The safe migration script will:
+   - Check migration status
+   - Apply any pending migrations safely (if needed)
+   - Create a new migration file with a timestamp (e.g., `20260104235810_add_email_verification_fields`)
+   - Apply it to your local database
+   - Regenerate Prisma Client
 3. **Test locally** to ensure everything works
 4. **Commit migration files** to git (they're in `prisma/migrations/`)
 5. **Deploy to production**:
    - Vercel: Migrations run automatically during build
    - Manual: Run `npm run db:migrate:deploy` with production `DATABASE_URL`
+
+**Safety Features:**
+- The `db:migrate` script prevents destructive database resets
+- If migration history mismatches are detected, it attempts safe resolution
+- Only uses `prisma migrate dev` when it's safe (no conflicts)
+- Provides clear error messages and guidance if issues occur
 
 ### Viewing the Database
 
@@ -607,6 +684,14 @@ A test API endpoint is available at `/api/test-db` to verify your database conne
   - Data management with CRUD operations
   - List navigation via tree view
   - Link lists to messages for context
+- **Organizations**: Multi-user organization system
+  - Users can belong to multiple organizations simultaneously
+  - Role-based permissions (owner, admin, member)
+  - Public/private organizations (public = anyone can see/join)
+  - "The Public" system organization that all users belong to by default
+  - Organization management (create, edit, delete, manage members)
+  - Member management (add, remove, change roles)
+  - Slug-based URLs for organization pages
 - **Link Previews**: Automatic link detection and rich preview generation
   - Supports Instagram, Blue Sky, Threads, Mastodon, and general URLs
   - Automatic metadata fetching (Open Graph, oEmbed, platform-specific APIs)
@@ -617,6 +702,11 @@ A test API endpoint is available at `/api/test-db` to verify your database conne
 - **Widgets**: Interactive sidebar widgets
   - Location widget (geolocation-based)
   - Weather widget (location-based weather)
+- **Organizations Pages**: Organization browsing and management
+  - Organizations list page (`/organizations`)
+  - Organization detail pages (`/organizations/[slug]`)
+  - User's organizations page (`/user/organizations`)
+  - Create organization page (`/organizations/new`)
 
 ### Security Features
 
@@ -906,6 +996,17 @@ If you need to run migrations manually:
 - Settings persist across sessions
 - Quick toggle on main page for preview visibility
 
+### Organizations Feature
+- Multi-user organization system with role-based permissions
+- Users can belong to multiple organizations simultaneously
+- "The Public" system organization that all users belong to by default
+- Public/private organizations (public = anyone can see/join)
+- Organization management (create, edit, delete, manage members)
+- Member management (add, remove, change roles: owner, admin, member)
+- Slug-based URLs for organization pages
+- Organization pages: list, detail, user's organizations, create
+- Automatic membership in "The Public" organization for new users
+
 ### Database Migrations
 - `20251223015038_init_user` - Initial user schema
 - `20260104005203_add_theme_to_user` - Theme preferences
@@ -917,3 +1018,4 @@ If you need to run migrations manually:
 - `20260125002814_add_link_metadata_to_messages` - Link metadata JSONB field for messages
 - `20260125040011_new_feautres` - Index optimizations
 - `20260125170624_add_view_preferences` - User view preferences (messagesPerPage, viewingPreference, showPreviews)
+- `20260207015750_add_organizations` - Organizations and UserOrganization tables with "The Public" seed data

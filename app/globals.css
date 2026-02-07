@@ -126,3 +126,15 @@ textarea:focus {
   padding-left: 1rem;
   padding-right: 1rem;
 }
+
+/* Settings menu slide animation */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

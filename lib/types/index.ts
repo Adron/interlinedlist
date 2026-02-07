@@ -105,3 +105,41 @@ export interface List {
   children?: List[];
 }
 
+/**
+ * Organization role type
+ */
+export type OrganizationRole = 'owner' | 'admin' | 'member';
+
+/**
+ * Organization type matching the Prisma Organization model
+ */
+export interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  avatar: string | null;
+  isPublic: boolean;
+  isSystem: boolean;
+  settings: Record<string, any> | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  deletedAt: Date | string | null;
+  members?: UserOrganization[];  // Optional, included when fetched with relation
+}
+
+/**
+ * UserOrganization type matching the Prisma UserOrganization model
+ */
+export interface UserOrganization {
+  id: string;
+  userId: string;
+  organizationId: string;
+  role: OrganizationRole;
+  joinedAt: Date | string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  user?: User;  // Optional, included when fetched with relation
+  organization?: Organization;  // Optional, included when fetched with relation
+}
+
