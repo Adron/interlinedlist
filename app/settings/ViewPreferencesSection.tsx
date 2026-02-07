@@ -7,21 +7,18 @@ interface ViewPreferencesSectionProps {
   messagesPerPage: number;
   viewingPreference: string;
   showPreviews: boolean;
-  showAdvancedPostSettings?: boolean;
 }
 
 export default function ViewPreferencesSection({ 
   messagesPerPage: initialMessagesPerPage,
   viewingPreference: initialViewingPreference,
   showPreviews: initialShowPreviews,
-  showAdvancedPostSettings: initialShowAdvancedPostSettings = false,
 }: ViewPreferencesSectionProps) {
   const router = useRouter();
   const [formData, setFormData] = useState({
     messagesPerPage: initialMessagesPerPage || 20,
     viewingPreference: initialViewingPreference || 'all_messages',
     showPreviews: initialShowPreviews ?? true,
-    showAdvancedPostSettings: initialShowAdvancedPostSettings ?? false,
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -51,7 +48,6 @@ export default function ViewPreferencesSection({
           messagesPerPage: messagesPerPageNum,
           viewingPreference: formData.viewingPreference,
           showPreviews: formData.showPreviews,
-          showAdvancedPostSettings: formData.showAdvancedPostSettings,
         }),
       });
 
@@ -187,29 +183,6 @@ export default function ViewPreferencesSection({
             </div>
             <small className="form-text text-muted">
               Whether to show link previews for messages
-            </small>
-          </div>
-
-          {/* Show Advanced Post Settings */}
-          <div className="mb-4">
-            <label className="form-label">Advanced Post Settings</label>
-            <div>
-              <div className="form-check">
-                <input
-                  className="form-check-input"
-                  type="checkbox"
-                  id="showAdvancedPostSettings"
-                  checked={formData.showAdvancedPostSettings === true}
-                  onChange={(e) => setFormData({ ...formData, showAdvancedPostSettings: e.target.checked })}
-                  disabled={loading}
-                />
-                <label className="form-check-label" htmlFor="showAdvancedPostSettings">
-                  Show advanced post settings menu by default
-                </label>
-              </div>
-            </div>
-            <small className="form-text text-muted">
-              When enabled, the advanced post settings menu (thread, image, video, organization, scheduled) will be visible by default in the message input box
             </small>
           </div>
 

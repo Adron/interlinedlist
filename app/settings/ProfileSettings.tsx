@@ -14,7 +14,6 @@ interface User {
   bio: string | null;
   theme: string | null;
   maxMessageLength: number | null;
-  defaultPubliclyVisible: boolean | null;
 }
 
 interface ProfileSettingsProps {
@@ -29,7 +28,6 @@ export default function ProfileSettings({ user }: ProfileSettingsProps) {
     avatar: user.avatar || '',
     theme: user.theme || 'system',
     maxMessageLength: user.maxMessageLength || 666,
-    defaultPubliclyVisible: user.defaultPubliclyVisible ?? false,
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -262,24 +260,6 @@ export default function ProfileSettings({ user }: ProfileSettingsProps) {
             />
             <div className="form-text">
               Maximum number of characters allowed per message (default: 666)
-            </div>
-          </div>
-
-          <div className="mb-3">
-            <div className="form-check">
-              <input
-                className="form-check-input"
-                type="checkbox"
-                id="defaultPubliclyVisible"
-                checked={formData.defaultPubliclyVisible}
-                onChange={(e) => setFormData({ ...formData, defaultPubliclyVisible: e.target.checked })}
-              />
-              <label className="form-check-label" htmlFor="defaultPubliclyVisible">
-                Default to Public Messages
-              </label>
-            </div>
-            <div className="form-text">
-              When enabled, new messages will be public by default. You can still change this for individual messages.
             </div>
           </div>
 

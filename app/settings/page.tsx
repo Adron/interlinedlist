@@ -3,6 +3,7 @@ import { getCurrentUser } from '@/lib/auth/session';
 import ProfileSettings from './ProfileSettings';
 import PermissionsSection from './PermissionsSection';
 import ViewPreferencesSection from './ViewPreferencesSection';
+import MessageSettingsSection from './MessageSettingsSection';
 import SecuritySection from './SecuritySection';
 import ProfileLocationSection from './ProfileLocationSection';
 
@@ -35,15 +36,20 @@ export default async function SettingsPage() {
               messagesPerPage={user.messagesPerPage ?? 20}
               viewingPreference={user.viewingPreference ?? 'all_messages'}
               showPreviews={user.showPreviews ?? true}
-              showAdvancedPostSettings={user.showAdvancedPostSettings ?? false}
             />
           </div>
         </div>
 
-        {/* Column 3: Security Settings */}
+        {/* Column 3: Message Settings and Security Settings */}
         {/* Large: right column (4/12), Medium: right column (6/12), Small: stacked (12/12) */}
         <div className="col-lg-4 col-md-6 col-12 order-3 order-md-3">
-          <SecuritySection />
+          <div className="d-flex flex-column gap-4">
+            <MessageSettingsSection
+              defaultPubliclyVisible={user.defaultPubliclyVisible ?? false}
+              showAdvancedPostSettings={user.showAdvancedPostSettings ?? false}
+            />
+            <SecuritySection />
+          </div>
         </div>
       </div>
     </div>
