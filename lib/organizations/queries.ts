@@ -27,7 +27,11 @@ export async function getOrganizationById(organizationId: string) {
       deletedAt: null,
     },
   });
-  return organization;
+  if (!organization) return null;
+  return {
+    ...organization,
+    settings: organization.settings as Record<string, any> | null,
+  };
 }
 
 /**
@@ -40,7 +44,11 @@ export async function getOrganizationBySlug(slug: string) {
       deletedAt: null,
     },
   });
-  return organization;
+  if (!organization) return null;
+  return {
+    ...organization,
+    settings: organization.settings as Record<string, any> | null,
+  };
 }
 
 /**
@@ -65,7 +73,10 @@ export async function getPublicOrganizations(options: PaginationParams = {}) {
   ]);
 
   return {
-    organizations,
+    organizations: organizations.map(org => ({
+      ...org,
+      settings: org.settings as Record<string, any> | null,
+    })),
     pagination: {
       total,
       limit,
@@ -102,6 +113,7 @@ export async function getUserOrganizations(
 
   return memberships.map((m) => ({
     ...m.organization,
+    settings: m.organization.settings as Record<string, any> | null,
     role: m.role as OrganizationRole,
     joinedAt: m.joinedAt,
   }));

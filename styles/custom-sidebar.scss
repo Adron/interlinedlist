@@ -1,109 +1,43 @@
-// Custom sidebar styles for mobile responsiveness
+// Override sidebar margins - ensure page content is full width
+// Since the sidebar has been removed, we need to ensure page-content
+// doesn't have any left margin reserved for the sidebar
 
-// Ensure sidebar is visible on desktop (>= 576px)
-@media (min-width: 576px) {
-  html[data-sidebar-size="hidden"] {
-    .app-sidebar {
-      margin-left: 0 !important;
-    }
-
-    .page-content {
-      margin-left: var(--bs-sidebar-width) !important;
-    }
-  }
+.page-content {
+  margin-left: 0 !important;
+  width: 100% !important;
+  // Keep top/bottom padding, remove left/right since containers handle that
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
-// Mobile styles (< 576px)
+// Remove sidebar padding from topbar
+.app-topbar {
+  padding-left: 0 !important;
+}
+
+// Ensure content containers are centered and responsive
+.container-fluid,
+.container-fluid-max {
+  margin-left: auto !important;
+  margin-right: auto !important;
+  width: 100% !important;
+}
+
+.container-fluid-max {
+  max-width: 1320px;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+// Mobile responsiveness - ensure proper spacing on small screens
 @media (max-width: 575.98px) {
-  html[data-sidebar-size="hidden"] {
-    .app-sidebar {
-      margin-left: calc(var(--bs-sidebar-width) * -1);
-      transition: margin-left 0.3s ease-in-out;
-    }
-
-    .page-content {
-      margin-left: 0;
-    }
-
-    &.sidebar-enable {
-      .app-sidebar {
-        margin-left: 0;
-        z-index: 1055;
-        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-      }
-
-      // Add overlay when sidebar is open
-      &::before {
-        content: '';
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: rgba(0, 0, 0, 0.5);
-        z-index: 1050;
-        pointer-events: none;
-      }
-    }
+  .page-content {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
   }
-
-  // Ensure logo-box shows only icon on mobile
-  .logo-box {
-    .logo-lg {
-      .d-sm-inline {
-        display: none !important;
-      }
-    }
-
-    .logo-sm {
-      display: inline-block !important;
-    }
-  }
-}
-
-// Logo box adjustments for sidebar
-.logo-box {
-  .logo-dark,
-  .logo-light {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 0 15px;
-    text-decoration: none;
-  }
-
-  .logo-sm {
-    display: none;
-  }
-
-  .logo-lg {
-    display: flex;
-    align-items: center;
-  }
-}
-
-// Mobile: show logo-sm, hide logo-lg text
-@media (max-width: 575.98px) {
-  .logo-box {
-    .logo-sm {
-      display: inline-block !important;
-    }
-
-    .logo-lg {
-      display: none !important;
-    }
-  }
-}
-
-// Desktop: show logo-lg, hide logo-sm
-@media (min-width: 576px) {
-  .logo-box {
-    .logo-sm {
-      display: none !important;
-    }
-
-    .logo-lg {
-      display: flex !important;
-    }
+  
+  .container-fluid-max {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
   }
 }

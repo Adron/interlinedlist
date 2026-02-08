@@ -153,12 +153,8 @@ export default function OrganizationMembers({
             >
               <div className="d-flex align-items-center">
                 <Avatar
-                  user={{
-                    id: member.id,
-                    username: member.username,
-                    displayName: member.displayName,
-                    avatar: member.avatar,
-                  }}
+                  src={member.avatar || ''}
+                  alt={member.displayName || member.username}
                   size={40}
                 />
                 <div className="ms-3">

@@ -70,6 +70,18 @@ export default async function Navigation() {
                     <i className="bx bx-list-ul fs-22 align-middle"></i>
                   </Link>
                 </div>
+                <div className="topbar-item">
+                  <Link
+                    href="/organizations"
+                    className="topbar-button btn btn-link text-decoration-none d-flex align-items-center"
+                    style={{
+                      color: 'var(--bs-topbar-item-color, var(--color-text))',
+                    }}
+                    title="Organizations"
+                  >
+                    <i className="bx bx-group fs-22 align-middle"></i>
+                  </Link>
+                </div>
                 {user.isAdministrator && (
                   <div className="topbar-item">
                     <Link

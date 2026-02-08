@@ -2,22 +2,28 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { getPublicOrganizations, getUserOrganizations } from '@/lib/organizations/queries';
 import OrganizationList from '@/components/organizations/OrganizationList';
 import { redirect } from 'next/navigation';
+import { Organization, OrganizationRole } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
+
+type OrganizationWithMembership = Organization & {
+  role?: OrganizationRole;
+  memberCount?: number;
+};
 
 export default async function OrganizationsPage() {
   const user = await getCurrentUser();
 
   // Get public organizations for display
   const publicOrgsResult = await getPublicOrganizations({ limit: 50, offset: 0 });
-  const publicOrganizations = publicOrgsResult.organizations.map((org) => ({
+  const publicOrganizations: OrganizationWithMembership[] = publicOrgsResult.organizations.map((org) => ({
     ...org,
     memberCount: undefined, // Will be fetched client-side if needed
   }));
 
   // If user is logged in, get their organizations (including private ones)
   let userOrganizationsMap: Map<string, 'owner' | 'admin' | 'member'> = new Map();
-  let userPrivateOrganizations: (typeof publicOrganizations) = [];
+  let userPrivateOrganizations: OrganizationWithMembership[] = [];
   
   if (user) {
     const userOrgs = await getUserOrganizations(user.id);
@@ -37,7 +43,7 @@ export default async function OrganizationsPage() {
 
   // Combine public organizations with user's private organizations
   // Use a Map to avoid duplicates
-  const allOrganizationsMap = new Map<string, typeof publicOrganizations[0]>();
+  const allOrganizationsMap = new Map<string, OrganizationWithMembership>();
   
   // Add public organizations
   publicOrganizations.forEach((org) => {

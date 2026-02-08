@@ -5,7 +5,6 @@ import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import ThemeProvider from '@/components/ThemeProvider';
 import ThemeBridgeInit from '@/components/ThemeBridgeInit';
-import AppSidebar from '@/components/AppSidebar';
 import { getCurrentUser } from '@/lib/auth/session';
 
 export const metadata: Metadata = {
@@ -66,7 +65,6 @@ export default async function RootLayout({
         <ThemeBridgeInit />
         <ThemeProvider theme={user?.theme || 'system'}>
           <div className="app-wrapper">
-            <AppSidebar />
             <Navigation />
             <main className="page-content">{children}</main>
             <Footer />
