@@ -1,11 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
-import ProfileSettings from './ProfileSettings';
-import PermissionsSection from './PermissionsSection';
-import ViewPreferencesSection from './ViewPreferencesSection';
-import MessageSettingsSection from './MessageSettingsSection';
-import SecuritySection from './SecuritySection';
-import ProfileLocationSection from './ProfileLocationSection';
+import Link from 'next/link';
 
 export default async function SettingsPage() {
   const user = await getCurrentUser();
@@ -15,40 +10,22 @@ export default async function SettingsPage() {
   }
 
   return (
-    <div className="container-fluid py-4">
-      <div className="row g-4">
-        {/* Column 1: Profile Settings */}
-        {/* Large: 3 columns (4/12), Medium: left column (6/12), Small: stacked (12/12) */}
-        <div className="col-lg-4 col-md-6 col-12 order-1 order-md-1">
-          <ProfileSettings user={user} />
-        </div>
-
-        {/* Column 2: Middle section - Permissions (top) and View Preferences (below) */}
-        {/* Large: middle column (4/12), Medium: left column below Profile (6/12), Small: stacked (12/12) */}
-        <div className="col-lg-4 col-md-6 col-12 order-2 order-md-2">
-          <div className="d-flex flex-column gap-4">
-            {/* Permissions Section */}
-            <PermissionsSection emailVerified={user.emailVerified} />
-            {/* Profile location (for wall page) */}
-            <ProfileLocationSection latitude={user.latitude ?? null} longitude={user.longitude ?? null} />
-            {/* View Preferences Section */}
-            <ViewPreferencesSection
-              messagesPerPage={user.messagesPerPage ?? 20}
-              viewingPreference={user.viewingPreference ?? 'all_messages'}
-              showPreviews={user.showPreviews ?? true}
-            />
+    <div className="container-fluid container-fluid-max py-4">
+      <div className="row">
+        <div className="col-12">
+          <div className="d-flex align-items-center gap-3 mb-4">
+            <Link href="/dashboard" className="btn btn-outline-secondary btn-sm">
+              <i className="bx bx-arrow-back me-1"></i>
+              Back to Dashboard
+            </Link>
+            <h1 className="h3 mb-0">Settings</h1>
           </div>
-        </div>
-
-        {/* Column 3: Message Settings and Security Settings */}
-        {/* Large: right column (4/12), Medium: right column (6/12), Small: stacked (12/12) */}
-        <div className="col-lg-4 col-md-6 col-12 order-3 order-md-3">
-          <div className="d-flex flex-column gap-4">
-            <MessageSettingsSection
-              defaultPubliclyVisible={user.defaultPubliclyVisible ?? false}
-              showAdvancedPostSettings={user.showAdvancedPostSettings ?? false}
-            />
-            <SecuritySection isPrivateAccount={user.isPrivateAccount ?? false} />
+          <div className="card">
+            <div className="card-body text-center py-5">
+              <i className="bx bx-cog fs-1 text-muted mb-3 d-block"></i>
+              <h2 className="h4 mb-3">Coming soon!</h2>
+              <p className="text-muted">Settings functionality will be available soon.</p>
+            </div>
           </div>
         </div>
       </div>
