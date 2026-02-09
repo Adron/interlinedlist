@@ -4,6 +4,25 @@
  */
 
 /**
+ * Follow status type
+ */
+export type FollowStatus = 'pending' | 'approved';
+
+/**
+ * Follow type matching the Prisma Follow model
+ */
+export interface Follow {
+  id: string;
+  followerId: string;
+  followingId: string;
+  status: FollowStatus;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  follower?: User;  // Optional, included when fetched with relation
+  following?: User;  // Optional, included when fetched with relation
+}
+
+/**
  * User type matching the Prisma User model (select fields)
  */
 export interface User {
@@ -19,8 +38,12 @@ export interface User {
   messagesPerPage: number | null;
   viewingPreference: string | null;
   showPreviews: boolean | null;
+  isPrivateAccount?: boolean | null;
   createdAt: Date | string;
   isAdministrator?: boolean;
+  followerCount?: number;  // Optional, included when counts are fetched
+  followingCount?: number;  // Optional, included when counts are fetched
+  pendingRequestsCount?: number;  // Optional, included when counts are fetched
 }
 
 /**

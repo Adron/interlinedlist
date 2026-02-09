@@ -31,10 +31,13 @@ model User {
   showAdvancedPostSettings  Boolean   @default(false)
   latitude                  Float?
   longitude                 Float?
+  isPrivateAccount          Boolean   @default(false)
   messages             Message[]
   lists                List[]
   organizations        UserOrganization[]
   administrator        Administrator?
+  followers            Follow[]    @relation("Following")
+  following            Follow[]    @relation("Follower")
 
   @@map("users")
 }
@@ -176,4 +179,22 @@ model UserOrganization {
   @@index([organizationId, role])
   @@index([organizationId, active])
   @@map("user_organizations")
+}
+
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String
+  followingId String
+  status      String   @default("approved")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  follower    User     @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId, status])
+  @@index([followingId, status])
+  @@index([followingId, status, createdAt])
+  @@map("follows")
 }

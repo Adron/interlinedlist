@@ -21,21 +21,26 @@ export async function POST(request: NextRequest) {
 
     // Find user by email
     // Explicitly select only fields we need to avoid migration issues
-    const user = await prisma.user.findUnique({
-      where: { email },
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        passwordHash: true,
-        displayName: true,
-        avatar: true,
-        bio: true,
-        theme: true,
-        emailVerified: true,
-        createdAt: true,
-      },
-    });
+    let user;
+    try {
+      user = await prisma.user.findUnique({
+        where: { email },
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          passwordHash: true,
+          displayName: true,
+          avatar: true,
+          bio: true,
+          theme: true,
+          emailVerified: true,
+          createdAt: true,
+        },
+      });
+    } catch (prismaError: any) {
+      throw prismaError;
+    }
 
     if (!user) {
       return NextResponse.json(
@@ -84,7 +89,7 @@ export async function POST(request: NextRequest) {
     });
 
     return response;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Login error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },

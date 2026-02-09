@@ -50,6 +50,7 @@ export async function getCurrentUser() {
           showAdvancedPostSettings: true,
           latitude: true,
           longitude: true,
+          isPrivateAccount: true,
           createdAt: true,
         },
       });
@@ -80,7 +81,59 @@ export async function getCurrentUser() {
         isAdministrator,
       };
     } catch (error: any) {
-      // If maxMessageLength column doesn't exist, query without it
+      // If isPrivateAccount column doesn't exist, retry query without it (but keep other fields like maxMessageLength)
+      if (error?.message?.includes('isPrivateAccount') || error?.code === 'P2022') {
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: {
+            id: true,
+            email: true,
+            username: true,
+            displayName: true,
+            avatar: true,
+            bio: true,
+            theme: true,
+            emailVerified: true,
+            maxMessageLength: true,
+            defaultPubliclyVisible: true,
+            messagesPerPage: true,
+            viewingPreference: true,
+            showPreviews: true,
+            showAdvancedPostSettings: true,
+            latitude: true,
+            longitude: true,
+            createdAt: true,
+          },
+        });
+
+        if (!user) {
+          return null;
+        }
+
+        // Check if user is administrator (handle case where table doesn't exist yet)
+        let isAdministrator = false;
+        try {
+          const admin = await prisma.administrator.findUnique({
+            where: { userId: user.id },
+          });
+          isAdministrator = !!admin;
+        } catch (error: any) {
+          // If administrators table doesn't exist yet, user is not admin
+          if (error?.code === 'P2021' || error?.message?.includes('does not exist')) {
+            isAdministrator = false;
+          } else {
+            throw error;
+          }
+        }
+
+        // Return user with isPrivateAccount default, but preserve actual database values for other fields
+        return {
+          ...user,
+          isPrivateAccount: false,
+          isAdministrator,
+        };
+      }
+      // If error is about maxMessageLength or other fields, fall back to minimal query
       if (error?.message?.includes('maxMessageLength') || error?.code === 'P2021') {
         const user = await prisma.user.findUnique({
           where: { id: userId },
@@ -128,6 +181,7 @@ export async function getCurrentUser() {
           showAdvancedPostSettings: false,
           latitude: null,
           longitude: null,
+          isPrivateAccount: false,
           isAdministrator,
         };
       }

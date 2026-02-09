@@ -29,6 +29,7 @@ export async function PATCH(request: NextRequest) {
       showAdvancedPostSettings,
       latitude,
       longitude,
+      isPrivateAccount,
     } = body;
 
     // Validate maxMessageLength if provided
@@ -85,48 +86,114 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Update user
-    const updatedUser = await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        ...(displayName !== undefined && { displayName }),
-        ...(bio !== undefined && { bio }),
-        ...(avatar !== undefined && { avatar }),
-        ...(theme !== undefined && { theme }),
-        ...(maxMessageLength !== undefined && { maxMessageLength: parseInt(maxMessageLength, 10) }),
-        ...(defaultPubliclyVisible !== undefined && { defaultPubliclyVisible: Boolean(defaultPubliclyVisible) }),
-        ...(messagesPerPage !== undefined && { messagesPerPage: parseInt(messagesPerPage, 10) }),
-        ...(viewingPreference !== undefined && { viewingPreference }),
-        ...(showPreviews !== undefined && { showPreviews: Boolean(showPreviews) }),
-        ...(showAdvancedPostSettings !== undefined && { showAdvancedPostSettings: Boolean(showAdvancedPostSettings) }),
-        ...(latitude !== undefined && { latitude: latitude === null ? null : (typeof latitude === 'number' ? latitude : parseFloat(latitude)) }),
-        ...(longitude !== undefined && { longitude: longitude === null ? null : (typeof longitude === 'number' ? longitude : parseFloat(longitude)) }),
-      },
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        displayName: true,
-        avatar: true,
-        bio: true,
-        theme: true,
-        emailVerified: true,
-        maxMessageLength: true,
-        defaultPubliclyVisible: true,
-        messagesPerPage: true,
-        viewingPreference: true,
-        showPreviews: true,
-        showAdvancedPostSettings: true,
-        latitude: true,
-        longitude: true,
-        createdAt: true,
-      },
-    });
+    // Try with isPrivateAccount first, fall back if column doesn't exist
+    let updatedUser;
+    
+    const updateData: any = {
+      ...(displayName !== undefined && { displayName }),
+      ...(bio !== undefined && { bio }),
+      ...(avatar !== undefined && { avatar }),
+      ...(theme !== undefined && { theme }),
+      ...(maxMessageLength !== undefined && { maxMessageLength: parseInt(maxMessageLength, 10) }),
+      ...(defaultPubliclyVisible !== undefined && { defaultPubliclyVisible: Boolean(defaultPubliclyVisible) }),
+      ...(messagesPerPage !== undefined && { messagesPerPage: parseInt(messagesPerPage, 10) }),
+      ...(viewingPreference !== undefined && { viewingPreference }),
+      ...(showPreviews !== undefined && { showPreviews: Boolean(showPreviews) }),
+      ...(showAdvancedPostSettings !== undefined && { showAdvancedPostSettings: Boolean(showAdvancedPostSettings) }),
+      ...(latitude !== undefined && { latitude: latitude === null ? null : (typeof latitude === 'number' ? latitude : parseFloat(latitude)) }),
+      ...(longitude !== undefined && { longitude: longitude === null ? null : (typeof longitude === 'number' ? longitude : parseFloat(longitude)) }),
+      ...(isPrivateAccount !== undefined && { isPrivateAccount: Boolean(isPrivateAccount) }),
+    };
+    
+    try {
+      updatedUser = await prisma.user.update({
+        where: { id: user.id },
+        data: updateData,
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          displayName: true,
+          avatar: true,
+          bio: true,
+          theme: true,
+          emailVerified: true,
+          maxMessageLength: true,
+          defaultPubliclyVisible: true,
+          messagesPerPage: true,
+          viewingPreference: true,
+          showPreviews: true,
+          showAdvancedPostSettings: true,
+          latitude: true,
+          longitude: true,
+          isPrivateAccount: true,
+          createdAt: true,
+        },
+      });
+    } catch (updateError: any) {
+      // If isPrivateAccount column doesn't exist (in data or select), handle it
+      if (updateError?.code === 'P2022' || updateError?.message?.includes('isPrivateAccount')) {
+        // Build data object without isPrivateAccount
+        const dataWithoutPrivateAccount: any = {
+          ...(displayName !== undefined && { displayName }),
+          ...(bio !== undefined && { bio }),
+          ...(avatar !== undefined && { avatar }),
+          ...(theme !== undefined && { theme }),
+          ...(maxMessageLength !== undefined && { maxMessageLength: parseInt(maxMessageLength, 10) }),
+          ...(defaultPubliclyVisible !== undefined && { defaultPubliclyVisible: Boolean(defaultPubliclyVisible) }),
+          ...(messagesPerPage !== undefined && { messagesPerPage: parseInt(messagesPerPage, 10) }),
+          ...(viewingPreference !== undefined && { viewingPreference }),
+          ...(showPreviews !== undefined && { showPreviews: Boolean(showPreviews) }),
+          ...(showAdvancedPostSettings !== undefined && { showAdvancedPostSettings: Boolean(showAdvancedPostSettings) }),
+          ...(latitude !== undefined && { latitude: latitude === null ? null : (typeof latitude === 'number' ? latitude : parseFloat(latitude)) }),
+          ...(longitude !== undefined && { longitude: longitude === null ? null : (typeof longitude === 'number' ? longitude : parseFloat(longitude)) }),
+        };
+
+        try {
+          updatedUser = await prisma.user.update({
+            where: { id: user.id },
+            data: dataWithoutPrivateAccount,
+            select: {
+              id: true,
+              email: true,
+              username: true,
+              displayName: true,
+              avatar: true,
+              bio: true,
+              theme: true,
+              emailVerified: true,
+              maxMessageLength: true,
+              defaultPubliclyVisible: true,
+              messagesPerPage: true,
+              viewingPreference: true,
+              showPreviews: true,
+              showAdvancedPostSettings: true,
+              latitude: true,
+              longitude: true,
+              createdAt: true,
+            },
+          });
+        } catch (retryError: any) {
+          throw retryError;
+        }
+
+        // Add isPrivateAccount default if it was requested but column doesn't exist
+        if (isPrivateAccount !== undefined) {
+          updatedUser = {
+            ...updatedUser,
+            isPrivateAccount: false,
+          };
+        }
+      } else {
+        throw updateError;
+      }
+    }
 
     return NextResponse.json(
       { message: 'User updated successfully', user: updatedUser },
       { status: 200 }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error('Update user error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
