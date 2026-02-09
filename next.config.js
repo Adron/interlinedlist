@@ -22,6 +22,16 @@ const nextConfig = {
       },
     ],
   },
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      // Fix for elkjs web-worker issue
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        'web-worker': false,
+      };
+    }
+    return config;
+  },
 };
 
 module.exports = nextConfig;

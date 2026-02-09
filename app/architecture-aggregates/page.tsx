@@ -3,6 +3,9 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { getUserRoleInOrganization } from '@/lib/organizations/queries';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
+import ERDDiagram from '@/components/architecture-aggregates/ERDDiagram';
+import ArchitectureTabs from '@/components/architecture-aggregates/ArchitectureTabs';
+import { getERDData } from '@/lib/architecture-aggregates/schema-parser';
 
 export default async function ArchitectureAggregatesPage() {
   const user = await getCurrentUser();
@@ -56,6 +59,21 @@ export default async function ArchitectureAggregatesPage() {
     prisma.userOrganization.count(),
     prisma.follow.count(),
   ]);
+
+  const rowCounts = {
+    users: usersCount,
+    messages: messagesCount,
+    lists: listsCount,
+    list_properties: listPropertiesCount,
+    list_data_rows: listDataRowsCount,
+    administrators: administratorsCount,
+    organizations: organizationsCount,
+    user_organizations: userOrganizationsCount,
+    follows: followsCount,
+  };
+
+  // Get ERD data
+  const erdData = getERDData(rowCounts);
 
   const tables = [
     {
@@ -140,88 +158,107 @@ export default async function ArchitectureAggregatesPage() {
         </div>
       </div>
 
-      {/* Database Diagram Section */}
-      <div className="row mb-4">
-        <div className="col-12">
-          <div className="card">
-            <div className="card-header">
-              <h5 className="mb-0">Database Schema</h5>
-            </div>
-            <div className="card-body">
-              <div className="row g-3">
-                {tables.map((table) => (
-                  <div key={table.name} className="col-md-6 col-lg-4">
-                    <Link
-                      href={`/architecture-aggregates/${table.name}`}
-                      className="text-decoration-none"
-                    >
-                      <div className="card h-100 border shadow-sm architecture-table-card">
-                        <div className="card-body">
-                          <div className="d-flex align-items-start mb-2">
-                            <div className="flex-shrink-0">
-                              <div className="bg-info bg-opacity-10 rounded p-2">
-                                <i className={`bx ${table.icon} fs-5 text-info`}></i>
+      <ArchitectureTabs
+        tableView={
+          <>
+            <div className="row mb-4">
+              <div className="col-12">
+                <div className="card">
+                  <div className="card-header">
+                    <h5 className="mb-0">Database Schema</h5>
+                  </div>
+                  <div className="card-body">
+                    <div className="row g-3">
+                      {tables.map((table) => (
+                        <div key={table.name} className="col-md-6 col-lg-4">
+                          <Link
+                            href={`/architecture-aggregates/${table.name}`}
+                            className="text-decoration-none"
+                          >
+                            <div className="card h-100 border shadow-sm architecture-table-card">
+                              <div className="card-body">
+                                <div className="d-flex align-items-start mb-2">
+                                  <div className="flex-shrink-0">
+                                    <div className="bg-info bg-opacity-10 rounded p-2">
+                                      <i className={`bx ${table.icon} fs-5 text-info`}></i>
+                                    </div>
+                                  </div>
+                                  <div className="flex-grow-1 ms-3">
+                                    <h6 className="card-title mb-1">{table.displayName}</h6>
+                                    <p className="card-text text-muted small mb-0">{table.description}</p>
+                                  </div>
+                                </div>
+                                <div className="mt-3">
+                                  <span className="badge bg-primary">
+                                    {table.count.toLocaleString()} rows
+                                  </span>
+                                </div>
                               </div>
                             </div>
-                            <div className="flex-grow-1 ms-3">
-                              <h6 className="card-title mb-1">{table.displayName}</h6>
-                              <p className="card-text text-muted small mb-0">{table.description}</p>
-                            </div>
-                          </div>
-                          <div className="mt-3">
-                            <span className="badge bg-primary">
-                              {table.count.toLocaleString()} rows
-                            </span>
-                          </div>
+                          </Link>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Summary Statistics */}
+            <div className="row">
+              <div className="col-12">
+                <div className="card">
+                  <div className="card-header">
+                    <h5 className="mb-0">Summary Statistics</h5>
+                  </div>
+                  <div className="card-body">
+                    <div className="row text-center">
+                      <div className="col-md-3 col-6 mb-3">
+                        <div className="p-3 bg-light rounded">
+                          <div className="fs-4 fw-bold text-primary">{usersCount.toLocaleString()}</div>
+                          <div className="text-muted small">Total Users</div>
                         </div>
                       </div>
-                    </Link>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Summary Statistics */}
-      <div className="row">
-        <div className="col-12">
-          <div className="card">
-            <div className="card-header">
-              <h5 className="mb-0">Summary Statistics</h5>
-            </div>
-            <div className="card-body">
-              <div className="row text-center">
-                <div className="col-md-3 col-6 mb-3">
-                  <div className="p-3 bg-light rounded">
-                    <div className="fs-4 fw-bold text-primary">{usersCount.toLocaleString()}</div>
-                    <div className="text-muted small">Total Users</div>
-                  </div>
-                </div>
-                <div className="col-md-3 col-6 mb-3">
-                  <div className="p-3 bg-light rounded">
-                    <div className="fs-4 fw-bold text-success">{messagesCount.toLocaleString()}</div>
-                    <div className="text-muted small">Total Messages</div>
-                  </div>
-                </div>
-                <div className="col-md-3 col-6 mb-3">
-                  <div className="p-3 bg-light rounded">
-                    <div className="fs-4 fw-bold text-info">{listsCount.toLocaleString()}</div>
-                    <div className="text-muted small">Total Lists</div>
-                  </div>
-                </div>
-                <div className="col-md-3 col-6 mb-3">
-                  <div className="p-3 bg-light rounded">
-                    <div className="fs-4 fw-bold text-warning">{listDataRowsCount.toLocaleString()}</div>
-                    <div className="text-muted small">Total Data Rows</div>
+                      <div className="col-md-3 col-6 mb-3">
+                        <div className="p-3 bg-light rounded">
+                          <div className="fs-4 fw-bold text-success">{messagesCount.toLocaleString()}</div>
+                          <div className="text-muted small">Total Messages</div>
+                        </div>
+                      </div>
+                      <div className="col-md-3 col-6 mb-3">
+                        <div className="p-3 bg-light rounded">
+                          <div className="fs-4 fw-bold text-info">{listsCount.toLocaleString()}</div>
+                          <div className="text-muted small">Total Lists</div>
+                        </div>
+                      </div>
+                      <div className="col-md-3 col-6 mb-3">
+                        <div className="p-3 bg-light rounded">
+                          <div className="fs-4 fw-bold text-warning">{listDataRowsCount.toLocaleString()}</div>
+                          <div className="text-muted small">Total Data Rows</div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
+          </>
+        }
+        erdView={
+          <div className="row">
+            <div className="col-12">
+              <div className="card">
+                <div className="card-header">
+                  <h5 className="mb-0">Entity Relationship Diagram</h5>
+                </div>
+                <div className="card-body">
+                  <ERDDiagram nodes={erdData.nodes} edges={erdData.edges} />
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        }
+      />
     </div>
   );
 }
