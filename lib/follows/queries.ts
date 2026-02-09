@@ -279,6 +279,77 @@ export async function getFollowRequests(userId: string) {
 }
 
 /**
+ * Get mutual connections between two users
+ * Returns counts of mutual followers and mutual following
+ */
+export async function getMutualConnections(
+  userId1: string,
+  userId2: string
+): Promise<{ mutualFollowers: number; mutualFollowing: number }> {
+  try {
+    // Get users that follow userId1
+    const followers1 = await prisma.follow.findMany({
+      where: {
+        followingId: userId1,
+        status: 'approved',
+      },
+      select: {
+        followerId: true,
+      },
+    });
+
+    // Get users that follow userId2
+    const followers2 = await prisma.follow.findMany({
+      where: {
+        followingId: userId2,
+        status: 'approved',
+      },
+      select: {
+        followerId: true,
+      },
+    });
+
+    // Find mutual followers (users who follow both)
+    const followers1Set = new Set(followers1.map((f) => f.followerId));
+    const mutualFollowers = followers2.filter((f) => followers1Set.has(f.followerId)).length;
+
+    // Get users that userId1 follows
+    const following1 = await prisma.follow.findMany({
+      where: {
+        followerId: userId1,
+        status: 'approved',
+      },
+      select: {
+        followingId: true,
+      },
+    });
+
+    // Get users that userId2 follows
+    const following2 = await prisma.follow.findMany({
+      where: {
+        followerId: userId2,
+        status: 'approved',
+      },
+      select: {
+        followingId: true,
+      },
+    });
+
+    // Find mutual following (users that both follow)
+    const following1Set = new Set(following1.map((f) => f.followingId));
+    const mutualFollowing = following2.filter((f) => following1Set.has(f.followingId)).length;
+
+    return { mutualFollowers, mutualFollowing };
+  } catch (error: any) {
+    // If Follow table doesn't exist, return zeros
+    if (error?.code === 'P2021' || error?.message?.includes('does not exist') || error?.message?.includes('follow')) {
+      return { mutualFollowers: 0, mutualFollowing: 0 };
+    }
+    throw error;
+  }
+}
+
+/**
  * Get follower/following counts for a user
  */
 export async function getFollowCounts(userId: string) {

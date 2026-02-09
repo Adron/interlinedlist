@@ -79,21 +79,33 @@ export default function ProfileHeader({ user, currentUserId, followStatus = 'non
 
             {/* Follower/Following counts */}
             {(user.followerCount !== undefined || user.followingCount !== undefined) && (
-              <div className="mt-3 d-flex gap-4">
-                <Link
-                  href={`/user/${encodeURIComponent(user.username)}/followers`}
-                  className="text-decoration-none"
-                >
-                  <span className="fw-bold">{user.followerCount ?? 0}</span>
-                  <span className="text-muted ms-1">Followers</span>
-                </Link>
-                <Link
-                  href={`/user/${encodeURIComponent(user.username)}/following`}
-                  className="text-decoration-none"
-                >
-                  <span className="fw-bold">{user.followingCount ?? 0}</span>
-                  <span className="text-muted ms-1">Following</span>
-                </Link>
+              <div className="mt-3">
+                <div className="d-flex gap-3 flex-wrap">
+                  <Link
+                    href={isOwnProfile ? '/people' : `/user/${encodeURIComponent(user.username)}/followers`}
+                    className="text-decoration-none"
+                  >
+                    <div className="d-flex align-items-center gap-2 p-2 rounded border border-primary border-opacity-25 follower-following-card" style={{ cursor: 'pointer' }}>
+                      <i className="bx bx-user-check text-primary fs-20"></i>
+                      <div>
+                        <div className="fw-bold fs-5 text-body">{user.followerCount ?? 0}</div>
+                        <small className="text-muted">Followers</small>
+                      </div>
+                    </div>
+                  </Link>
+                  <Link
+                    href={isOwnProfile ? '/people' : `/user/${encodeURIComponent(user.username)}/following`}
+                    className="text-decoration-none"
+                  >
+                    <div className="d-flex align-items-center gap-2 p-2 rounded border border-info border-opacity-25 follower-following-card" style={{ cursor: 'pointer' }}>
+                      <i className="bx bx-user-plus text-info fs-20"></i>
+                      <div>
+                        <div className="fw-bold fs-5 text-body">{user.followingCount ?? 0}</div>
+                        <small className="text-muted">Following</small>
+                      </div>
+                    </div>
+                  </Link>
+                </div>
               </div>
             )}
           </div>

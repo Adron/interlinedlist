@@ -99,6 +99,15 @@ textarea:focus {
   outline-offset: 2px;
 }
 
+/* Hover effect for follower/following count cards */
+.follower-following-card {
+  transition: background-color 0.2s ease;
+}
+
+.follower-following-card:hover {
+  background-color: var(--bs-light, #f8f9fa);
+}
+
 .nav-link {
   transition: background-color 0.2s;
 }

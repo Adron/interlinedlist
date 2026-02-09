@@ -20,6 +20,7 @@ interface FollowingListProps {
   initialFollowing?: Following[];
   initialTotal?: number;
   showStatus?: boolean;
+  currentUserId?: string | null;
 }
 
 export default function FollowingList({
@@ -27,6 +28,7 @@ export default function FollowingList({
   initialFollowing = [],
   initialTotal = 0,
   showStatus = false,
+  currentUserId,
 }: FollowingListProps) {
   const [following, setFollowing] = useState<Following[]>(initialFollowing);
   const [total, setTotal] = useState(initialTotal);
@@ -34,6 +36,37 @@ export default function FollowingList({
   const [error, setError] = useState<string | null>(null);
   const [offset, setOffset] = useState(initialFollowing.length);
   const [hasMore, setHasMore] = useState(initialFollowing.length < initialTotal);
+  const [mutualConnections, setMutualConnections] = useState<Record<string, { mutualFollowers: number; mutualFollowing: number }>>({});
+
+  // Fetch mutual connections for current user viewing their own following
+  useEffect(() => {
+    if (!currentUserId || currentUserId !== userId) return;
+
+    const fetchMutualConnections = async () => {
+      const connections: Record<string, { mutualFollowers: number; mutualFollowing: number }> = {};
+      
+      for (const user of following) {
+        try {
+          const response = await fetch(`/api/follow/${user.id}/mutual?otherUserId=${currentUserId}`);
+          if (response.ok) {
+            const data = await response.json();
+            connections[user.id] = {
+              mutualFollowers: data.mutualFollowers || 0,
+              mutualFollowing: data.mutualFollowing || 0,
+            };
+          }
+        } catch (err) {
+          // Silently fail for individual mutual connection fetches
+        }
+      }
+      
+      setMutualConnections(connections);
+    };
+
+    if (following.length > 0) {
+      fetchMutualConnections();
+    }
+  }, [following, currentUserId, userId]);
 
   const loadMore = async () => {
     if (loading || !hasMore) return;
@@ -96,11 +129,27 @@ export default function FollowingList({
                       size={40}
                     />
                   )}
-                  <div className="ms-3">
+                  <div className="ms-3 flex-grow-1">
                     <div className="fw-bold text-body">
                       {user.displayName || user.username}
                     </div>
-                    <small className="text-muted">@{user.username}</small>
+                    <div className="d-flex align-items-center gap-2 flex-wrap">
+                      <small className="text-muted">@{user.username}</small>
+                      {currentUserId === userId && mutualConnections[user.id] && (
+                        <>
+                          {mutualConnections[user.id].mutualFollowers > 0 && (
+                            <small className="text-muted">
+                              {mutualConnections[user.id].mutualFollowers} mutual follower{mutualConnections[user.id].mutualFollowers !== 1 ? 's' : ''}
+                            </small>
+                          )}
+                          {mutualConnections[user.id].mutualFollowing > 0 && (
+                            <small className="text-muted">
+                              {mutualConnections[user.id].mutualFollowing} mutual following
+                            </small>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
                 </Link>
                 {showStatus && user.status === 'pending' && (

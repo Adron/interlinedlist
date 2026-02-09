@@ -1,9 +1,10 @@
 import { notFound } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/prisma';
-import { getFollowing } from '@/lib/follows/queries';
+import { getFollowing, getFollowCounts } from '@/lib/follows/queries';
 import ProfileHeader from '@/components/ProfileHeader';
 import FollowingList from '@/components/follows/FollowingList';
+import FollowNavigation from '@/components/follows/FollowNavigation';
 
 export default async function FollowingPage({
   params,
@@ -65,14 +66,35 @@ export default async function FollowingPage({
     }
   }
 
+  // Get follower/following counts for ProfileHeader
+  let followerCount = 0;
+  let followingCount = 0;
+  try {
+    const counts = await getFollowCounts(profileUser.id);
+    followerCount = counts.followers;
+    followingCount = counts.following;
+  } catch (error: any) {
+    if (error?.code === 'P2021' || error?.message?.includes('does not exist') || error?.message?.includes('follow')) {
+      followerCount = 0;
+      followingCount = 0;
+    }
+  }
+
+  const isOwnProfile = currentUser?.id === profileUser.id;
+
   return (
     <div className="container-fluid container-fluid-max py-4">
       <div className="row">
         <div className="col-lg-8 col-md-10 mx-auto">
           <ProfileHeader
-            user={profileUser}
+            user={{
+              ...profileUser,
+              followerCount,
+              followingCount,
+            }}
             currentUserId={currentUser?.id}
           />
+          <FollowNavigation username={username} isOwnProfile={isOwnProfile} />
           <FollowingList
             userId={profileUser.id}
             initialFollowing={result.following.map((f) => ({
@@ -81,6 +103,7 @@ export default async function FollowingPage({
             }))}
             initialTotal={result.pagination.total}
             showStatus={true}
+            currentUserId={currentUser?.id}
           />
         </div>
       </div>
