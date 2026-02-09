@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getCurrentUser } from '@/lib/auth/session';
 import { getUserRoleInOrganization } from '@/lib/organizations/queries';
-import { hasPermission } from '@/lib/organizations/utils';
 import EmailVerificationBanner from '@/components/EmailVerificationBanner';
 import DashboardMessageFeed from '@/components/DashboardMessageFeed';
 import ListsTreeView from '@/components/ListsTreeView';
@@ -14,25 +13,25 @@ export default async function DashboardPage() {
     redirect('/login');
   }
 
-  // Check if user has admin/owner permissions in "The People" organization
+  // Check if user is the Owner of "The Public" organization
   let showArchitectureAggregates = false;
   try {
     const { prisma } = await import('@/lib/prisma');
-    const peopleOrg = await prisma.organization.findFirst({
+    const publicOrg = await prisma.organization.findFirst({
       where: {
-        name: 'The People',
+        name: 'The Public',
         deletedAt: null,
       },
     });
-    if (peopleOrg) {
-      const userRole = await getUserRoleInOrganization(peopleOrg.id, user.id);
-      if (userRole && hasPermission(userRole, 'admin')) {
+    if (publicOrg) {
+      const userRole = await getUserRoleInOrganization(publicOrg.id, user.id);
+      if (userRole === 'owner') {
         showArchitectureAggregates = true;
       }
     }
   } catch (error) {
     // If organization doesn't exist or error occurs, don't show the button
-    console.error('Error checking The People organization permissions:', error);
+    console.error('Error checking The Public organization permissions:', error);
   }
 
   return (

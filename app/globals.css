@@ -147,3 +147,14 @@ textarea:focus {
     transform: translateX(0);
   }
 }
+
+/* Architecture aggregates table card hover effect */
+.architecture-table-card {
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.architecture-table-card:hover {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+  transform: translateY(-2px);
+}
