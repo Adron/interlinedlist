@@ -20,19 +20,44 @@ export default async function UserProfilePage({
   const { username } = await params;
   const currentUser = await getCurrentUser();
 
-  const profileUser = await prisma.user.findUnique({
-    where: { username },
-    select: {
-      id: true,
-      username: true,
-      displayName: true,
-      avatar: true,
-      bio: true,
-      latitude: true,
-      longitude: true,
-      isPrivateAccount: true,
-    },
-  });
+  let profileUser;
+  try {
+    profileUser = await prisma.user.findUnique({
+      where: { username },
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        avatar: true,
+        bio: true,
+        latitude: true,
+        longitude: true,
+        isPrivateAccount: true,
+      },
+    });
+  } catch (error: any) {
+    // If isPrivateAccount column doesn't exist, retry without it
+    if (error?.code === 'P2022' || error?.message?.includes('isPrivateAccount')) {
+      profileUser = await prisma.user.findUnique({
+        where: { username },
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          avatar: true,
+          bio: true,
+          latitude: true,
+          longitude: true,
+        },
+      });
+      // Add default isPrivateAccount
+      if (profileUser) {
+        profileUser = { ...profileUser, isPrivateAccount: false };
+      }
+    } else {
+      throw error;
+    }
+  }
 
   if (!profileUser) {
     notFound();
@@ -43,22 +68,31 @@ export default async function UserProfilePage({
   let followingCount = 0;
   let followStatus: 'none' | 'pending' | 'approved' = 'none';
 
-  if (currentUser) {
-    const [counts, status] = await Promise.all([
-      getFollowCounts(profileUser.id),
-      currentUser.id !== profileUser.id
-        ? getFollowStatus(currentUser.id, profileUser.id)
-        : Promise.resolve(null),
-    ]);
+  try {
+    if (currentUser) {
+      const [counts, status] = await Promise.all([
+        getFollowCounts(profileUser.id),
+        currentUser.id !== profileUser.id
+          ? getFollowStatus(currentUser.id, profileUser.id)
+          : Promise.resolve(null),
+      ]);
 
-    followerCount = counts.followers;
-    followingCount = counts.following;
-    followStatus = status === 'pending' ? 'pending' : status === 'approved' ? 'approved' : 'none';
-  } else {
-    // For unauthenticated users, still fetch counts
-    const counts = await getFollowCounts(profileUser.id);
-    followerCount = counts.followers;
-    followingCount = counts.following;
+      followerCount = counts.followers;
+      followingCount = counts.following;
+      followStatus = status === 'pending' ? 'pending' : status === 'approved' ? 'approved' : 'none';
+    } else {
+      // For unauthenticated users, still fetch counts
+      const counts = await getFollowCounts(profileUser.id);
+      followerCount = counts.followers;
+      followingCount = counts.following;
+    }
+  } catch (error: any) {
+    // If Follow table doesn't exist, silently fail and use defaults (0 counts, 'none' status)
+    if (error?.code === 'P2021' || error?.message?.includes('does not exist') || error?.message?.includes('follow')) {
+      // Counts already default to 0, status already defaults to 'none'
+    } else {
+      throw error;
+    }
   }
 
   const where = buildWallMessageWhereClause(profileUser.id, currentUser?.id ?? null);
