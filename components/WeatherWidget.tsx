@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { DEFAULT_WEATHER_LOCATION } from '@/lib/config/weather';
 
 interface WeatherData {
   location: string;
@@ -20,7 +21,7 @@ interface WeatherWidgetProps {
 
 // Mock weather data - fallback for non-logged-in users
 const mockWeatherData: WeatherData = {
-  location: 'San Francisco, CA',
+  location: DEFAULT_WEATHER_LOCATION.name,
   temperature: 72,
   condition: 'Partly Cloudy',
   conditionIcon: 'bx-cloud',
@@ -36,8 +37,9 @@ export default function WeatherWidget({ latitude, longitude }: WeatherWidgetProp
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Only fetch if coordinates are provided
+    // Always fetch weather - coordinates should always be provided (either user's location or San Francisco default)
     if (latitude === undefined || longitude === undefined) {
+      // Fallback to mock data only if coordinates are truly not available
       setWeather(null);
       return;
     }
@@ -69,7 +71,8 @@ export default function WeatherWidget({ latitude, longitude }: WeatherWidgetProp
     fetchWeather();
   }, [latitude, longitude]);
 
-  // Use mock data if no coordinates provided (non-logged-in users)
+  // Use mock data only if weather fetch failed and coordinates are not available
+  // Otherwise, use fetched weather or show loading/error state
   const displayWeather = weather || mockWeatherData;
   const isMockData = !weather && (latitude === undefined || longitude === undefined);
 

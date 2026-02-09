@@ -23,7 +23,10 @@ export default async function Home() {
 
         {/* Right Column - Sidebar */}
         <div className="col-lg-4 col-12 mb-4">
-          <RightSidebar showLocation={!!user} />
+          <RightSidebar 
+            latitude={user?.latitude ?? undefined}
+            longitude={user?.longitude ?? undefined}
+          />
         </div>
       </div>
     </div>

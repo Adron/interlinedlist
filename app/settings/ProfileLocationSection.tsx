@@ -10,16 +10,20 @@ interface ProfileLocationSectionProps {
 export default function ProfileLocationSection({ latitude, longitude }: ProfileLocationSectionProps) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<'success' | 'error' | null>(null);
+  const [errorDetails, setErrorDetails] = useState<string | null>(null);
 
   const hasLocation = latitude != null && longitude != null;
 
   const saveCurrentLocation = async () => {
     if (!navigator.geolocation) {
       setMessage('error');
+      setErrorDetails('Geolocation is not supported by your browser.');
       return;
     }
     setSaving(true);
     setMessage(null);
+    setErrorDetails(null);
+    
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const lat = position.coords.latitude;
@@ -32,19 +36,37 @@ export default function ProfileLocationSection({ latitude, longitude }: ProfileL
           });
           if (res.ok) {
             setMessage('success');
-            window.location.reload();
+            setErrorDetails(null);
+            // Small delay before reload to show success message
+            setTimeout(() => {
+              window.location.reload();
+            }, 500);
           } else {
+            const errorData = await res.json().catch(() => ({}));
             setMessage('error');
+            setErrorDetails(errorData.error || 'Failed to save location. Please try again.');
           }
-        } catch {
+        } catch (err) {
           setMessage('error');
+          setErrorDetails('Network error. Please check your connection and try again.');
         } finally {
           setSaving(false);
         }
       },
-      () => {
-        setMessage('error');
+      (err) => {
         setSaving(false);
+        setMessage('error');
+        
+        // Provide specific error messages based on error code
+        if (err.code === err.PERMISSION_DENIED) {
+          setErrorDetails('Location permission denied. Please enable location access in your browser settings and try again.');
+        } else if (err.code === err.POSITION_UNAVAILABLE) {
+          setErrorDetails('Location information is unavailable. Please try again.');
+        } else if (err.code === err.TIMEOUT) {
+          setErrorDetails('Location request timed out. Please try again.');
+        } else {
+          setErrorDetails('Unable to retrieve your location. Please try again.');
+        }
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
@@ -107,8 +129,20 @@ export default function ProfileLocationSection({ latitude, longitude }: ProfileL
             {saving ? 'Getting location...' : 'Use my current location'}
           </button>
         )}
-        {message === 'success' && <p className="text-success small mt-2 mb-0">Location saved.</p>}
-        {message === 'error' && <p className="text-warning small mt-2 mb-0">Could not get or save location.</p>}
+        {message === 'success' && (
+          <p className="text-success small mt-2 mb-0">
+            <i className="bx bx-check-circle me-1"></i>
+            Location saved successfully. Weather will now display for this location.
+          </p>
+        )}
+        {message === 'error' && (
+          <div className="mt-2">
+            <p className="text-warning small mb-0">
+              <i className="bx bx-error-circle me-1"></i>
+              {errorDetails || 'Could not get or save location.'}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
