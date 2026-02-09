@@ -124,6 +124,7 @@ function buildPagination(params: PaginationParams): { take: number; skip: number
  * Converts simple key-value filters to Prisma JSONB filter format
  * Supports multiple filter conditions using AND clause
  * Returns an array of conditions to be used in the parent WHERE clause
+ * Uses string_contains for partial text matching instead of exact equals
  */
 function buildJSONBFilterConditions(filter: ListDataFilter): Prisma.ListDataRowWhereInput[] | undefined {
   if (!filter || Object.keys(filter).length === 0) {
@@ -138,10 +139,12 @@ function buildJSONBFilterConditions(filter: ListDataFilter): Prisma.ListDataRowW
 
   // Return array of conditions, one for each filter key
   // Each condition filters on a specific path in the JSONB rowData field
+  // Use string_contains for partial text matching (case-sensitive)
+  // This works for string values. For arrays/numbers, we'd need raw SQL or different logic
   return entries.map(([key, value]) => ({
     rowData: {
       path: [key],
-      equals: value,
+      string_contains: String(value),
     },
   }));
 }
