@@ -13,24 +13,57 @@ export default async function FollowingPage({
   const { username } = await params;
   const currentUser = await getCurrentUser();
 
-  const profileUser = await prisma.user.findUnique({
-    where: { username },
-    select: {
-      id: true,
-      username: true,
-      displayName: true,
-      avatar: true,
-      bio: true,
-      isPrivateAccount: true,
-    },
-  });
+  let profileUser;
+  try {
+    profileUser = await prisma.user.findUnique({
+      where: { username },
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        avatar: true,
+        bio: true,
+        isPrivateAccount: true,
+      },
+    });
+  } catch (error: any) {
+    // If isPrivateAccount column doesn't exist, retry without it
+    if (error?.code === 'P2022' || error?.message?.includes('isPrivateAccount')) {
+      profileUser = await prisma.user.findUnique({
+        where: { username },
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          avatar: true,
+          bio: true,
+        },
+      });
+      // Add default isPrivateAccount
+      if (profileUser) {
+        profileUser = { ...profileUser, isPrivateAccount: false };
+      }
+    } else {
+      throw error;
+    }
+  }
 
   if (!profileUser) {
     notFound();
   }
 
   // Fetch initial following
-  const result = await getFollowing(profileUser.id, { limit: 20, offset: 0 });
+  let result;
+  try {
+    result = await getFollowing(profileUser.id, { limit: 20, offset: 0 });
+  } catch (error: any) {
+    // If Follow table doesn't exist, use empty result
+    if (error?.code === 'P2021' || error?.message?.includes('does not exist') || error?.message?.includes('follow')) {
+      result = { following: [], pagination: { total: 0, limit: 20, offset: 0, hasMore: false } };
+    } else {
+      throw error;
+    }
+  }
 
   return (
     <div className="container-fluid container-fluid-max py-4">
