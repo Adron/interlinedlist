@@ -29,6 +29,17 @@ export default function ProfileSettings({ user }: ProfileSettingsProps) {
     theme: user.theme || 'system',
     maxMessageLength: user.maxMessageLength || 666,
   });
+
+  // Sync formData when user prop changes (after refresh)
+  useEffect(() => {
+    setFormData({
+      displayName: user.displayName || '',
+      bio: user.bio || '',
+      avatar: user.avatar || '',
+      theme: user.theme || 'system',
+      maxMessageLength: user.maxMessageLength || 666,
+    });
+  }, [user.id, user.displayName, user.bio, user.avatar, user.theme, user.maxMessageLength]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -142,6 +153,17 @@ export default function ProfileSettings({ user }: ProfileSettingsProps) {
         setError(data.error || 'Update failed');
         setLoading(false);
         return;
+      }
+
+      // Update form state immediately with the response data
+      if (data.user) {
+        setFormData({
+          displayName: data.user.displayName || '',
+          bio: data.user.bio || '',
+          avatar: data.user.avatar || '',
+          theme: data.user.theme || 'system',
+          maxMessageLength: data.user.maxMessageLength || 666,
+        });
       }
 
       // Sync theme to localStorage if theme was updated

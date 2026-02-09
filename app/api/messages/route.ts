@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth/session';
 import { detectLinks } from '@/lib/messages/link-detector';
 import { APP_URL } from '@/lib/config/app';
+import { buildMessageWhereClause } from '@/lib/messages/queries';
 
 export const dynamic = 'force-dynamic';
 
@@ -115,7 +116,7 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0', 10);
     const onlyMine = searchParams.get('onlyMine') === 'true';
 
-    // Build where clause based on authentication
+    // Build where clause based on authentication and viewing preference
     let where: any = {};
 
     if (user) {
@@ -125,19 +126,20 @@ export async function GET(request: NextRequest) {
           userId: user.id, // Only user's own messages
         };
       } else {
-        // Authenticated users see: their own messages (public or private) + all public messages
-        where = {
-          OR: [
-            { userId: user.id }, // User's own messages
-            { publiclyVisible: true }, // All public messages
-          ],
-        };
+        // Get user's viewing preference
+        const userWithPreference = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { viewingPreference: true },
+        });
+
+        const viewingPreference = userWithPreference?.viewingPreference || 'all_messages';
+
+        // Use buildMessageWhereClause to handle follow-based filtering
+        where = await buildMessageWhereClause(user.id, viewingPreference);
       }
     } else {
       // Unauthenticated users see only public messages
-      where = {
-        publiclyVisible: true,
-      };
+      where = await buildMessageWhereClause(null, 'all_messages');
     }
 
     // Fetch messages ordered by createdAt DESC (newest first)

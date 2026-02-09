@@ -48,7 +48,7 @@ export default async function SettingsPage() {
               defaultPubliclyVisible={user.defaultPubliclyVisible ?? false}
               showAdvancedPostSettings={user.showAdvancedPostSettings ?? false}
             />
-            <SecuritySection />
+            <SecuritySection isPrivateAccount={user.isPrivateAccount ?? false} />
           </div>
         </div>
       </div>

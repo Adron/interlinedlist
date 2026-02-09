@@ -8,6 +8,7 @@ import MessageList from '@/components/MessageList';
 import PublicListsTreeView from '@/components/PublicListsTreeView';
 import ListPreview from '@/components/ListPreview';
 import { getPublicListsByUser, buildListTree, getPublicListProperties, getPublicListDataRows } from '@/lib/lists/queries';
+import { getFollowCounts, getFollowStatus } from '@/lib/follows/queries';
 
 const DEFAULT_MESSAGES_PER_PAGE = 20;
 
@@ -29,11 +30,35 @@ export default async function UserProfilePage({
       bio: true,
       latitude: true,
       longitude: true,
+      isPrivateAccount: true,
     },
   });
 
   if (!profileUser) {
     notFound();
+  }
+
+  // Fetch follow counts and status
+  let followerCount = 0;
+  let followingCount = 0;
+  let followStatus: 'none' | 'pending' | 'approved' = 'none';
+
+  if (currentUser) {
+    const [counts, status] = await Promise.all([
+      getFollowCounts(profileUser.id),
+      currentUser.id !== profileUser.id
+        ? getFollowStatus(currentUser.id, profileUser.id)
+        : Promise.resolve(null),
+    ]);
+
+    followerCount = counts.followers;
+    followingCount = counts.following;
+    followStatus = status === 'pending' ? 'pending' : status === 'approved' ? 'approved' : 'none';
+  } else {
+    // For unauthenticated users, still fetch counts
+    const counts = await getFollowCounts(profileUser.id);
+    followerCount = counts.followers;
+    followingCount = counts.following;
   }
 
   const where = buildWallMessageWhereClause(profileUser.id, currentUser?.id ?? null);
@@ -123,7 +148,15 @@ export default async function UserProfilePage({
 
         {/* Center - profile header + message cards (main-page style) */}
         <div className="col-lg-6 col-md-8 mb-4">
-          <ProfileHeader user={profileUser} />
+          <ProfileHeader
+            user={{
+              ...profileUser,
+              followerCount,
+              followingCount,
+            }}
+            currentUserId={currentUser?.id}
+            followStatus={followStatus}
+          />
           <MessageList
             initialMessages={serializedMessages}
             initialTotal={total}
