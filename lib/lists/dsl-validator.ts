@@ -302,9 +302,25 @@ export function getDefaultValues(fields: ParsedField[]): FormData {
         try {
           // Try parsing as JSON array first
           const parsed = JSON.parse(field.defaultValue);
-          defaults[field.propertyKey] = Array.isArray(parsed) ? parsed : [];
+          if (Array.isArray(parsed)) {
+            defaults[field.propertyKey] = parsed;
+          } else if (typeof parsed === "string") {
+            // JSON.parse succeeded but returned a string (e.g., "\"two,sank\"" -> "two,sank")
+            // Parse it as comma-separated string
+            const trimmed = parsed.trim();
+            if (trimmed) {
+              defaults[field.propertyKey] = trimmed
+                .split(",")
+                .map((v) => v.trim())
+                .filter((v) => v.length > 0);
+            } else {
+              defaults[field.propertyKey] = [];
+            }
+          } else {
+            defaults[field.propertyKey] = [];
+          }
         } catch {
-          // Fall back to comma-separated string
+          // Fall back to comma-separated string (not JSON)
           const trimmed = field.defaultValue.trim();
           if (trimmed) {
             defaults[field.propertyKey] = trimmed

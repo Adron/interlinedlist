@@ -34,55 +34,24 @@ export default function DynamicListForm({
 }: DynamicListFormProps) {
   const sortedFields = sortFieldsByOrder(fields);
   const [formData, setFormData] = useState<FormData>(
-    initialData || getInitialFormData(sortedFields)
+    initialData ? { ...getInitialFormData(sortedFields), ...initialData } : getInitialFormData(sortedFields)
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const multiselectRefs = useRef<Record<string, HTMLSelectElement>>({});
 
   // Update visible fields when form data changes
   const visibleFields = getVisibleFieldsForForm(sortedFields, formData);
 
-  // Update form data when initialData changes
+  // Update form data when initialData or fields change, merging with defaults
   useEffect(() => {
+    const defaults = getInitialFormData(sortedFields);
     if (initialData) {
-      setFormData(initialData);
+      setFormData({ ...defaults, ...initialData });
+    } else {
+      setFormData(defaults);
     }
-  }, [initialData]);
+  }, [initialData, fields]);
 
-  // Set selected options for multiselect fields after render and when formData changes
-  useEffect(() => {
-    // Use a combination of requestAnimationFrame and setTimeout to ensure DOM is ready
-    const rafId = requestAnimationFrame(() => {
-      setTimeout(() => {
-        sortedFields.forEach((field) => {
-          if (field.propertyType === "multiselect") {
-            const selectElement = multiselectRefs.current[field.propertyKey];
-            if (selectElement && selectElement.options && selectElement.options.length > 0) {
-              const value = formData[field.propertyKey];
-              const arrayValue = Array.isArray(value) ? value : [];
-              
-              // Clear all selections first
-              Array.from(selectElement.options).forEach((option) => {
-                option.selected = false;
-              });
-              
-              // Set selected options based on arrayValue
-              if (arrayValue.length > 0) {
-                Array.from(selectElement.options).forEach((option) => {
-                  if (arrayValue.includes(option.value)) {
-                    option.selected = true;
-                  }
-                });
-              }
-            }
-          }
-        });
-      }, 50);
-    });
-
-    return () => cancelAnimationFrame(rafId);
-  }, [formData, sortedFields.map(f => `${f.propertyKey}-${f.propertyType}`).join(',')]);
 
   const handleChange = (fieldKey: string, value: any) => {
     setFormData((prev) => {
@@ -202,58 +171,58 @@ export default function DynamicListForm({
           />
         )}
 
-        {fieldComponent.type === "select" && (
+        {fieldComponent.type === "select" && field.propertyType === "multiselect" && (() => {
+          const rawValue = formData[field.propertyKey];
+          const arrayValue = Array.isArray(rawValue) ? rawValue : (rawValue ? [rawValue] : []);
+          return (
+            <div className={`multiselect-checkboxes ${error ? "is-invalid" : ""}`} style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #dee2e6', borderRadius: '0.25rem', padding: '0.5rem' }}>
+              {fieldComponent.props.options?.map((option: string) => {
+                const isChecked = arrayValue.includes(option);
+                return (
+                  <div key={option} className="form-check">
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      id={`${fieldId}-${option}`}
+                      checked={isChecked}
+                      onChange={(e) => {
+                        const currentValue = formData[field.propertyKey];
+                        const currentArray = Array.isArray(currentValue) ? [...currentValue] : (currentValue ? [currentValue] : []);
+                        if (e.target.checked) {
+                          if (!currentArray.includes(option)) {
+                            currentArray.push(option);
+                          }
+                        } else {
+                          const index = currentArray.indexOf(option);
+                          if (index > -1) {
+                            currentArray.splice(index, 1);
+                          }
+                        }
+                        handleChange(field.propertyKey, currentArray);
+                      }}
+                      disabled={loading || isSubmitting}
+                    />
+                    <label className="form-check-label" htmlFor={`${fieldId}-${option}`}>
+                      {option}
+                    </label>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
+
+        {fieldComponent.type === "select" && field.propertyType !== "multiselect" && (
           <select
-            ref={(el) => {
-              if (el && field.propertyType === "multiselect") {
-                multiselectRefs.current[field.propertyKey] = el;
-                // Set selected options after options are rendered
-                setTimeout(() => {
-                  const currentValue = formData[field.propertyKey];
-                  const currentArrayValue = Array.isArray(currentValue) ? currentValue : [];
-                  if (currentArrayValue.length > 0 && el.options.length > 0) {
-                    // Clear all selections first
-                    Array.from(el.options).forEach((option) => {
-                      option.selected = false;
-                    });
-                    // Set selected options based on currentArrayValue
-                    Array.from(el.options).forEach((option) => {
-                      if (currentArrayValue.includes(option.value)) {
-                        option.selected = true;
-                      }
-                    });
-                  }
-                }, 0);
-              }
-            }}
             id={fieldId}
             name={fieldId}
             className={`form-select form-select-sm ${error ? "is-invalid" : ""}`}
-            value={
-              field.propertyType === "multiselect"
-                ? undefined
-                : value !== null && value !== undefined
-                ? String(value)
-                : ""
-            }
-            multiple={field.propertyType === "multiselect"}
-            size={field.propertyType === "multiselect" ? Math.min(Math.max(fieldComponent.props.options?.length || 3, 3), 5) : undefined}
-            onChange={(e) => {
-              if (field.propertyType === "multiselect") {
-                const selected = Array.from(e.target.selectedOptions).map(
-                  (option) => option.value
-                );
-                handleChange(field.propertyKey, selected);
-              } else {
-                handleChange(field.propertyKey, e.target.value);
-              }
-            }}
+            value={value !== null && value !== undefined ? String(value) : ""}
+            onChange={(e) => handleChange(field.propertyKey, e.target.value)}
             required={field.isRequired}
             disabled={loading || isSubmitting}
           >
-            {!field.isRequired && field.propertyType !== "multiselect" && (
-              <option value="">-- Select --</option>
-            )}
+            {!field.isRequired && <option value="">-- Select --</option>}
             {fieldComponent.props.options?.map((option: string) => (
               <option key={option} value={option}>
                 {option}

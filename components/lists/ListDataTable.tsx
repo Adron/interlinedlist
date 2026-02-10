@@ -66,39 +66,6 @@ export default function ListDataTable({
     setNewRowData(getInitialFormData(sorted));
   }, [fields]);
 
-  // Set selected options for multiselect fields after render and when newRowData changes
-  useEffect(() => {
-    // Use a combination of requestAnimationFrame and setTimeout to ensure DOM is ready
-    const rafId = requestAnimationFrame(() => {
-      setTimeout(() => {
-        sortedFields.forEach((field) => {
-          if (field.propertyType === "multiselect") {
-            const selectElement = newRowInputRefs.current[field.propertyKey] as HTMLSelectElement;
-            if (selectElement && selectElement.options && selectElement.options.length > 0) {
-              const value = newRowData[field.propertyKey];
-              const arrayValue = Array.isArray(value) ? value : [];
-              
-              // Clear all selections first
-              Array.from(selectElement.options).forEach((option) => {
-                option.selected = false;
-              });
-              
-              // Set selected options based on arrayValue
-              if (arrayValue.length > 0) {
-                Array.from(selectElement.options).forEach((option) => {
-                  if (arrayValue.includes(option.value)) {
-                    option.selected = true;
-                  }
-                });
-              }
-            }
-          }
-        });
-      }, 50);
-    });
-
-    return () => cancelAnimationFrame(rafId);
-  }, [newRowData, sortedFields.map(f => `${f.propertyKey}-${f.propertyType}`).join(',')]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -444,37 +411,48 @@ export default function ListDataTable({
         if (field.propertyType === "multiselect") {
           const arrayValue = Array.isArray(value) ? value : [];
           const options = fieldComponent.props.options || [];
-          const selectSize = Math.min(Math.max(options.length, 3), 5);
           
           return (
             <td key={field.propertyKey} className="p-1">
-              <select
-                className="form-select form-select-sm"
-                multiple
-                size={selectSize}
-                onChange={(e) => {
-                  const selected = Array.from(e.target.selectedOptions).map((opt) => opt.value);
-                  handleCellChange(field.propertyKey, selected);
-                }}
-                onBlur={() => handleSaveRow(row.id)}
-                onKeyDown={(e) => {
-                  if (e.key === "Escape") {
-                    e.preventDefault();
-                    handleCancelEdit();
-                  }
-                }}
-                autoFocus
-              >
-                {options.map((option: string) => (
-                  <option
-                    key={option}
-                    value={option}
-                    selected={arrayValue.includes(option)}
-                  >
-                    {option}
-                  </option>
-                ))}
-              </select>
+              <div className="multiselect-checkboxes" style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid #dee2e6', borderRadius: '0.25rem', padding: '0.25rem' }}>
+                {options.map((option: string) => {
+                  const isChecked = arrayValue.includes(option);
+                  return (
+                    <div key={option} className="form-check form-check-sm">
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
+                        id={`edit-${row.id}-${field.propertyKey}-${option}`}
+                        checked={isChecked}
+                        onChange={(e) => {
+                          const currentArray = Array.isArray(value) ? [...value] : [];
+                          if (e.target.checked) {
+                            if (!currentArray.includes(option)) {
+                              currentArray.push(option);
+                            }
+                          } else {
+                            const index = currentArray.indexOf(option);
+                            if (index > -1) {
+                              currentArray.splice(index, 1);
+                            }
+                          }
+                          handleCellChange(field.propertyKey, currentArray);
+                        }}
+                        onBlur={() => handleSaveRow(row.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") {
+                            e.preventDefault();
+                            handleCancelEdit();
+                          }
+                        }}
+                      />
+                      <label className="form-check-label small" htmlFor={`edit-${row.id}-${field.propertyKey}-${option}`}>
+                        {option}
+                      </label>
+                    </div>
+                  );
+                })}
+              </div>
             </td>
           );
         }
@@ -582,56 +560,46 @@ export default function ListDataTable({
     } else if (fieldComponent.type === "select") {
       // Handle multiselect differently from single select
       if (field.propertyType === "multiselect") {
-        const arrayValue = Array.isArray(value) ? value : [];
+        const rawValue = newRowData[field.propertyKey];
+        const arrayValue = Array.isArray(rawValue) ? rawValue : (rawValue ? [rawValue] : []);
         const options = fieldComponent.props.options || [];
-        const selectSize = Math.min(Math.max(options.length, 3), 5);
         
         return (
           <td key={field.propertyKey} className="p-1">
-            <select
-              ref={(el) => {
-                if (el) {
-                  newRowInputRefs.current[field.propertyKey] = el;
-                  // Set selected options after options are rendered
-                  setTimeout(() => {
-                    const currentValue = newRowData[field.propertyKey];
-                    const currentArrayValue = Array.isArray(currentValue) ? currentValue : [];
-                    if (currentArrayValue.length > 0 && el.options.length > 0) {
-                      // Clear all selections first
-                      Array.from(el.options).forEach((option) => {
-                        option.selected = false;
-                      });
-                      // Set selected options based on currentArrayValue
-                      Array.from(el.options).forEach((option) => {
-                        if (currentArrayValue.includes(option.value)) {
-                          option.selected = true;
+            <div className={`multiselect-checkboxes ${hasError ? "is-invalid" : ""}`} style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid #dee2e6', borderRadius: '0.25rem', padding: '0.25rem' }}>
+              {options.map((option: string) => {
+                const isChecked = arrayValue.includes(option);
+                return (
+                  <div key={option} className="form-check form-check-sm">
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      id={`new-row-${field.propertyKey}-${option}`}
+                      checked={isChecked}
+                      onChange={(e) => {
+                        const currentValue = newRowData[field.propertyKey];
+                        const currentArray = Array.isArray(currentValue) ? [...currentValue] : (currentValue ? [currentValue] : []);
+                        if (e.target.checked) {
+                          if (!currentArray.includes(option)) {
+                            currentArray.push(option);
+                          }
+                        } else {
+                          const index = currentArray.indexOf(option);
+                          if (index > -1) {
+                            currentArray.splice(index, 1);
+                          }
                         }
-                      });
-                    }
-                  }, 0);
-                }
-              }}
-              id={`new-row-${field.propertyKey}`}
-              className={`form-select form-select-sm ${hasError ? "is-invalid" : ""}`}
-              multiple
-              size={selectSize}
-              onChange={(e) => {
-                const selected = Array.from(e.target.selectedOptions).map((opt) => opt.value);
-                handleNewRowChange(field.propertyKey, selected);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") {
-                  handleCancelNewRow();
-                }
-              }}
-              disabled={isSavingNewRow}
-            >
-              {options.map((option: string) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
+                        handleNewRowChange(field.propertyKey, currentArray);
+                      }}
+                      disabled={isSavingNewRow}
+                    />
+                    <label className="form-check-label small" htmlFor={`new-row-${field.propertyKey}-${option}`}>
+                      {option}
+                    </label>
+                  </div>
+                );
+              })}
+            </div>
             {hasError && (
               <div className="invalid-feedback d-block small">
                 {newRowErrors[field.propertyKey]}
