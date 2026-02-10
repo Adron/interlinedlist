@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect, useRef, FormEvent } from "react";
 import { ParsedField, FormData } from "@/lib/lists/dsl-types";
 import {
   getFieldComponent,
@@ -38,6 +38,7 @@ export default function DynamicListForm({
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const multiselectRefs = useRef<Record<string, HTMLSelectElement>>({});
 
   // Update visible fields when form data changes
   const visibleFields = getVisibleFieldsForForm(sortedFields, formData);
@@ -48,6 +49,40 @@ export default function DynamicListForm({
       setFormData(initialData);
     }
   }, [initialData]);
+
+  // Set selected options for multiselect fields after render and when formData changes
+  useEffect(() => {
+    // Use a combination of requestAnimationFrame and setTimeout to ensure DOM is ready
+    const rafId = requestAnimationFrame(() => {
+      setTimeout(() => {
+        sortedFields.forEach((field) => {
+          if (field.propertyType === "multiselect") {
+            const selectElement = multiselectRefs.current[field.propertyKey];
+            if (selectElement && selectElement.options && selectElement.options.length > 0) {
+              const value = formData[field.propertyKey];
+              const arrayValue = Array.isArray(value) ? value : [];
+              
+              // Clear all selections first
+              Array.from(selectElement.options).forEach((option) => {
+                option.selected = false;
+              });
+              
+              // Set selected options based on arrayValue
+              if (arrayValue.length > 0) {
+                Array.from(selectElement.options).forEach((option) => {
+                  if (arrayValue.includes(option.value)) {
+                    option.selected = true;
+                  }
+                });
+              }
+            }
+          }
+        });
+      }, 50);
+    });
+
+    return () => cancelAnimationFrame(rafId);
+  }, [formData, sortedFields.map(f => `${f.propertyKey}-${f.propertyType}`).join(',')]);
 
   const handleChange = (fieldKey: string, value: any) => {
     setFormData((prev) => {
@@ -169,6 +204,28 @@ export default function DynamicListForm({
 
         {fieldComponent.type === "select" && (
           <select
+            ref={(el) => {
+              if (el && field.propertyType === "multiselect") {
+                multiselectRefs.current[field.propertyKey] = el;
+                // Set selected options after options are rendered
+                setTimeout(() => {
+                  const currentValue = formData[field.propertyKey];
+                  const currentArrayValue = Array.isArray(currentValue) ? currentValue : [];
+                  if (currentArrayValue.length > 0 && el.options.length > 0) {
+                    // Clear all selections first
+                    Array.from(el.options).forEach((option) => {
+                      option.selected = false;
+                    });
+                    // Set selected options based on currentArrayValue
+                    Array.from(el.options).forEach((option) => {
+                      if (currentArrayValue.includes(option.value)) {
+                        option.selected = true;
+                      }
+                    });
+                  }
+                }, 0);
+              }
+            }}
             id={fieldId}
             name={fieldId}
             className={`form-select form-select-sm ${error ? "is-invalid" : ""}`}
@@ -180,6 +237,7 @@ export default function DynamicListForm({
                 : ""
             }
             multiple={field.propertyType === "multiselect"}
+            size={field.propertyType === "multiselect" ? Math.min(Math.max(fieldComponent.props.options?.length || 3, 3), 5) : undefined}
             onChange={(e) => {
               if (field.propertyType === "multiselect") {
                 const selected = Array.from(e.target.selectedOptions).map(
@@ -193,7 +251,7 @@ export default function DynamicListForm({
             required={field.isRequired}
             disabled={loading || isSubmitting}
           >
-            {!field.isRequired && (
+            {!field.isRequired && field.propertyType !== "multiselect" && (
               <option value="">-- Select --</option>
             )}
             {fieldComponent.props.options?.map((option: string) => (

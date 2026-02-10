@@ -296,11 +296,32 @@ export function getDefaultValues(fields: ParsedField[]): FormData {
   const defaults: FormData = {};
 
   for (const field of fields) {
-    if (field.defaultValue !== null) {
-      try {
-        defaults[field.propertyKey] = JSON.parse(field.defaultValue);
-      } catch {
-        defaults[field.propertyKey] = field.defaultValue;
+    if (field.defaultValue !== null && field.defaultValue !== undefined && field.defaultValue !== "") {
+      // Special handling for multiselect fields
+      if (field.propertyType === "multiselect") {
+        try {
+          // Try parsing as JSON array first
+          const parsed = JSON.parse(field.defaultValue);
+          defaults[field.propertyKey] = Array.isArray(parsed) ? parsed : [];
+        } catch {
+          // Fall back to comma-separated string
+          const trimmed = field.defaultValue.trim();
+          if (trimmed) {
+            defaults[field.propertyKey] = trimmed
+              .split(",")
+              .map((v) => v.trim())
+              .filter((v) => v.length > 0);
+          } else {
+            defaults[field.propertyKey] = [];
+          }
+        }
+      } else {
+        // For other field types, try JSON parse first, then fall back to string
+        try {
+          defaults[field.propertyKey] = JSON.parse(field.defaultValue);
+        } catch {
+          defaults[field.propertyKey] = field.defaultValue;
+        }
       }
     } else {
       // Set type-appropriate defaults

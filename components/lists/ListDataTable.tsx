@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import type { KeyboardEvent } from "react";
 import { ParsedField, FormData } from "@/lib/lists/dsl-types";
 import { validateFormData } from "@/lib/lists/dsl-validator";
-import { parseFieldValue, getFieldComponent } from "@/lib/lists/form-generator";
+import { parseFieldValue, getFieldComponent, getInitialFormData, getVisibleFieldsForForm } from "@/lib/lists/form-generator";
 
 interface ListDataRow {
   id: string;
@@ -43,15 +43,62 @@ export default function ListDataTable({
   const [editingCell, setEditingCell] = useState<{ rowId: string; fieldKey: string } | null>(null);
   const [editingData, setEditingData] = useState<Record<string, any>>({});
   
-  // Empty row state
-  const [newRowData, setNewRowData] = useState<Record<string, any>>({});
+  // Empty row state - initialize with default values
+  const sortedFields = [...fields].sort((a, b) => a.displayOrder - b.displayOrder);
+  const [newRowData, setNewRowData] = useState<Record<string, any>>(() => {
+    const sorted = [...fields].sort((a, b) => a.displayOrder - b.displayOrder);
+    return getInitialFormData(sorted);
+  });
   const [newRowErrors, setNewRowErrors] = useState<Record<string, string>>({});
   const [isSavingNewRow, setIsSavingNewRow] = useState(false);
   
   // Refs for focus management
   const newRowInputRefs = useRef<Record<string, HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>>({});
 
-  const sortedFields = [...fields].sort((a, b) => a.displayOrder - b.displayOrder);
+  // Calculate visible fields count to determine if inline form should be enabled
+  const visibleFields = getVisibleFieldsForForm(sortedFields, newRowData);
+  const visibleFieldsCount = visibleFields.length;
+  const isInlineFormEnabled = visibleFieldsCount <= 3;
+
+  // Update newRowData when fields change
+  useEffect(() => {
+    const sorted = [...fields].sort((a, b) => a.displayOrder - b.displayOrder);
+    setNewRowData(getInitialFormData(sorted));
+  }, [fields]);
+
+  // Set selected options for multiselect fields after render and when newRowData changes
+  useEffect(() => {
+    // Use a combination of requestAnimationFrame and setTimeout to ensure DOM is ready
+    const rafId = requestAnimationFrame(() => {
+      setTimeout(() => {
+        sortedFields.forEach((field) => {
+          if (field.propertyType === "multiselect") {
+            const selectElement = newRowInputRefs.current[field.propertyKey] as HTMLSelectElement;
+            if (selectElement && selectElement.options && selectElement.options.length > 0) {
+              const value = newRowData[field.propertyKey];
+              const arrayValue = Array.isArray(value) ? value : [];
+              
+              // Clear all selections first
+              Array.from(selectElement.options).forEach((option) => {
+                option.selected = false;
+              });
+              
+              // Set selected options based on arrayValue
+              if (arrayValue.length > 0) {
+                Array.from(selectElement.options).forEach((option) => {
+                  if (arrayValue.includes(option.value)) {
+                    option.selected = true;
+                  }
+                });
+              }
+            }
+          }
+        });
+      }, 50);
+    });
+
+    return () => cancelAnimationFrame(rafId);
+  }, [newRowData, sortedFields.map(f => `${f.propertyKey}-${f.propertyType}`).join(',')]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -259,7 +306,7 @@ export default function ListDataTable({
       }
 
       // Clear empty row and refresh
-      setNewRowData({});
+      setNewRowData(getInitialFormData(sortedFields));
       setNewRowErrors({});
       fetchData();
       
@@ -279,7 +326,7 @@ export default function ListDataTable({
   };
 
   const handleCancelNewRow = () => {
-    setNewRowData({});
+    setNewRowData(getInitialFormData(sortedFields));
     setNewRowErrors({});
   };
 
@@ -393,6 +440,46 @@ export default function ListDataTable({
           </td>
         );
       } else if (fieldComponent.type === "select") {
+        // Handle multiselect differently from single select
+        if (field.propertyType === "multiselect") {
+          const arrayValue = Array.isArray(value) ? value : [];
+          const options = fieldComponent.props.options || [];
+          const selectSize = Math.min(Math.max(options.length, 3), 5);
+          
+          return (
+            <td key={field.propertyKey} className="p-1">
+              <select
+                className="form-select form-select-sm"
+                multiple
+                size={selectSize}
+                onChange={(e) => {
+                  const selected = Array.from(e.target.selectedOptions).map((opt) => opt.value);
+                  handleCellChange(field.propertyKey, selected);
+                }}
+                onBlur={() => handleSaveRow(row.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    handleCancelEdit();
+                  }
+                }}
+                autoFocus
+              >
+                {options.map((option: string) => (
+                  <option
+                    key={option}
+                    value={option}
+                    selected={arrayValue.includes(option)}
+                  >
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </td>
+          );
+        }
+        
+        // Single select dropdown
         return (
           <td key={field.propertyKey} className="p-1">
             <select
@@ -493,6 +580,68 @@ export default function ListDataTable({
         </td>
       );
     } else if (fieldComponent.type === "select") {
+      // Handle multiselect differently from single select
+      if (field.propertyType === "multiselect") {
+        const arrayValue = Array.isArray(value) ? value : [];
+        const options = fieldComponent.props.options || [];
+        const selectSize = Math.min(Math.max(options.length, 3), 5);
+        
+        return (
+          <td key={field.propertyKey} className="p-1">
+            <select
+              ref={(el) => {
+                if (el) {
+                  newRowInputRefs.current[field.propertyKey] = el;
+                  // Set selected options after options are rendered
+                  setTimeout(() => {
+                    const currentValue = newRowData[field.propertyKey];
+                    const currentArrayValue = Array.isArray(currentValue) ? currentValue : [];
+                    if (currentArrayValue.length > 0 && el.options.length > 0) {
+                      // Clear all selections first
+                      Array.from(el.options).forEach((option) => {
+                        option.selected = false;
+                      });
+                      // Set selected options based on currentArrayValue
+                      Array.from(el.options).forEach((option) => {
+                        if (currentArrayValue.includes(option.value)) {
+                          option.selected = true;
+                        }
+                      });
+                    }
+                  }, 0);
+                }
+              }}
+              id={`new-row-${field.propertyKey}`}
+              className={`form-select form-select-sm ${hasError ? "is-invalid" : ""}`}
+              multiple
+              size={selectSize}
+              onChange={(e) => {
+                const selected = Array.from(e.target.selectedOptions).map((opt) => opt.value);
+                handleNewRowChange(field.propertyKey, selected);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  handleCancelNewRow();
+                }
+              }}
+              disabled={isSavingNewRow}
+            >
+              {options.map((option: string) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            {hasError && (
+              <div className="invalid-feedback d-block small">
+                {newRowErrors[field.propertyKey]}
+              </div>
+            )}
+          </td>
+        );
+      }
+      
+      // Single select dropdown
       return (
         <td key={field.propertyKey} className="p-1">
           <select
@@ -571,6 +720,13 @@ export default function ListDataTable({
           </div>
         )}
 
+        {!isInlineFormEnabled && (
+          <div className="alert alert-info mb-3" role="alert">
+            <i className="bx bx-info-circle me-2"></i>
+            Inline data entry is disabled for lists with more than 3 fields. Use the "Add Row" button to add new entries.
+          </div>
+        )}
+
         {/* Filters */}
         <div className="row mb-3">
           {sortedFields.map((field) => (
@@ -634,28 +790,30 @@ export default function ListDataTable({
                     </tr>
                   ))}
                   
-                  {/* Empty row - always visible at bottom */}
-                  <tr className="table-light">
-                    {sortedFields.map((field, index) => renderEmptyRowCell(field, index))}
-                    <td>
-                      {checkRequiredFieldsComplete() && (
+                  {/* Empty row - only visible when inline form is enabled (3 or fewer visible fields) */}
+                  {isInlineFormEnabled && (
+                    <tr className="table-light">
+                      {sortedFields.map((field, index) => renderEmptyRowCell(field, index))}
+                      <td>
+                        {checkRequiredFieldsComplete() && (
+                          <button
+                            className="btn btn-sm btn-primary"
+                            onClick={handleSaveNewRow}
+                            disabled={isSavingNewRow}
+                          >
+                            {isSavingNewRow ? "Adding..." : "Add"}
+                          </button>
+                        )}
                         <button
-                          className="btn btn-sm btn-primary"
-                          onClick={handleSaveNewRow}
+                          className="btn btn-sm btn-outline-secondary ms-1"
+                          onClick={handleCancelNewRow}
                           disabled={isSavingNewRow}
                         >
-                          {isSavingNewRow ? "Adding..." : "Add"}
+                          Cancel
                         </button>
-                      )}
-                      <button
-                        className="btn btn-sm btn-outline-secondary ms-1"
-                        onClick={handleCancelNewRow}
-                        disabled={isSavingNewRow}
-                      >
-                        Cancel
-                      </button>
-                    </td>
-                  </tr>
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
