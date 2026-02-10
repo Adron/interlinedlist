@@ -8,8 +8,11 @@ import {
   getVisibleFieldsForForm,
   sortFieldsByOrder,
   parseFieldValue,
+  formatFieldValue,
 } from "@/lib/lists/form-generator";
 import { validateFormData } from "@/lib/lists/dsl-validator";
+import DatePickerField from "./DatePickerField";
+import { parseDateFromInput } from "@/lib/lists/date-utils";
 
 interface DynamicListFormProps {
   fields: ParsedField[];
@@ -33,8 +36,24 @@ export default function DynamicListForm({
   layout = "vertical",
 }: DynamicListFormProps) {
   const sortedFields = sortFieldsByOrder(fields);
+  
+  // Format date/datetime values from initialData to ISO strings
+  const formatInitialData = (data: FormData | undefined): FormData => {
+    if (!data) return getInitialFormData(sortedFields);
+    const formatted: FormData = {};
+    Object.keys(data).forEach((key) => {
+      const field = sortedFields.find((f) => f.propertyKey === key);
+      if (field && (field.propertyType === "date" || field.propertyType === "datetime")) {
+        formatted[key] = formatFieldValue(field, data[key]);
+      } else {
+        formatted[key] = data[key];
+      }
+    });
+    return { ...getInitialFormData(sortedFields), ...formatted };
+  };
+  
   const [formData, setFormData] = useState<FormData>(
-    initialData ? { ...getInitialFormData(sortedFields), ...initialData } : getInitialFormData(sortedFields)
+    formatInitialData(initialData)
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,18 +63,28 @@ export default function DynamicListForm({
 
   // Update form data when initialData or fields change, merging with defaults
   useEffect(() => {
-    const defaults = getInitialFormData(sortedFields);
-    if (initialData) {
-      setFormData({ ...defaults, ...initialData });
-    } else {
-      setFormData(defaults);
-    }
+    setFormData(formatInitialData(initialData));
   }, [initialData, fields]);
 
 
   const handleChange = (fieldKey: string, value: any) => {
+    const field = sortedFields.find((f) => f.propertyKey === fieldKey);
+    
+    // For date/datetime fields, keep as ISO string (don't parse to Date yet)
+    let processedValue = value;
+    if (field && (field.propertyType === "date" || field.propertyType === "datetime")) {
+      // Keep as string if it's already a string, otherwise format it
+      if (typeof value === "string") {
+        processedValue = value;
+      } else if (value instanceof Date) {
+        processedValue = formatFieldValue(field, value);
+      } else {
+        processedValue = value;
+      }
+    }
+    
     setFormData((prev) => {
-      const updated = { ...prev, [fieldKey]: value };
+      const updated = { ...prev, [fieldKey]: processedValue };
       // Clear error for this field
       setErrors((prevErrors) => {
         const newErrors = { ...prevErrors };
@@ -71,8 +100,21 @@ export default function DynamicListForm({
     setIsSubmitting(true);
     setErrors({});
 
+    // Convert ISO string dates to Date objects for validation and submission
+    const dataToSubmit = { ...formData };
+    sortedFields.forEach((field) => {
+      if (field.propertyType === "date" || field.propertyType === "datetime") {
+        const value = dataToSubmit[field.propertyKey];
+        if (typeof value === "string" && value.trim() !== "") {
+          dataToSubmit[field.propertyKey] = parseDateFromInput(value, field.propertyType);
+        } else if (!value) {
+          dataToSubmit[field.propertyKey] = null;
+        }
+      }
+    });
+
     // Validate form data
-    const validation = validateFormData(sortedFields, formData);
+    const validation = validateFormData(sortedFields, dataToSubmit);
     if (!validation.isValid) {
       const errorMap: Record<string, string> = {};
       validation.errors.forEach((error) => {
@@ -84,7 +126,7 @@ export default function DynamicListForm({
     }
 
     try {
-      await onSubmit(formData);
+      await onSubmit(dataToSubmit);
     } catch (error: any) {
       setErrors({ _form: error.message || "An error occurred" });
     } finally {
@@ -105,7 +147,20 @@ export default function DynamicListForm({
           {field.isRequired && <span className="text-danger">*</span>}
         </label>
 
-        {fieldComponent.type === "input" && (
+        {fieldComponent.type === "input" && (field.propertyType === "date" || field.propertyType === "datetime") ? (
+          <DatePickerField
+            id={fieldId}
+            value={value}
+            onChange={(isoString) => handleChange(field.propertyKey, isoString)}
+            type={field.propertyType}
+            minDate={field.validationRules?.min}
+            maxDate={field.validationRules?.max}
+            placeholder={field.placeholder}
+            disabled={loading || isSubmitting}
+            required={field.isRequired}
+            className={error ? "is-invalid" : ""}
+          />
+        ) : fieldComponent.type === "input" && (
           <input
             id={fieldId}
             name={fieldId}

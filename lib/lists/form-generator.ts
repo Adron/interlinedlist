@@ -247,7 +247,9 @@ export function parseFieldValue(field: ParsedField, value: string): any {
 
     case "date":
     case "datetime":
-      return new Date(value);
+      // Return ISO string instead of Date object to prevent cursor jumping
+      // Date objects will be created only when needed (validation, saving)
+      return value;
 
     case "multiselect":
       if (Array.isArray(value)) {

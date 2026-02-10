@@ -5,7 +5,9 @@ import type { KeyboardEvent } from "react";
 import Link from "next/link";
 import { ParsedField, FormData } from "@/lib/lists/dsl-types";
 import { validateFormData } from "@/lib/lists/dsl-validator";
-import { parseFieldValue, getFieldComponent, getInitialFormData, getVisibleFieldsForForm } from "@/lib/lists/form-generator";
+import { parseFieldValue, getFieldComponent, getInitialFormData, getVisibleFieldsForForm, formatFieldValue } from "@/lib/lists/form-generator";
+import DatePickerField from "./DatePickerField";
+import { parseDateFromInput } from "@/lib/lists/date-utils";
 
 interface ListDataRow {
   id: string;
@@ -155,8 +157,17 @@ export default function ListDataTable({
     const row = rows.find((r) => r.id === rowId);
     if (!row) return;
     
+    const field = sortedFields.find((f) => f.propertyKey === fieldKey);
+    const rawValue = row.rowData[fieldKey];
+    
+    // For date/datetime fields, format to ISO string for editing
+    let formattedValue = rawValue;
+    if (field && (field.propertyType === "date" || field.propertyType === "datetime")) {
+      formattedValue = formatFieldValue(field, rawValue);
+    }
+    
     setEditingCell({ rowId, fieldKey });
-    setEditingData({ [fieldKey]: row.rowData[fieldKey] ?? "" });
+    setEditingData({ [fieldKey]: formattedValue ?? "" });
   };
 
   const handleCellChange = (fieldKey: string, value: any) => {
@@ -170,7 +181,23 @@ export default function ListDataTable({
     if (!row) return;
 
     // Merge editing data with existing row data
-    const updatedData = { ...row.rowData, ...editingData };
+    // Convert ISO string dates to Date objects for date/datetime fields
+    const updatedData = { ...row.rowData };
+    Object.keys(editingData).forEach((fieldKey) => {
+      const field = sortedFields.find((f) => f.propertyKey === fieldKey);
+      const value = editingData[fieldKey];
+      
+      if (field && (field.propertyType === "date" || field.propertyType === "datetime")) {
+        // Convert ISO string to Date object
+        if (typeof value === "string" && value.trim() !== "") {
+          updatedData[fieldKey] = parseDateFromInput(value, field.propertyType);
+        } else {
+          updatedData[fieldKey] = null;
+        }
+      } else {
+        updatedData[fieldKey] = value;
+      }
+    });
     
     // Validate
     const validation = validateFormData(sortedFields, updatedData);
@@ -216,8 +243,23 @@ export default function ListDataTable({
     const field = sortedFields.find((f) => f.propertyKey === fieldKey);
     if (!field) return;
 
-    const parsed = parseFieldValue(field, value);
-    setNewRowData((prev) => ({ ...prev, [fieldKey]: parsed }));
+    // For date/datetime fields, keep as ISO string (don't parse to Date yet)
+    let processedValue = value;
+    if (field.propertyType === "date" || field.propertyType === "datetime") {
+      // Keep as string if it's already a string, otherwise format it
+      if (typeof value === "string") {
+        processedValue = value;
+      } else if (value instanceof Date) {
+        processedValue = formatFieldValue(field, value);
+      } else {
+        processedValue = value;
+      }
+    } else {
+      const parsed = parseFieldValue(field, value);
+      processedValue = parsed;
+    }
+    
+    setNewRowData((prev) => ({ ...prev, [fieldKey]: processedValue }));
     
     // Clear error for this field
     setNewRowErrors((prev) => {
@@ -240,8 +282,21 @@ export default function ListDataTable({
     setNewRowErrors({});
     setError("");
 
+    // Convert ISO string dates to Date objects for validation and saving
+    const dataToSave = { ...newRowData };
+    sortedFields.forEach((field) => {
+      if (field.propertyType === "date" || field.propertyType === "datetime") {
+        const value = dataToSave[field.propertyKey];
+        if (typeof value === "string" && value.trim() !== "") {
+          dataToSave[field.propertyKey] = parseDateFromInput(value, field.propertyType);
+        } else if (!value) {
+          dataToSave[field.propertyKey] = null;
+        }
+      }
+    });
+
     // Validate
-    const validation = validateFormData(sortedFields, newRowData);
+    const validation = validateFormData(sortedFields, dataToSave);
     if (!validation.isValid) {
       const errorMap: Record<string, string> = {};
       validation.errors.forEach((error) => {
@@ -265,7 +320,7 @@ export default function ListDataTable({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ data: newRowData }),
+        body: JSON.stringify({ data: dataToSave }),
       });
 
       if (!response.ok) {
@@ -377,6 +432,22 @@ export default function ListDataTable({
                   }
                 }
               }}
+              autoFocus
+            />
+          </td>
+        );
+      } else if (field.propertyType === "date" || field.propertyType === "datetime") {
+        // Use DatePickerField for date/datetime fields
+        return (
+          <td key={field.propertyKey} className="p-1">
+            <DatePickerField
+              value={value}
+              onChange={(isoString) => handleCellChange(field.propertyKey, isoString)}
+              type={field.propertyType}
+              minDate={field.validationRules?.min}
+              maxDate={field.validationRules?.max}
+              placeholder={field.placeholder}
+              onBlur={() => handleSaveRow(row.id)}
               autoFocus
             />
           </td>
@@ -517,6 +588,37 @@ export default function ListDataTable({
             checked={Boolean(value)}
             onChange={(e) => handleNewRowChange(field.propertyKey, e.target.checked)}
             disabled={isSavingNewRow}
+          />
+          {hasError && (
+            <div className="invalid-feedback d-block small">
+              {newRowErrors[field.propertyKey]}
+            </div>
+          )}
+        </td>
+      );
+    } else if (field.propertyType === "date" || field.propertyType === "datetime") {
+      // Use DatePickerField for date/datetime fields
+      return (
+        <td key={field.propertyKey} className="p-1">
+          <DatePickerField
+            value={value}
+            onChange={(isoString) => handleNewRowChange(field.propertyKey, isoString)}
+            type={field.propertyType}
+            minDate={field.validationRules?.min}
+            maxDate={field.validationRules?.max}
+            placeholder={field.propertyName}
+            disabled={isSavingNewRow}
+            id={`new-row-${field.propertyKey}`}
+            className={hasError ? "is-invalid" : ""}
+            onBlur={() => {
+              if (isLastColumn) {
+                // Trigger save on blur if it's the last column
+                const input = newRowInputRefs.current[field.propertyKey];
+                if (input && input instanceof HTMLElement) {
+                  input.blur();
+                }
+              }
+            }}
           />
           {hasError && (
             <div className="invalid-feedback d-block small">
