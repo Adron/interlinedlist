@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import type { KeyboardEvent } from "react";
+import Link from "next/link";
 import { ParsedField, FormData } from "@/lib/lists/dsl-types";
 import { validateFormData } from "@/lib/lists/dsl-validator";
 import { parseFieldValue, getFieldComponent, getInitialFormData, getVisibleFieldsForForm } from "@/lib/lists/form-generator";
@@ -747,6 +748,13 @@ export default function ListDataTable({
                       {sortedFields.map((field) => renderEditableCell(row, field))}
                       <td>
                         <div className="btn-group btn-group-sm">
+                          <Link
+                            href={`/lists/${listId}/edit/${row.id}`}
+                            className="btn btn-outline-primary"
+                          >
+                            <i className="bx bx-edit me-1"></i>
+                            Edit
+                          </Link>
                           <button
                             className="btn btn-outline-danger"
                             onClick={() => handleDelete(row.id)}
