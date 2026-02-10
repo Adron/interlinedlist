@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect, useRef, FormEvent } from "react";
 import { ParsedField, FormData } from "@/lib/lists/dsl-types";
 import {
   getFieldComponent,
@@ -34,7 +34,7 @@ export default function DynamicListForm({
 }: DynamicListFormProps) {
   const sortedFields = sortFieldsByOrder(fields);
   const [formData, setFormData] = useState<FormData>(
-    initialData || getInitialFormData(sortedFields)
+    initialData ? { ...getInitialFormData(sortedFields), ...initialData } : getInitialFormData(sortedFields)
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -42,12 +42,16 @@ export default function DynamicListForm({
   // Update visible fields when form data changes
   const visibleFields = getVisibleFieldsForForm(sortedFields, formData);
 
-  // Update form data when initialData changes
+  // Update form data when initialData or fields change, merging with defaults
   useEffect(() => {
+    const defaults = getInitialFormData(sortedFields);
     if (initialData) {
-      setFormData(initialData);
+      setFormData({ ...defaults, ...initialData });
+    } else {
+      setFormData(defaults);
     }
-  }, [initialData]);
+  }, [initialData, fields]);
+
 
   const handleChange = (fieldKey: string, value: any) => {
     setFormData((prev) => {
@@ -167,35 +171,58 @@ export default function DynamicListForm({
           />
         )}
 
-        {fieldComponent.type === "select" && (
+        {fieldComponent.type === "select" && field.propertyType === "multiselect" && (() => {
+          const rawValue = formData[field.propertyKey];
+          const arrayValue = Array.isArray(rawValue) ? rawValue : (rawValue ? [rawValue] : []);
+          return (
+            <div className={`multiselect-checkboxes ${error ? "is-invalid" : ""}`} style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #dee2e6', borderRadius: '0.25rem', padding: '0.5rem' }}>
+              {fieldComponent.props.options?.map((option: string) => {
+                const isChecked = arrayValue.includes(option);
+                return (
+                  <div key={option} className="form-check">
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      id={`${fieldId}-${option}`}
+                      checked={isChecked}
+                      onChange={(e) => {
+                        const currentValue = formData[field.propertyKey];
+                        const currentArray = Array.isArray(currentValue) ? [...currentValue] : (currentValue ? [currentValue] : []);
+                        if (e.target.checked) {
+                          if (!currentArray.includes(option)) {
+                            currentArray.push(option);
+                          }
+                        } else {
+                          const index = currentArray.indexOf(option);
+                          if (index > -1) {
+                            currentArray.splice(index, 1);
+                          }
+                        }
+                        handleChange(field.propertyKey, currentArray);
+                      }}
+                      disabled={loading || isSubmitting}
+                    />
+                    <label className="form-check-label" htmlFor={`${fieldId}-${option}`}>
+                      {option}
+                    </label>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
+
+        {fieldComponent.type === "select" && field.propertyType !== "multiselect" && (
           <select
             id={fieldId}
             name={fieldId}
             className={`form-select form-select-sm ${error ? "is-invalid" : ""}`}
-            value={
-              field.propertyType === "multiselect"
-                ? undefined
-                : value !== null && value !== undefined
-                ? String(value)
-                : ""
-            }
-            multiple={field.propertyType === "multiselect"}
-            onChange={(e) => {
-              if (field.propertyType === "multiselect") {
-                const selected = Array.from(e.target.selectedOptions).map(
-                  (option) => option.value
-                );
-                handleChange(field.propertyKey, selected);
-              } else {
-                handleChange(field.propertyKey, e.target.value);
-              }
-            }}
+            value={value !== null && value !== undefined ? String(value) : ""}
+            onChange={(e) => handleChange(field.propertyKey, e.target.value)}
             required={field.isRequired}
             disabled={loading || isSubmitting}
           >
-            {!field.isRequired && (
-              <option value="">-- Select --</option>
-            )}
+            {!field.isRequired && <option value="">-- Select --</option>}
             {fieldComponent.props.options?.map((option: string) => (
               <option key={option} value={option}>
                 {option}

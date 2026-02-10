@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import type { KeyboardEvent } from "react";
 import { ParsedField, FormData } from "@/lib/lists/dsl-types";
 import { validateFormData } from "@/lib/lists/dsl-validator";
-import { parseFieldValue, getFieldComponent } from "@/lib/lists/form-generator";
+import { parseFieldValue, getFieldComponent, getInitialFormData, getVisibleFieldsForForm } from "@/lib/lists/form-generator";
 
 interface ListDataRow {
   id: string;
@@ -43,15 +43,29 @@ export default function ListDataTable({
   const [editingCell, setEditingCell] = useState<{ rowId: string; fieldKey: string } | null>(null);
   const [editingData, setEditingData] = useState<Record<string, any>>({});
   
-  // Empty row state
-  const [newRowData, setNewRowData] = useState<Record<string, any>>({});
+  // Empty row state - initialize with default values
+  const sortedFields = [...fields].sort((a, b) => a.displayOrder - b.displayOrder);
+  const [newRowData, setNewRowData] = useState<Record<string, any>>(() => {
+    const sorted = [...fields].sort((a, b) => a.displayOrder - b.displayOrder);
+    return getInitialFormData(sorted);
+  });
   const [newRowErrors, setNewRowErrors] = useState<Record<string, string>>({});
   const [isSavingNewRow, setIsSavingNewRow] = useState(false);
   
   // Refs for focus management
   const newRowInputRefs = useRef<Record<string, HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>>({});
 
-  const sortedFields = [...fields].sort((a, b) => a.displayOrder - b.displayOrder);
+  // Calculate visible fields count to determine if inline form should be enabled
+  const visibleFields = getVisibleFieldsForForm(sortedFields, newRowData);
+  const visibleFieldsCount = visibleFields.length;
+  const isInlineFormEnabled = visibleFieldsCount <= 3;
+
+  // Update newRowData when fields change
+  useEffect(() => {
+    const sorted = [...fields].sort((a, b) => a.displayOrder - b.displayOrder);
+    setNewRowData(getInitialFormData(sorted));
+  }, [fields]);
+
 
   const fetchData = async () => {
     setLoading(true);
@@ -259,7 +273,7 @@ export default function ListDataTable({
       }
 
       // Clear empty row and refresh
-      setNewRowData({});
+      setNewRowData(getInitialFormData(sortedFields));
       setNewRowErrors({});
       fetchData();
       
@@ -279,7 +293,7 @@ export default function ListDataTable({
   };
 
   const handleCancelNewRow = () => {
-    setNewRowData({});
+    setNewRowData(getInitialFormData(sortedFields));
     setNewRowErrors({});
   };
 
@@ -393,6 +407,57 @@ export default function ListDataTable({
           </td>
         );
       } else if (fieldComponent.type === "select") {
+        // Handle multiselect differently from single select
+        if (field.propertyType === "multiselect") {
+          const arrayValue = Array.isArray(value) ? value : [];
+          const options = fieldComponent.props.options || [];
+          
+          return (
+            <td key={field.propertyKey} className="p-1">
+              <div className="multiselect-checkboxes" style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid #dee2e6', borderRadius: '0.25rem', padding: '0.25rem' }}>
+                {options.map((option: string) => {
+                  const isChecked = arrayValue.includes(option);
+                  return (
+                    <div key={option} className="form-check form-check-sm">
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
+                        id={`edit-${row.id}-${field.propertyKey}-${option}`}
+                        checked={isChecked}
+                        onChange={(e) => {
+                          const currentArray = Array.isArray(value) ? [...value] : [];
+                          if (e.target.checked) {
+                            if (!currentArray.includes(option)) {
+                              currentArray.push(option);
+                            }
+                          } else {
+                            const index = currentArray.indexOf(option);
+                            if (index > -1) {
+                              currentArray.splice(index, 1);
+                            }
+                          }
+                          handleCellChange(field.propertyKey, currentArray);
+                        }}
+                        onBlur={() => handleSaveRow(row.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") {
+                            e.preventDefault();
+                            handleCancelEdit();
+                          }
+                        }}
+                      />
+                      <label className="form-check-label small" htmlFor={`edit-${row.id}-${field.propertyKey}-${option}`}>
+                        {option}
+                      </label>
+                    </div>
+                  );
+                })}
+              </div>
+            </td>
+          );
+        }
+        
+        // Single select dropdown
         return (
           <td key={field.propertyKey} className="p-1">
             <select
@@ -493,6 +558,58 @@ export default function ListDataTable({
         </td>
       );
     } else if (fieldComponent.type === "select") {
+      // Handle multiselect differently from single select
+      if (field.propertyType === "multiselect") {
+        const rawValue = newRowData[field.propertyKey];
+        const arrayValue = Array.isArray(rawValue) ? rawValue : (rawValue ? [rawValue] : []);
+        const options = fieldComponent.props.options || [];
+        
+        return (
+          <td key={field.propertyKey} className="p-1">
+            <div className={`multiselect-checkboxes ${hasError ? "is-invalid" : ""}`} style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid #dee2e6', borderRadius: '0.25rem', padding: '0.25rem' }}>
+              {options.map((option: string) => {
+                const isChecked = arrayValue.includes(option);
+                return (
+                  <div key={option} className="form-check form-check-sm">
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      id={`new-row-${field.propertyKey}-${option}`}
+                      checked={isChecked}
+                      onChange={(e) => {
+                        const currentValue = newRowData[field.propertyKey];
+                        const currentArray = Array.isArray(currentValue) ? [...currentValue] : (currentValue ? [currentValue] : []);
+                        if (e.target.checked) {
+                          if (!currentArray.includes(option)) {
+                            currentArray.push(option);
+                          }
+                        } else {
+                          const index = currentArray.indexOf(option);
+                          if (index > -1) {
+                            currentArray.splice(index, 1);
+                          }
+                        }
+                        handleNewRowChange(field.propertyKey, currentArray);
+                      }}
+                      disabled={isSavingNewRow}
+                    />
+                    <label className="form-check-label small" htmlFor={`new-row-${field.propertyKey}-${option}`}>
+                      {option}
+                    </label>
+                  </div>
+                );
+              })}
+            </div>
+            {hasError && (
+              <div className="invalid-feedback d-block small">
+                {newRowErrors[field.propertyKey]}
+              </div>
+            )}
+          </td>
+        );
+      }
+      
+      // Single select dropdown
       return (
         <td key={field.propertyKey} className="p-1">
           <select
@@ -571,6 +688,13 @@ export default function ListDataTable({
           </div>
         )}
 
+        {!isInlineFormEnabled && (
+          <div className="alert alert-info mb-3" role="alert">
+            <i className="bx bx-info-circle me-2"></i>
+            Inline data entry is disabled for lists with more than 3 fields. Use the "Add Row" button to add new entries.
+          </div>
+        )}
+
         {/* Filters */}
         <div className="row mb-3">
           {sortedFields.map((field) => (
@@ -634,28 +758,30 @@ export default function ListDataTable({
                     </tr>
                   ))}
                   
-                  {/* Empty row - always visible at bottom */}
-                  <tr className="table-light">
-                    {sortedFields.map((field, index) => renderEmptyRowCell(field, index))}
-                    <td>
-                      {checkRequiredFieldsComplete() && (
+                  {/* Empty row - only visible when inline form is enabled (3 or fewer visible fields) */}
+                  {isInlineFormEnabled && (
+                    <tr className="table-light">
+                      {sortedFields.map((field, index) => renderEmptyRowCell(field, index))}
+                      <td>
+                        {checkRequiredFieldsComplete() && (
+                          <button
+                            className="btn btn-sm btn-primary"
+                            onClick={handleSaveNewRow}
+                            disabled={isSavingNewRow}
+                          >
+                            {isSavingNewRow ? "Adding..." : "Add"}
+                          </button>
+                        )}
                         <button
-                          className="btn btn-sm btn-primary"
-                          onClick={handleSaveNewRow}
+                          className="btn btn-sm btn-outline-secondary ms-1"
+                          onClick={handleCancelNewRow}
                           disabled={isSavingNewRow}
                         >
-                          {isSavingNewRow ? "Adding..." : "Add"}
+                          Cancel
                         </button>
-                      )}
-                      <button
-                        className="btn btn-sm btn-outline-secondary ms-1"
-                        onClick={handleCancelNewRow}
-                        disabled={isSavingNewRow}
-                      >
-                        Cancel
-                      </button>
-                    </td>
-                  </tr>
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
