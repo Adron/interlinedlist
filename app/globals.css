@@ -380,12 +380,22 @@ textarea:focus {
   overflow-y: auto !important;
   max-height: 220px !important;
   height: auto !important;
+  background-color: #ffffff;
+}
+
+[data-theme="dark"] .react-datepicker__time-box {
+  background-color: #2d2d2d;
 }
 
 .react-datepicker__time-list-container {
   overflow-y: auto !important;
   max-height: 220px !important;
   height: auto !important;
+  background-color: #ffffff;
+}
+
+[data-theme="dark"] .react-datepicker__time-list-container {
+  background-color: #2d2d2d;
 }
 
 .react-datepicker__month-container {
