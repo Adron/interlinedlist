@@ -205,6 +205,33 @@ export default function MessageCard({
             <p className="mb-0 text-break" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.9rem' }}>
               {linkifyText(message.content)}
             </p>
+
+            {/* Message images */}
+            {message.imageUrls && Array.isArray(message.imageUrls) && message.imageUrls.length > 0 && (
+              <div className="d-flex flex-wrap gap-1 mt-2">
+                {message.imageUrls.map((url, i) => (
+                  <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="d-block">
+                    <img
+                      src={url}
+                      alt=""
+                      style={{ maxWidth: 120, maxHeight: 120, objectFit: 'cover', borderRadius: 6 }}
+                    />
+                  </a>
+                ))}
+              </div>
+            )}
+
+            {/* Message video */}
+            {message.videoUrls && Array.isArray(message.videoUrls) && message.videoUrls.length > 0 && (
+              <div className="mt-2">
+                <video
+                  src={message.videoUrls[0]}
+                  controls
+                  style={{ maxWidth: '100%', maxHeight: 320, borderRadius: 6 }}
+                  preload="metadata"
+                />
+              </div>
+            )}
             
             {/* Render link previews for all detected links (if showPreviews is enabled) */}
             {showPreviews && (() => {

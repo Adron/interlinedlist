@@ -32,19 +32,19 @@ export default function ProfileHeader({ user, currentUserId, followStatus = 'non
               className="rounded-circle flex-shrink-0"
               src={user.avatar}
               alt={displayName}
-              width="80"
-              height="80"
+              width="160"
+              height="160"
               style={{ objectFit: 'cover' }}
             />
           ) : (
             <div
               className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
               style={{
-                width: '80px',
-                height: '80px',
+                width: '160px',
+                height: '160px',
                 backgroundColor: 'var(--bs-secondary)',
                 color: 'white',
-                fontSize: '2rem',
+                fontSize: '4rem',
                 fontWeight: 'bold',
               }}
             >

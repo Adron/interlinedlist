@@ -10,6 +10,23 @@ interface PermissionsSectionProps {
 export default function PermissionsSection({ emailVerified }: PermissionsSectionProps) {
   const [locationPermissionStatus, setLocationPermissionStatus] = useState<'granted' | 'denied' | 'prompt' | 'checking'>('checking');
   const [loading, setLoading] = useState(false);
+  // Defer browser instructions to client-only to avoid hydration mismatch (server has no navigator)
+  const [browserInstructions, setBrowserInstructions] = useState('');
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const userAgent = navigator.userAgent.toLowerCase();
+    if (userAgent.includes('chrome') && !userAgent.includes('edg')) {
+      setBrowserInstructions('To change location permissions in Chrome: Click the lock icon in the address bar → Site settings → Location → Allow.');
+    } else if (userAgent.includes('firefox')) {
+      setBrowserInstructions('To change location permissions in Firefox: Click the lock icon in the address bar → More Information → Permissions → Location → Allow.');
+    } else if (userAgent.includes('safari') && !userAgent.includes('chrome')) {
+      setBrowserInstructions('To change location permissions in Safari: Safari menu → Settings → Websites → Location → Select "Allow" for this site.');
+    } else if (userAgent.includes('edg')) {
+      setBrowserInstructions('To change location permissions in Edge: Click the lock icon in the address bar → Site permissions → Location → Allow.');
+    } else {
+      setBrowserInstructions('To change location permissions: Look for a lock or information icon in your browser\'s address bar, then navigate to site permissions or settings to enable location access.');
+    }
+  }, []);
 
   useEffect(() => {
     checkPermissionStatus();
@@ -110,25 +127,6 @@ export default function PermissionsSection({ emailVerified }: PermissionsSection
 
   const locationStatusDisplay = getLocationStatusDisplay();
 
-  // Detect browser and provide specific instructions
-  const getBrowserInstructions = () => {
-    if (typeof window === 'undefined') return '';
-    
-    const userAgent = navigator.userAgent.toLowerCase();
-    
-    if (userAgent.includes('chrome') && !userAgent.includes('edg')) {
-      return 'To change location permissions in Chrome: Click the lock icon in the address bar → Site settings → Location → Allow.';
-    } else if (userAgent.includes('firefox')) {
-      return 'To change location permissions in Firefox: Click the lock icon in the address bar → More Information → Permissions → Location → Allow.';
-    } else if (userAgent.includes('safari') && !userAgent.includes('chrome')) {
-      return 'To change location permissions in Safari: Safari menu → Settings → Websites → Location → Select "Allow" for this site.';
-    } else if (userAgent.includes('edg')) {
-      return 'To change location permissions in Edge: Click the lock icon in the address bar → Site permissions → Location → Allow.';
-    } else {
-      return 'To change location permissions: Look for a lock or information icon in your browser\'s address bar, then navigate to site permissions or settings to enable location access.';
-    }
-  };
-
   return (
     <div className="card h-100">
       <div className="card-body">
@@ -158,7 +156,7 @@ export default function PermissionsSection({ emailVerified }: PermissionsSection
             </p>
             <p className="small text-muted mb-0">
               <i className="bx bx-cog me-1"></i>
-              {getBrowserInstructions()}
+              {browserInstructions}
             </p>
           </div>
         </div>

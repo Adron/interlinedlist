@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth/session';
+import { del } from '@vercel/blob';
 import { LinkMetadata } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -99,10 +100,8 @@ export async function DELETE(
     // Find the message and verify ownership
     const message = await prisma.message.findUnique({
       where: { id: messageId },
-      select: { userId: true },
+      select: { userId: true, imageUrls: true, videoUrls: true },
     });
-
-    console.log('Message found:', message ? 'yes' : 'no', message ? `userId: ${message.userId}, currentUserId: ${user.id}` : '');
 
     if (!message) {
       return NextResponse.json(
@@ -115,6 +114,20 @@ export async function DELETE(
       return NextResponse.json(
         { error: 'You can only delete your own messages' },
         { status: 403 }
+      );
+    }
+
+    // Delete blob assets if present
+    const imageUrls = message.imageUrls as string[] | null;
+    if (Array.isArray(imageUrls) && imageUrls.length > 0) {
+      await Promise.all(
+        imageUrls.map((url) => del(url).catch(() => {}))
+      );
+    }
+    const videoUrls = message.videoUrls as string[] | null;
+    if (Array.isArray(videoUrls) && videoUrls.length > 0) {
+      await Promise.all(
+        videoUrls.map((url) => del(url).catch(() => {}))
       );
     }
 

@@ -48,6 +48,8 @@ model Message {
   publiclyVisible Boolean  @default(true)
   userId          String
   linkMetadata    Json?
+  imageUrls       Json?
+  videoUrls       Json?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)

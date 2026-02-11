@@ -1,0 +1,5 @@
+{"location":"MessageInput.tsx:uploadClick","message":"Upload started","data":{"fileCount":1,"firstName":"romantic-tropical-beach-with-villa-and-palms-during-beautiful-sunset-free-photo-2210x1467-3394371274.jpg","firstSize":419872},"timestamp":1770839613455,"hypothesisId":"H2"}
+{"location":"api/messages/images/upload/route.ts","message":"Auth check","data":{"hasUser":true,"emailVerified":true,"hypothesisId":"H1"},"timestamp":1770839613811}
+{"location":"api/messages/images/upload/route.ts","message":"FormData file","data":{"hasFile":true,"isFile":true,"type":"image/jpeg","size":419872,"hypothesisId":"H2"},"timestamp":1770839613814}
+{"location":"api/messages/images/upload/route.ts","message":"Before Blob put","data":{"pathname":"messages/967862eb-cdca-403e-b2a9-779ae6c6173f/1770839613815-cln94mj2.jpg","bufferLen":419872,"hasBlobToken":true,"hypothesisId":"H3"},"timestamp":1770839613815}
+{"location":"MessageInput.tsx:afterUploadFetch","message":"Upload response","data":{"status":200,"ok":true,"hasUrl":true,"index":0},"timestamp":1770839614885,"hypothesisId":"H5"}

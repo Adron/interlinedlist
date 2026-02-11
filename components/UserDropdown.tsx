@@ -104,14 +104,18 @@ export default function UserDropdown({ user }: UserDropdownProps) {
         <h6 className="dropdown-header">Welcome!</h6>
 
         {/* Settings */}
-        <Link 
-          className="dropdown-item" 
+        <a
+          className="dropdown-item"
           href="/settings"
-          onClick={() => setIsOpen(false)}
+          onClick={(e) => {
+            e.preventDefault();
+            setIsOpen(false);
+            router.push('/settings');
+          }}
         >
           <i className="bx bx-cog align-middle me-2" style={{ fontSize: '18px' }}></i>
           <span className="align-middle">Settings</span>
-        </Link>
+        </a>
 
         {/* My Organizations */}
         <Link 

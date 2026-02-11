@@ -85,6 +85,8 @@ export interface Message {
   content: string;
   publiclyVisible: boolean;
   linkMetadata?: LinkMetadata | null;
+  imageUrls?: string[] | null;
+  videoUrls?: string[] | null;
   createdAt: string; // ISO string for client components
   updatedAt?: string; // ISO string, optional
   user: MessageUser;
