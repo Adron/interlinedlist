@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
+import { createPortal } from "react-dom";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { formatDateForInput, parseDateFromInput } from "@/lib/lists/date-utils";
@@ -36,6 +37,7 @@ export default function DatePickerField({
 }: DatePickerFieldProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [tempValue, setTempValue] = useState<Date | null>(null);
+  const [popupRect, setPopupRect] = useState<{ top: number; left: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Convert value to Date object for DatePicker
@@ -58,6 +60,17 @@ export default function DatePickerField({
       setTempValue(null);
     }
   }, [isOpen, dateValue]);
+
+  // Position popup for portal: below input, left-aligned; run when open so we overlay table
+  useLayoutEffect(() => {
+    if (!isOpen || !inputRef.current || typeof document === "undefined") {
+      setPopupRect(null);
+      return;
+    }
+    const el = inputRef.current;
+    const rect = el.getBoundingClientRect();
+    setPopupRect({ top: rect.bottom + 4, left: rect.left });
+  }, [isOpen]);
 
   const handleDateChange = (date: Date | null) => {
     setTempValue(date);
@@ -142,6 +155,49 @@ export default function DatePickerField({
   const dateFormat = type === "date" ? "yyyy-MM-dd" : "yyyy-MM-dd HH:mm";
   const timeIntervals = type === "datetime" ? 15 : undefined;
 
+  const popupContent = isOpen && popupRect && (
+    <div
+      className={`date-picker-popup ${type === "datetime" ? "date-picker-popup-datetime" : ""}`}
+      style={{
+        position: "fixed",
+        top: popupRect.top,
+        left: popupRect.left,
+        zIndex: 1060,
+      }}
+    >
+      <div className="date-picker-content">
+        <DatePicker
+          selected={tempValue}
+          onChange={handleDateChange}
+          showTimeSelect={type === "datetime"}
+          timeIntervals={timeIntervals}
+          timeFormat="HH:mm"
+          dateFormat={dateFormat}
+          minDate={parsedMinDate}
+          maxDate={parsedMaxDate}
+          inline
+          calendarClassName="date-picker-calendar"
+        />
+      </div>
+      <div className="date-picker-footer">
+        <button
+          type="button"
+          className="btn btn-sm btn-secondary"
+          onClick={handleCancel}
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          className="btn btn-sm btn-primary"
+          onClick={handleDone}
+        >
+          Done
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="date-picker-wrapper" style={{ position: "relative" }}>
       <input
@@ -158,38 +214,9 @@ export default function DatePickerField({
         required={required}
         autoFocus={autoFocus}
       />
-      {isOpen && (
-        <div className="date-picker-popup">
-          <DatePicker
-            selected={tempValue}
-            onChange={handleDateChange}
-            showTimeSelect={type === "datetime"}
-            timeIntervals={timeIntervals}
-            timeFormat="HH:mm"
-            dateFormat={dateFormat}
-            minDate={parsedMinDate}
-            maxDate={parsedMaxDate}
-            inline
-            calendarClassName="date-picker-calendar"
-          />
-          <div className="date-picker-footer">
-            <button
-              type="button"
-              className="btn btn-sm btn-secondary"
-              onClick={handleCancel}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="btn btn-sm btn-primary"
-              onClick={handleDone}
-            >
-              Done
-            </button>
-          </div>
-        </div>
-      )}
+      {typeof document !== "undefined" && popupContent
+        ? createPortal(popupContent, document.body)
+        : null}
     </div>
   );
 }
