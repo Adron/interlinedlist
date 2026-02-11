@@ -789,6 +789,16 @@ export default function MessageTable({
                           ))}
                         </div>
                       )}
+                      {message.videoUrls && Array.isArray(message.videoUrls) && message.videoUrls.length > 0 && (
+                        <div className="mt-1">
+                          <video
+                            src={message.videoUrls[0]}
+                            controls
+                            style={{ maxWidth: 200, maxHeight: 120, borderRadius: 4 }}
+                            preload="metadata"
+                          />
+                        </div>
+                      )}
                       {/* Render link previews for all detected links (if showPreviews is enabled) */}
                       {localShowPreviews && (() => {
                         // Detect all links in the message

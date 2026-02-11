@@ -22,9 +22,15 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [showVideoModal, setShowVideoModal] = useState(false);
+  const [videoUrls, setVideoUrls] = useState<string[]>([]);
+  const [pendingVideoFile, setPendingVideoFile] = useState<File | null>(null);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const imageUrlsWhenModalOpenedRef = useRef<string[]>([]);
+  const videoUrlsWhenModalOpenedRef = useRef<string[]>([]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -71,6 +77,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
           content: content.trim(),
           publiclyVisible,
           ...(imageUrls.length > 0 && { imageUrls }),
+          ...(videoUrls.length > 0 && { videoUrls }),
         }),
       });
 
@@ -82,11 +89,13 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
         return;
       }
 
-      // Clear form and attached images
+      // Clear form and attached images/videos
       setContent('');
       setPubliclyVisible(defaultPubliclyVisible);
       setImageUrls([]);
       setPendingFiles([]);
+      setVideoUrls([]);
+      setPendingVideoFile(null);
       setError('');
       setLoading(false); // Reset loading state so button is enabled for next post
       
@@ -242,16 +251,22 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                     <button
                       type="button"
                       className="btn btn-sm btn-link p-1 text-muted"
-                      disabled
                       aria-label="Video"
                       style={{ 
                         border: 'none',
                         lineHeight: 1,
                         minWidth: 'auto',
                       }}
-                      title="Video"
+                      title="Add video (1 video, 3 MB or less)"
+                      onClick={() => {
+                        videoUrlsWhenModalOpenedRef.current = [...videoUrls];
+                        setShowVideoModal(true);
+                      }}
                     >
                       <i className="bx bx-video" style={{ fontSize: '1.1rem' }}></i>
+                      {videoUrls.length > 0 && (
+                        <span className="ms-1 small">(1)</span>
+                      )}
                     </button>
                     <button
                       type="button"
@@ -302,6 +317,12 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
           {imageUrls.length > 0 && (
             <div className="mb-2 d-flex flex-wrap gap-1 align-items-center">
               <small className="text-muted">Attached: {imageUrls.length} image(s)</small>
+            </div>
+          )}
+
+          {videoUrls.length > 0 && (
+            <div className="mb-2 d-flex flex-wrap gap-1 align-items-center">
+              <small className="text-muted">Attached: 1 video</small>
             </div>
           )}
 
@@ -418,6 +439,105 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                       }}
                     >
                       {uploadingImages ? 'Uploading...' : 'Upload'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Video picker modal */}
+          {showVideoModal && (
+            <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} role="dialog">
+              <div className="modal-dialog modal-dialog-centered">
+                <div className="modal-content">
+                  <div className="modal-header">
+                    <h5 className="modal-title">Add video</h5>
+                    <button type="button" className="btn-close" aria-label="Close" onClick={() => setShowVideoModal(false)} />
+                  </div>
+                  <div className="modal-body">
+                    <p className="small text-muted mb-2">1 video, 3 MB or less.</p>
+                    <input
+                      ref={videoInputRef}
+                      type="file"
+                      accept="video/*"
+                      className="form-control form-control-sm mb-3"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        setPendingVideoFile(f ?? null);
+                        e.target.value = '';
+                      }}
+                    />
+                    {pendingVideoFile && (
+                      <div className="mb-2">
+                        <small className="text-muted d-block mb-1">Selected</small>
+                        <span className="badge bg-secondary d-inline-flex align-items-center gap-1">
+                          {pendingVideoFile.name}
+                          <button
+                            type="button"
+                            className="btn-close btn-close-white"
+                            style={{ fontSize: '0.6rem' }}
+                            aria-label="Remove"
+                            onClick={() => setPendingVideoFile(null)}
+                          />
+                        </span>
+                      </div>
+                    )}
+                    {videoUrls.length > 0 && (
+                      <div className="mb-2">
+                        <small className="text-muted d-block mb-1">Uploaded</small>
+                        <div className="d-flex flex-wrap gap-1 align-items-center">
+                          <span className="small">1 video</span>
+                          <button
+                            type="button"
+                            className="btn btn-close btn-sm"
+                            aria-label="Remove"
+                            onClick={() => setVideoUrls([])}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="modal-footer">
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowVideoModal(false)}>
+                      Done
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary btn-sm"
+                      onClick={() => {
+                        setVideoUrls([...videoUrlsWhenModalOpenedRef.current]);
+                        setPendingVideoFile(null);
+                        setShowVideoModal(false);
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      disabled={!pendingVideoFile || uploadingVideo || videoUrls.length >= 1}
+                      onClick={async () => {
+                        if (!pendingVideoFile) return;
+                        setUploadingVideo(true);
+                        try {
+                          const fd = new FormData();
+                          fd.append('file', pendingVideoFile);
+                          const res = await fetch('/api/messages/videos/upload', { method: 'POST', body: fd });
+                          const data = await res.json();
+                          if (res.ok && data.url) {
+                            setVideoUrls([data.url]);
+                            setPendingVideoFile(null);
+                          } else {
+                            setError(data.error || 'Failed to upload video');
+                          }
+                        } catch {
+                          setError('Failed to upload video');
+                        }
+                        setUploadingVideo(false);
+                      }}
+                    >
+                      {uploadingVideo ? 'Uploading...' : 'Upload'}
                     </button>
                   </div>
                 </div>

@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { content, publiclyVisible, imageUrls } = body;
+    const { content, publiclyVisible, imageUrls, videoUrls } = body;
 
     // Validate content
     if (!content || typeof content !== 'string' || content.trim().length === 0) {
@@ -72,6 +72,22 @@ export async function POST(request: NextRequest) {
       finalImageUrls = urls.length > 0 ? urls : undefined;
     }
 
+    // Validate videoUrls if provided (0 or 1 URL)
+    let finalVideoUrls: string[] | undefined;
+    if (videoUrls !== undefined && videoUrls !== null) {
+      if (!Array.isArray(videoUrls)) {
+        return NextResponse.json({ error: 'videoUrls must be an array' }, { status: 400 });
+      }
+      if (videoUrls.length > 1) {
+        return NextResponse.json({ error: 'At most 1 video per message' }, { status: 400 });
+      }
+      const urls = videoUrls.filter((u: unknown) => typeof u === 'string' && u.length > 0);
+      if (urls.length !== videoUrls.length) {
+        return NextResponse.json({ error: 'Each videoUrl must be a non-empty string' }, { status: 400 });
+      }
+      finalVideoUrls = urls.length > 0 ? urls : undefined;
+    }
+
     // Create message
     const message = await prisma.message.create({
       data: {
@@ -79,6 +95,7 @@ export async function POST(request: NextRequest) {
         publiclyVisible: finalPubliclyVisible,
         userId: user.id,
         ...(finalImageUrls !== undefined && { imageUrls: finalImageUrls }),
+        ...(finalVideoUrls !== undefined && { videoUrls: finalVideoUrls }),
       },
       include: {
         user: {

@@ -220,6 +220,18 @@ export default function MessageCard({
                 ))}
               </div>
             )}
+
+            {/* Message video */}
+            {message.videoUrls && Array.isArray(message.videoUrls) && message.videoUrls.length > 0 && (
+              <div className="mt-2">
+                <video
+                  src={message.videoUrls[0]}
+                  controls
+                  style={{ maxWidth: '100%', maxHeight: 320, borderRadius: 6 }}
+                  preload="metadata"
+                />
+              </div>
+            )}
             
             {/* Render link previews for all detected links (if showPreviews is enabled) */}
             {showPreviews && (() => {

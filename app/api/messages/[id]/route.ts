@@ -100,7 +100,7 @@ export async function DELETE(
     // Find the message and verify ownership
     const message = await prisma.message.findUnique({
       where: { id: messageId },
-      select: { userId: true, imageUrls: true },
+      select: { userId: true, imageUrls: true, videoUrls: true },
     });
 
     if (!message) {
@@ -118,10 +118,16 @@ export async function DELETE(
     }
 
     // Delete blob assets if present
-    const urls = message.imageUrls as string[] | null;
-    if (Array.isArray(urls) && urls.length > 0) {
+    const imageUrls = message.imageUrls as string[] | null;
+    if (Array.isArray(imageUrls) && imageUrls.length > 0) {
       await Promise.all(
-        urls.map((url) => del(url).catch(() => {}))
+        imageUrls.map((url) => del(url).catch(() => {}))
+      );
+    }
+    const videoUrls = message.videoUrls as string[] | null;
+    if (Array.isArray(videoUrls) && videoUrls.length > 0) {
+      await Promise.all(
+        videoUrls.map((url) => del(url).catch(() => {}))
       );
     }
 
