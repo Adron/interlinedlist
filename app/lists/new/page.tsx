@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
+import ListBreadcrumbs from '@/components/lists/ListBreadcrumbs';
 import CreateListForm from './CreateListForm';
 
 export default async function NewListPage() {
@@ -9,8 +10,14 @@ export default async function NewListPage() {
     redirect('/login');
   }
 
+  const breadcrumbItems = [
+    { label: 'Lists', href: '/lists' },
+    { label: 'New List' },
+  ];
+
   return (
     <div className="container-fluid container-fluid-max py-4">
+      <ListBreadcrumbs items={breadcrumbItems} />
       <div className="row">
         <div className="col-12">
           <div className="card">

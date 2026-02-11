@@ -2,6 +2,7 @@ import { redirect, notFound } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
 import { getListById, getListProperties } from '@/lib/lists/queries';
 import Link from 'next/link';
+import ListBreadcrumbs from '@/components/lists/ListBreadcrumbs';
 import ListDataTable from '@/components/lists/ListDataTable';
 import EditSchemaForm from './EditSchemaForm';
 import AddRowForm from './AddRowForm';
@@ -33,8 +34,18 @@ export default async function ListDetailPage({ params, searchParams }: ListDetai
   const isEditMode = searchParams.edit === 'true';
   const isAddMode = searchParams.add === 'true';
 
+  const breadcrumbItems = [
+    { label: 'Lists', href: '/lists' },
+    ...(isEditMode || isAddMode
+      ? [{ label: list.title, href: `/lists/${params.id}` }]
+      : [{ label: list.title }]),
+    ...(isEditMode ? [{ label: 'Edit Schema' }] : []),
+    ...(isAddMode ? [{ label: 'Add Row' }] : []),
+  ];
+
   return (
     <div className="container-fluid container-fluid-max py-4">
+      <ListBreadcrumbs items={breadcrumbItems} />
       <div className="row mb-4">
         <div className="col-12 d-flex justify-content-end">
           <div className="d-flex gap-2">

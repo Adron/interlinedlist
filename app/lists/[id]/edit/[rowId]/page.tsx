@@ -1,7 +1,8 @@
 import { redirect, notFound } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
-import { getListProperties, getListDataRowById } from '@/lib/lists/queries';
+import { getListById, getListProperties, getListDataRowById } from '@/lib/lists/queries';
 import Link from 'next/link';
+import ListBreadcrumbs from '@/components/lists/ListBreadcrumbs';
 import EditRowForm from './EditRowForm';
 
 interface EditRowPageProps {
@@ -17,15 +18,17 @@ export default async function EditRowPage({ params }: EditRowPageProps) {
 
   const { id: listId, rowId } = params;
 
-  // Fetch list properties
-  const properties = await getListProperties(listId, user.id);
+  const [list, properties, row] = await Promise.all([
+    getListById(listId, user.id),
+    getListProperties(listId, user.id),
+    getListDataRowById(rowId, listId, user.id),
+  ]);
 
-  if (!properties) {
+  if (!list || !properties) {
     notFound();
   }
 
-  // Fetch row data
-  const row = await getListDataRowById(rowId, listId, user.id);
+  // Fetch row data (row may be null and we notFound below)
 
   if (!row) {
     notFound();
@@ -39,8 +42,15 @@ export default async function EditRowPage({ params }: EditRowPageProps) {
       ? (row.rowData as Record<string, any>)
       : {};
 
+  const breadcrumbItems = [
+    { label: 'Lists', href: '/lists' },
+    { label: list.title, href: `/lists/${listId}` },
+    { label: 'Edit Row' },
+  ];
+
   return (
     <div className="container-fluid container-fluid-max py-4">
+      <ListBreadcrumbs items={breadcrumbItems} />
       <div className="row mb-4">
         <div className="col-12 d-flex justify-content-between align-items-center">
           <h1 className="h3 mb-0">Edit Row</h1>
