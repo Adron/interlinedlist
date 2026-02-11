@@ -184,6 +184,10 @@ export async function getListById(listId: string, userId: string) {
           title: true,
         },
       },
+      children: {
+        where: { deletedAt: null },
+        select: { id: true, title: true },
+      },
       properties: {
         orderBy: {
           displayOrder: "asc",
@@ -191,6 +195,38 @@ export async function getListById(listId: string, userId: string) {
       },
     },
   });
+}
+
+/**
+ * Gets a list by ID with its full ancestor chain (root to direct parent).
+ * Use for breadcrumbs: ancestors are ordered from root first to direct parent last.
+ */
+export async function getListWithAncestorChain(listId: string, userId: string): Promise<{
+  list: Awaited<ReturnType<typeof getListById>>;
+  ancestors: { id: string; title: string }[];
+} | null> {
+  const list = await getListById(listId, userId);
+  if (!list) return null;
+
+  const ancestors: { id: string; title: string }[] = [];
+  let currentId: string | null = list.parentId;
+
+  while (currentId) {
+    const parent = await prisma.list.findFirst({
+      where: {
+        id: currentId,
+        userId,
+        deletedAt: null,
+      },
+      select: { id: true, title: true, parentId: true },
+    });
+    if (!parent) break;
+    ancestors.push({ id: parent.id, title: parent.title });
+    currentId = parent.parentId;
+  }
+
+  ancestors.reverse();
+  return { list, ancestors };
 }
 
 /**

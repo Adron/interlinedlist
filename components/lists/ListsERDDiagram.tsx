@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation';
 import ReactFlow, {
   Background,
   Controls,
+  Handle,
   MiniMap,
   Node,
   Edge,
+  Position,
   useNodesState,
   useEdgesState,
   NodeTypes,
@@ -34,6 +36,8 @@ interface ListERDNodeData {
   label: string;
   fields: { name: string; type: string; isPrimaryKey?: boolean; isForeignKey?: boolean }[];
   listId: string;
+  hasParentId?: boolean;
+  hasChildren?: boolean;
 }
 
 interface ListsERDDiagramProps {
@@ -60,6 +64,12 @@ function ListTableNode({ data }: { data: ListERDNodeData }) {
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
       }}
     >
+      {data.hasParentId && (
+        <Handle type="target" position={Position.Top} id="parentId" />
+      )}
+      {data.hasChildren && (
+        <Handle type="source" position={Position.Bottom} id="id" />
+      )}
       <div
         style={{
           background: '#3b82f6',
@@ -115,6 +125,8 @@ const listNodeTypes: NodeTypes = {
 };
 
 function buildNodesAndEdges(lists: ListForERD[]): { nodes: Node<ListERDNodeData>[]; edges: Edge[] } {
+  const parentIds = new Set(lists.map((l) => l.parentId).filter(Boolean) as string[]);
+
   const nodes: Node<ListERDNodeData>[] = lists.map((list) => {
     const fields: ListERDNodeData['fields'] = [
       { name: 'id', type: 'String', isPrimaryKey: true },
@@ -134,6 +146,8 @@ function buildNodesAndEdges(lists: ListForERD[]): { nodes: Node<ListERDNodeData>
         label: list.title,
         fields,
         listId: list.id,
+        hasParentId: !!list.parentId,
+        hasChildren: parentIds.has(list.id),
       },
       width: 220,
       height: 150,
@@ -144,16 +158,22 @@ function buildNodesAndEdges(lists: ListForERD[]): { nodes: Node<ListERDNodeData>
   const edges: Edge[] = [];
   lists.forEach((list) => {
     if (list.parentId) {
-      const edgeId = `parent-${list.parentId}-${list.id}`;
+      const edgeId = `parentId-${list.parentId}-${list.id}`;
       if (!edgeSet.has(edgeId)) {
         edgeSet.add(edgeId);
         edges.push({
           id: edgeId,
           source: list.parentId,
           target: list.id,
+          sourceHandle: 'id',
+          targetHandle: 'parentId',
           type: 'smoothstep',
-          label: 'parent',
-          style: { stroke: '#3b82f6', strokeWidth: 2 },
+          label: 'parentId',
+          style: {
+            stroke: '#2563eb',
+            strokeWidth: 2,
+            strokeDasharray: '5 5',
+          },
           markerEnd: { type: 'arrowclosed' as const },
         });
       }
