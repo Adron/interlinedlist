@@ -1,9 +1,7 @@
 import { redirect, notFound } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
-import { getListWithAncestorChain, getListProperties } from '@/lib/lists/queries';
+import { getListById, getListProperties } from '@/lib/lists/queries';
 import Link from 'next/link';
-import ListBreadcrumbs from '@/components/lists/ListBreadcrumbs';
-import ListChildLinks from '@/components/lists/ListChildLinks';
 import ListDataTable from '@/components/lists/ListDataTable';
 import EditSchemaForm from './EditSchemaForm';
 import AddRowForm from './AddRowForm';
@@ -20,13 +18,12 @@ export default async function ListDetailPage({ params, searchParams }: ListDetai
     redirect('/login');
   }
 
-  const result = await getListWithAncestorChain(params.id, user.id);
+  const list = await getListById(params.id, user.id);
 
-  if (!result || !result.list) {
+  if (!list) {
     notFound();
   }
 
-  const { list, ancestors } = result;
   const properties = await getListProperties(params.id, user.id);
 
   if (!properties) {
@@ -36,22 +33,8 @@ export default async function ListDetailPage({ params, searchParams }: ListDetai
   const isEditMode = searchParams.edit === 'true';
   const isAddMode = searchParams.add === 'true';
 
-  const breadcrumbItems = [
-    { label: 'Lists', href: '/lists' },
-    ...ancestors.map((a) => ({ label: a.title, href: `/lists/${a.id}` })),
-    ...(isEditMode || isAddMode
-      ? [{ label: list.title, href: `/lists/${params.id}` }]
-      : [{ label: list.title }]),
-    ...(isEditMode ? [{ label: 'Edit Schema' }] : []),
-    ...(isAddMode ? [{ label: 'Add Row' }] : []),
-  ];
-
   return (
     <div className="container-fluid container-fluid-max py-4">
-      <ListBreadcrumbs items={breadcrumbItems} />
-      {list.children && list.children.length > 0 && (
-        <ListChildLinks children={list.children} />
-      )}
       <div className="row mb-4">
         <div className="col-12 d-flex justify-content-end">
           <div className="d-flex gap-2">

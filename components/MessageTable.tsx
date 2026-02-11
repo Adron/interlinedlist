@@ -776,6 +776,19 @@ export default function MessageTable({
                           ? linkifyText(message.content.substring(0, 100) + '...')
                           : linkifyText(message.content)}
                       </div>
+                      {message.imageUrls && Array.isArray(message.imageUrls) && message.imageUrls.length > 0 && (
+                        <div className="d-flex flex-wrap gap-1 mt-1">
+                          {message.imageUrls.map((url: string, i: number) => (
+                            <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="d-block">
+                              <img
+                                src={url}
+                                alt=""
+                                style={{ maxWidth: 64, maxHeight: 64, objectFit: 'cover', borderRadius: 4 }}
+                              />
+                            </a>
+                          ))}
+                        </div>
+                      )}
                       {/* Render link previews for all detected links (if showPreviews is enabled) */}
                       {localShowPreviews && (() => {
                         // Detect all links in the message

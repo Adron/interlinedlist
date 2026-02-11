@@ -48,6 +48,16 @@ export default function ProfileSettings({ user }: ProfileSettingsProps) {
     message: string;
   }>({ status: 'idle', message: '' });
   const [validatedAvatarUrl, setValidatedAvatarUrl] = useState<string | null>(user.avatar);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uploadPreviewUrl, setUploadPreviewUrl] = useState<string | null>(null);
+  const MAX_AVATAR_MB = 1.4;
+  const MAX_AVATAR_BYTES = MAX_AVATAR_MB * 1024 * 1024;
+
+  useEffect(() => {
+    return () => {
+      if (uploadPreviewUrl) URL.revokeObjectURL(uploadPreviewUrl);
+    };
+  }, [uploadPreviewUrl]);
 
   // Apply theme immediately when changed
   useEffect(() => {
@@ -114,11 +124,34 @@ export default function ProfileSettings({ user }: ProfileSettingsProps) {
     setAvatarValidation({ status: 'idle', message: '' });
     setLoading(true);
 
-    if (formData.avatar && formData.avatar.trim() !== '') {
+    let avatarUrlToSave: string | null = null;
+
+    if (uploadedFile) {
+      if (uploadedFile.size > MAX_AVATAR_BYTES) {
+        setError(`Uploaded image must be ${MAX_AVATAR_MB} MB or smaller.`);
+        setLoading(false);
+        return;
+      }
+      try {
+        const fd = new FormData();
+        fd.append('file', uploadedFile);
+        const uploadRes = await fetch('/api/user/avatar/upload', { method: 'POST', body: fd });
+        const uploadData = await uploadRes.json();
+        if (!uploadRes.ok) {
+          setError(uploadData.error || 'Avatar upload failed.');
+          setLoading(false);
+          return;
+        }
+        avatarUrlToSave = uploadData.url;
+        setUploadedFile(null);
+      } catch {
+        setError('Avatar upload failed.');
+        setLoading(false);
+        return;
+      }
+    } else if (formData.avatar && formData.avatar.trim() !== '') {
       setAvatarValidation({ status: 'validating', message: 'Validating avatar URL...' });
-      
       const isValid = await validateAvatarUrl(formData.avatar);
-      
       if (!isValid) {
         setAvatarValidation({
           status: 'invalid',
@@ -128,23 +161,44 @@ export default function ProfileSettings({ user }: ProfileSettingsProps) {
         setLoading(false);
         return;
       }
-      
-      setAvatarValidation({
-        status: 'valid',
-        message: 'Avatar URL validated successfully!',
-      });
-      setValidatedAvatarUrl(formData.avatar);
+      setAvatarValidation({ status: 'validating', message: 'Saving avatar to storage...' });
+      try {
+        const fromUrlRes = await fetch('/api/user/avatar/from-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: formData.avatar.trim() }),
+        });
+        const fromUrlData = await fromUrlRes.json();
+        if (!fromUrlRes.ok) {
+          setError(fromUrlData.error || 'Failed to save avatar from URL.');
+          setAvatarValidation({ status: 'idle', message: '' });
+          setLoading(false);
+          return;
+        }
+        avatarUrlToSave = fromUrlData.url;
+        setAvatarValidation({ status: 'valid', message: 'Avatar URL saved to your storage.' });
+        setValidatedAvatarUrl(avatarUrlToSave);
+      } catch {
+        setError('Failed to save avatar from URL.');
+        setAvatarValidation({ status: 'idle', message: '' });
+        setLoading(false);
+        return;
+      }
     } else {
       setValidatedAvatarUrl(null);
     }
 
     try {
+      const payload = {
+        ...formData,
+        ...(avatarUrlToSave !== null ? { avatar: avatarUrlToSave } : {}),
+      };
       const response = await fetch('/api/user/update', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -164,6 +218,7 @@ export default function ProfileSettings({ user }: ProfileSettingsProps) {
           theme: data.user.theme || 'system',
           maxMessageLength: data.user.maxMessageLength || 666,
         });
+        setValidatedAvatarUrl(data.user.avatar || null);
       }
 
       // Sync theme to localStorage if theme was updated
@@ -342,6 +397,67 @@ export default function ProfileSettings({ user }: ProfileSettingsProps) {
                     {formData.avatar === validatedAvatarUrl ? 'Current avatar' : 'Previous avatar'}
                   </small>
                 </div>
+              </div>
+            )}
+            <div className="form-text mb-2">
+              Or upload an image below (max {MAX_AVATAR_MB} MB). Images from URL are saved to your storage and resized if over {MAX_AVATAR_MB} MB.
+            </div>
+          </div>
+
+          <div className="mb-3">
+            <label htmlFor="avatarUpload" className="form-label">
+              Upload avatar image
+            </label>
+            <input
+              id="avatarUpload"
+              type="file"
+              className="form-control"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (uploadPreviewUrl) {
+                  URL.revokeObjectURL(uploadPreviewUrl);
+                  setUploadPreviewUrl(null);
+                }
+                if (file) {
+                  if (file.size > MAX_AVATAR_BYTES) {
+                    setError(`File must be ${MAX_AVATAR_MB} MB or smaller.`);
+                    e.target.value = '';
+                    return;
+                  }
+                  setError('');
+                  setUploadedFile(file);
+                  setUploadPreviewUrl(URL.createObjectURL(file));
+                } else {
+                  setUploadedFile(null);
+                  setUploadPreviewUrl(null);
+                }
+              }}
+            />
+            <div className="form-text">
+              Max {MAX_AVATAR_MB} MB. JPEG, PNG, or WebP. Image will be resized if needed.
+            </div>
+            {uploadedFile && uploadPreviewUrl && (
+              <div className="mt-2 d-flex align-items-center gap-2">
+                <Avatar
+                  src={uploadPreviewUrl}
+                  alt="Preview"
+                  size={48}
+                />
+                <small className="text-muted">{uploadedFile.name}</small>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary"
+                  onClick={() => {
+                    if (uploadPreviewUrl) URL.revokeObjectURL(uploadPreviewUrl);
+                    setUploadPreviewUrl(null);
+                    setUploadedFile(null);
+                    const el = document.getElementById('avatarUpload') as HTMLInputElement;
+                    if (el) el.value = '';
+                  }}
+                >
+                  Remove
+                </button>
               </div>
             )}
           </div>

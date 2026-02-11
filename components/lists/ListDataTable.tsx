@@ -2,12 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import type { KeyboardEvent } from "react";
-import Link from "next/link";
 import { ParsedField, FormData } from "@/lib/lists/dsl-types";
 import { validateFormData } from "@/lib/lists/dsl-validator";
-import { parseFieldValue, getFieldComponent, getInitialFormData, getVisibleFieldsForForm, formatFieldValue } from "@/lib/lists/form-generator";
-import DatePickerField from "./DatePickerField";
-import { parseDateFromInput } from "@/lib/lists/date-utils";
+import { parseFieldValue, getFieldComponent } from "@/lib/lists/form-generator";
 
 interface ListDataRow {
   id: string;
@@ -46,29 +43,15 @@ export default function ListDataTable({
   const [editingCell, setEditingCell] = useState<{ rowId: string; fieldKey: string } | null>(null);
   const [editingData, setEditingData] = useState<Record<string, any>>({});
   
-  // Empty row state - initialize with default values
-  const sortedFields = [...fields].sort((a, b) => a.displayOrder - b.displayOrder);
-  const [newRowData, setNewRowData] = useState<Record<string, any>>(() => {
-    const sorted = [...fields].sort((a, b) => a.displayOrder - b.displayOrder);
-    return getInitialFormData(sorted);
-  });
+  // Empty row state
+  const [newRowData, setNewRowData] = useState<Record<string, any>>({});
   const [newRowErrors, setNewRowErrors] = useState<Record<string, string>>({});
   const [isSavingNewRow, setIsSavingNewRow] = useState(false);
   
   // Refs for focus management
   const newRowInputRefs = useRef<Record<string, HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>>({});
 
-  // Calculate visible fields count to determine if inline form should be enabled
-  const visibleFields = getVisibleFieldsForForm(sortedFields, newRowData);
-  const visibleFieldsCount = visibleFields.length;
-  const isInlineFormEnabled = visibleFieldsCount <= 3;
-
-  // Update newRowData when fields change
-  useEffect(() => {
-    const sorted = [...fields].sort((a, b) => a.displayOrder - b.displayOrder);
-    setNewRowData(getInitialFormData(sorted));
-  }, [fields]);
-
+  const sortedFields = [...fields].sort((a, b) => a.displayOrder - b.displayOrder);
 
   const fetchData = async () => {
     setLoading(true);
@@ -157,17 +140,8 @@ export default function ListDataTable({
     const row = rows.find((r) => r.id === rowId);
     if (!row) return;
     
-    const field = sortedFields.find((f) => f.propertyKey === fieldKey);
-    const rawValue = row.rowData[fieldKey];
-    
-    // For date/datetime fields, format to ISO string for editing
-    let formattedValue = rawValue;
-    if (field && (field.propertyType === "date" || field.propertyType === "datetime")) {
-      formattedValue = formatFieldValue(field, rawValue);
-    }
-    
     setEditingCell({ rowId, fieldKey });
-    setEditingData({ [fieldKey]: formattedValue ?? "" });
+    setEditingData({ [fieldKey]: row.rowData[fieldKey] ?? "" });
   };
 
   const handleCellChange = (fieldKey: string, value: any) => {
@@ -181,23 +155,7 @@ export default function ListDataTable({
     if (!row) return;
 
     // Merge editing data with existing row data
-    // Convert ISO string dates to Date objects for date/datetime fields
-    const updatedData = { ...row.rowData };
-    Object.keys(editingData).forEach((fieldKey) => {
-      const field = sortedFields.find((f) => f.propertyKey === fieldKey);
-      const value = editingData[fieldKey];
-      
-      if (field && (field.propertyType === "date" || field.propertyType === "datetime")) {
-        // Convert ISO string to Date object
-        if (typeof value === "string" && value.trim() !== "") {
-          updatedData[fieldKey] = parseDateFromInput(value, field.propertyType);
-        } else {
-          updatedData[fieldKey] = null;
-        }
-      } else {
-        updatedData[fieldKey] = value;
-      }
-    });
+    const updatedData = { ...row.rowData, ...editingData };
     
     // Validate
     const validation = validateFormData(sortedFields, updatedData);
@@ -243,23 +201,8 @@ export default function ListDataTable({
     const field = sortedFields.find((f) => f.propertyKey === fieldKey);
     if (!field) return;
 
-    // For date/datetime fields, keep as ISO string (don't parse to Date yet)
-    let processedValue = value;
-    if (field.propertyType === "date" || field.propertyType === "datetime") {
-      // Keep as string if it's already a string, otherwise format it
-      if (typeof value === "string") {
-        processedValue = value;
-      } else if (value instanceof Date) {
-        processedValue = formatFieldValue(field, value);
-      } else {
-        processedValue = value;
-      }
-    } else {
-      const parsed = parseFieldValue(field, value);
-      processedValue = parsed;
-    }
-    
-    setNewRowData((prev) => ({ ...prev, [fieldKey]: processedValue }));
+    const parsed = parseFieldValue(field, value);
+    setNewRowData((prev) => ({ ...prev, [fieldKey]: parsed }));
     
     // Clear error for this field
     setNewRowErrors((prev) => {
@@ -282,21 +225,8 @@ export default function ListDataTable({
     setNewRowErrors({});
     setError("");
 
-    // Convert ISO string dates to Date objects for validation and saving
-    const dataToSave = { ...newRowData };
-    sortedFields.forEach((field) => {
-      if (field.propertyType === "date" || field.propertyType === "datetime") {
-        const value = dataToSave[field.propertyKey];
-        if (typeof value === "string" && value.trim() !== "") {
-          dataToSave[field.propertyKey] = parseDateFromInput(value, field.propertyType);
-        } else if (!value) {
-          dataToSave[field.propertyKey] = null;
-        }
-      }
-    });
-
     // Validate
-    const validation = validateFormData(sortedFields, dataToSave);
+    const validation = validateFormData(sortedFields, newRowData);
     if (!validation.isValid) {
       const errorMap: Record<string, string> = {};
       validation.errors.forEach((error) => {
@@ -320,7 +250,7 @@ export default function ListDataTable({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ data: dataToSave }),
+        body: JSON.stringify({ data: newRowData }),
       });
 
       if (!response.ok) {
@@ -329,7 +259,7 @@ export default function ListDataTable({
       }
 
       // Clear empty row and refresh
-      setNewRowData(getInitialFormData(sortedFields));
+      setNewRowData({});
       setNewRowErrors({});
       fetchData();
       
@@ -349,7 +279,7 @@ export default function ListDataTable({
   };
 
   const handleCancelNewRow = () => {
-    setNewRowData(getInitialFormData(sortedFields));
+    setNewRowData({});
     setNewRowErrors({});
   };
 
@@ -436,22 +366,6 @@ export default function ListDataTable({
             />
           </td>
         );
-      } else if (field.propertyType === "date" || field.propertyType === "datetime") {
-        // Use DatePickerField for date/datetime fields
-        return (
-          <td key={field.propertyKey} className="p-1">
-            <DatePickerField
-              value={value}
-              onChange={(isoString) => handleCellChange(field.propertyKey, isoString)}
-              type={field.propertyType}
-              minDate={field.validationRules?.min}
-              maxDate={field.validationRules?.max}
-              placeholder={field.placeholder ?? undefined}
-              onBlur={() => handleSaveRow(row.id)}
-              autoFocus
-            />
-          </td>
-        );
       } else if (fieldComponent.type === "input") {
         return (
           <td key={field.propertyKey} className="p-1">
@@ -479,57 +393,6 @@ export default function ListDataTable({
           </td>
         );
       } else if (fieldComponent.type === "select") {
-        // Handle multiselect differently from single select
-        if (field.propertyType === "multiselect") {
-          const arrayValue = Array.isArray(value) ? value : [];
-          const options = fieldComponent.props.options || [];
-          
-          return (
-            <td key={field.propertyKey} className="p-1">
-              <div className="multiselect-checkboxes" style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid #dee2e6', borderRadius: '0.25rem', padding: '0.25rem' }}>
-                {options.map((option: string) => {
-                  const isChecked = arrayValue.includes(option);
-                  return (
-                    <div key={option} className="form-check form-check-sm">
-                      <input
-                        className="form-check-input"
-                        type="checkbox"
-                        id={`edit-${row.id}-${field.propertyKey}-${option}`}
-                        checked={isChecked}
-                        onChange={(e) => {
-                          const currentArray = Array.isArray(value) ? [...value] : [];
-                          if (e.target.checked) {
-                            if (!currentArray.includes(option)) {
-                              currentArray.push(option);
-                            }
-                          } else {
-                            const index = currentArray.indexOf(option);
-                            if (index > -1) {
-                              currentArray.splice(index, 1);
-                            }
-                          }
-                          handleCellChange(field.propertyKey, currentArray);
-                        }}
-                        onBlur={() => handleSaveRow(row.id)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Escape") {
-                            e.preventDefault();
-                            handleCancelEdit();
-                          }
-                        }}
-                      />
-                      <label className="form-check-label small" htmlFor={`edit-${row.id}-${field.propertyKey}-${option}`}>
-                        {option}
-                      </label>
-                    </div>
-                  );
-                })}
-              </div>
-            </td>
-          );
-        }
-        
-        // Single select dropdown
         return (
           <td key={field.propertyKey} className="p-1">
             <select
@@ -596,37 +459,6 @@ export default function ListDataTable({
           )}
         </td>
       );
-    } else if (field.propertyType === "date" || field.propertyType === "datetime") {
-      // Use DatePickerField for date/datetime fields
-      return (
-        <td key={field.propertyKey} className="p-1">
-          <DatePickerField
-            value={value}
-            onChange={(isoString) => handleNewRowChange(field.propertyKey, isoString)}
-            type={field.propertyType}
-            minDate={field.validationRules?.min}
-            maxDate={field.validationRules?.max}
-            placeholder={field.propertyName}
-            disabled={isSavingNewRow}
-            id={`new-row-${field.propertyKey}`}
-            className={hasError ? "is-invalid" : ""}
-            onBlur={() => {
-              if (isLastColumn) {
-                // Trigger save on blur if it's the last column
-                const input = newRowInputRefs.current[field.propertyKey];
-                if (input && input instanceof HTMLElement) {
-                  input.blur();
-                }
-              }
-            }}
-          />
-          {hasError && (
-            <div className="invalid-feedback d-block small">
-              {newRowErrors[field.propertyKey]}
-            </div>
-          )}
-        </td>
-      );
     } else if (fieldComponent.type === "input") {
       return (
         <td key={field.propertyKey} className="p-1">
@@ -661,58 +493,6 @@ export default function ListDataTable({
         </td>
       );
     } else if (fieldComponent.type === "select") {
-      // Handle multiselect differently from single select
-      if (field.propertyType === "multiselect") {
-        const rawValue = newRowData[field.propertyKey];
-        const arrayValue = Array.isArray(rawValue) ? rawValue : (rawValue ? [rawValue] : []);
-        const options = fieldComponent.props.options || [];
-        
-        return (
-          <td key={field.propertyKey} className="p-1">
-            <div className={`multiselect-checkboxes ${hasError ? "is-invalid" : ""}`} style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid #dee2e6', borderRadius: '0.25rem', padding: '0.25rem' }}>
-              {options.map((option: string) => {
-                const isChecked = arrayValue.includes(option);
-                return (
-                  <div key={option} className="form-check form-check-sm">
-                    <input
-                      className="form-check-input"
-                      type="checkbox"
-                      id={`new-row-${field.propertyKey}-${option}`}
-                      checked={isChecked}
-                      onChange={(e) => {
-                        const currentValue = newRowData[field.propertyKey];
-                        const currentArray = Array.isArray(currentValue) ? [...currentValue] : (currentValue ? [currentValue] : []);
-                        if (e.target.checked) {
-                          if (!currentArray.includes(option)) {
-                            currentArray.push(option);
-                          }
-                        } else {
-                          const index = currentArray.indexOf(option);
-                          if (index > -1) {
-                            currentArray.splice(index, 1);
-                          }
-                        }
-                        handleNewRowChange(field.propertyKey, currentArray);
-                      }}
-                      disabled={isSavingNewRow}
-                    />
-                    <label className="form-check-label small" htmlFor={`new-row-${field.propertyKey}-${option}`}>
-                      {option}
-                    </label>
-                  </div>
-                );
-              })}
-            </div>
-            {hasError && (
-              <div className="invalid-feedback d-block small">
-                {newRowErrors[field.propertyKey]}
-              </div>
-            )}
-          </td>
-        );
-      }
-      
-      // Single select dropdown
       return (
         <td key={field.propertyKey} className="p-1">
           <select
@@ -791,13 +571,6 @@ export default function ListDataTable({
           </div>
         )}
 
-        {!isInlineFormEnabled && (
-          <div className="alert alert-info mb-3" role="alert">
-            <i className="bx bx-info-circle me-2"></i>
-            Inline data entry is disabled for lists with more than 3 fields. Use the "Add Row" button to add new entries.
-          </div>
-        )}
-
         {/* Filters */}
         <div className="row mb-3">
           {sortedFields.map((field) => (
@@ -850,13 +623,6 @@ export default function ListDataTable({
                       {sortedFields.map((field) => renderEditableCell(row, field))}
                       <td>
                         <div className="btn-group btn-group-sm">
-                          <Link
-                            href={`/lists/${listId}/edit/${row.id}`}
-                            className="btn btn-outline-primary"
-                          >
-                            <i className="bx bx-edit me-1"></i>
-                            Edit
-                          </Link>
                           <button
                             className="btn btn-outline-danger"
                             onClick={() => handleDelete(row.id)}
@@ -868,30 +634,28 @@ export default function ListDataTable({
                     </tr>
                   ))}
                   
-                  {/* Empty row - only visible when inline form is enabled (3 or fewer visible fields) */}
-                  {isInlineFormEnabled && (
-                    <tr className="table-light">
-                      {sortedFields.map((field, index) => renderEmptyRowCell(field, index))}
-                      <td>
-                        {checkRequiredFieldsComplete() && (
-                          <button
-                            className="btn btn-sm btn-primary"
-                            onClick={handleSaveNewRow}
-                            disabled={isSavingNewRow}
-                          >
-                            {isSavingNewRow ? "Adding..." : "Add"}
-                          </button>
-                        )}
+                  {/* Empty row - always visible at bottom */}
+                  <tr className="table-light">
+                    {sortedFields.map((field, index) => renderEmptyRowCell(field, index))}
+                    <td>
+                      {checkRequiredFieldsComplete() && (
                         <button
-                          className="btn btn-sm btn-outline-secondary ms-1"
-                          onClick={handleCancelNewRow}
+                          className="btn btn-sm btn-primary"
+                          onClick={handleSaveNewRow}
                           disabled={isSavingNewRow}
                         >
-                          Cancel
+                          {isSavingNewRow ? "Adding..." : "Add"}
                         </button>
-                      </td>
-                    </tr>
-                  )}
+                      )}
+                      <button
+                        className="btn btn-sm btn-outline-secondary ms-1"
+                        onClick={handleCancelNewRow}
+                        disabled={isSavingNewRow}
+                      >
+                        Cancel
+                      </button>
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>

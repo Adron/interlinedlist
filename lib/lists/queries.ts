@@ -184,10 +184,6 @@ export async function getListById(listId: string, userId: string) {
           title: true,
         },
       },
-      children: {
-        where: { deletedAt: null },
-        select: { id: true, title: true },
-      },
       properties: {
         orderBy: {
           displayOrder: "asc",
@@ -195,38 +191,6 @@ export async function getListById(listId: string, userId: string) {
       },
     },
   });
-}
-
-/**
- * Gets a list by ID with its full ancestor chain (root to direct parent).
- * Use for breadcrumbs: ancestors are ordered from root first to direct parent last.
- */
-export async function getListWithAncestorChain(listId: string, userId: string): Promise<{
-  list: Awaited<ReturnType<typeof getListById>>;
-  ancestors: { id: string; title: string }[];
-} | null> {
-  const list = await getListById(listId, userId);
-  if (!list) return null;
-
-  const ancestors: { id: string; title: string }[] = [];
-  let currentId: string | null = list.parentId;
-
-  while (currentId) {
-    const parent = await prisma.list.findFirst({
-      where: {
-        id: currentId,
-        userId,
-        deletedAt: null,
-      },
-      select: { id: true, title: true, parentId: true },
-    });
-    if (!parent) break;
-    ancestors.push({ id: parent.id, title: parent.title });
-    currentId = parent.parentId;
-  }
-
-  ancestors.reverse();
-  return { list, ancestors };
 }
 
 /**
@@ -266,74 +230,6 @@ export async function getUserLists(
           select: {
             id: true,
             title: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-      take,
-      skip,
-    }),
-    prisma.list.count({
-      where: whereClause,
-    }),
-  ]);
-
-  return {
-    lists,
-    pagination: {
-      total,
-      limit: take,
-      offset: skip,
-      hasMore: skip + take < total,
-    },
-  };
-}
-
-/**
- * Gets all lists for a user with pagination, including properties (for ERD).
- * Same shape as getUserLists but each list has properties ordered by displayOrder.
- */
-export async function getUserListsWithProperties(
-  userId: string,
-  pagination: PaginationParams = {},
-  options?: { isPublic?: boolean }
-) {
-  const { take, skip } = buildPagination(pagination);
-
-  const whereClause: any = {
-    userId,
-    deletedAt: null,
-  };
-
-  if (options?.isPublic !== undefined) {
-    whereClause.isPublic = options.isPublic;
-  }
-
-  const [lists, total] = await Promise.all([
-    prisma.list.findMany({
-      where: whereClause,
-      include: {
-        parent: {
-          select: {
-            id: true,
-            title: true,
-          },
-        },
-        children: {
-          where: {
-            deletedAt: null,
-            ...(options?.isPublic !== undefined && { isPublic: options.isPublic }),
-          },
-          select: {
-            id: true,
-            title: true,
-          },
-        },
-        properties: {
-          orderBy: {
-            displayOrder: "asc",
           },
         },
       },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, FormEvent } from "react";
+import { useState, useEffect, FormEvent } from "react";
 import { ParsedField, FormData } from "@/lib/lists/dsl-types";
 import {
   getFieldComponent,
@@ -8,11 +8,8 @@ import {
   getVisibleFieldsForForm,
   sortFieldsByOrder,
   parseFieldValue,
-  formatFieldValue,
 } from "@/lib/lists/form-generator";
 import { validateFormData } from "@/lib/lists/dsl-validator";
-import DatePickerField from "./DatePickerField";
-import { parseDateFromInput } from "@/lib/lists/date-utils";
 
 interface DynamicListFormProps {
   fields: ParsedField[];
@@ -36,24 +33,8 @@ export default function DynamicListForm({
   layout = "vertical",
 }: DynamicListFormProps) {
   const sortedFields = sortFieldsByOrder(fields);
-  
-  // Format date/datetime values from initialData to ISO strings
-  const formatInitialData = (data: FormData | undefined): FormData => {
-    if (!data) return getInitialFormData(sortedFields);
-    const formatted: FormData = {};
-    Object.keys(data).forEach((key) => {
-      const field = sortedFields.find((f) => f.propertyKey === key);
-      if (field && (field.propertyType === "date" || field.propertyType === "datetime")) {
-        formatted[key] = formatFieldValue(field, data[key]);
-      } else {
-        formatted[key] = data[key];
-      }
-    });
-    return { ...getInitialFormData(sortedFields), ...formatted };
-  };
-  
   const [formData, setFormData] = useState<FormData>(
-    formatInitialData(initialData)
+    initialData || getInitialFormData(sortedFields)
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -61,30 +42,16 @@ export default function DynamicListForm({
   // Update visible fields when form data changes
   const visibleFields = getVisibleFieldsForForm(sortedFields, formData);
 
-  // Update form data when initialData or fields change, merging with defaults
+  // Update form data when initialData changes
   useEffect(() => {
-    setFormData(formatInitialData(initialData));
-  }, [initialData, fields]);
-
+    if (initialData) {
+      setFormData(initialData);
+    }
+  }, [initialData]);
 
   const handleChange = (fieldKey: string, value: any) => {
-    const field = sortedFields.find((f) => f.propertyKey === fieldKey);
-    
-    // For date/datetime fields, keep as ISO string (don't parse to Date yet)
-    let processedValue = value;
-    if (field && (field.propertyType === "date" || field.propertyType === "datetime")) {
-      // Keep as string if it's already a string, otherwise format it
-      if (typeof value === "string") {
-        processedValue = value;
-      } else if (value instanceof Date) {
-        processedValue = formatFieldValue(field, value);
-      } else {
-        processedValue = value;
-      }
-    }
-    
     setFormData((prev) => {
-      const updated = { ...prev, [fieldKey]: processedValue };
+      const updated = { ...prev, [fieldKey]: value };
       // Clear error for this field
       setErrors((prevErrors) => {
         const newErrors = { ...prevErrors };
@@ -100,21 +67,8 @@ export default function DynamicListForm({
     setIsSubmitting(true);
     setErrors({});
 
-    // Convert ISO string dates to Date objects for validation and submission
-    const dataToSubmit = { ...formData };
-    sortedFields.forEach((field) => {
-      if (field.propertyType === "date" || field.propertyType === "datetime") {
-        const value = dataToSubmit[field.propertyKey];
-        if (typeof value === "string" && value.trim() !== "") {
-          dataToSubmit[field.propertyKey] = parseDateFromInput(value, field.propertyType);
-        } else if (!value) {
-          dataToSubmit[field.propertyKey] = null;
-        }
-      }
-    });
-
     // Validate form data
-    const validation = validateFormData(sortedFields, dataToSubmit);
+    const validation = validateFormData(sortedFields, formData);
     if (!validation.isValid) {
       const errorMap: Record<string, string> = {};
       validation.errors.forEach((error) => {
@@ -126,7 +80,7 @@ export default function DynamicListForm({
     }
 
     try {
-      await onSubmit(dataToSubmit);
+      await onSubmit(formData);
     } catch (error: any) {
       setErrors({ _form: error.message || "An error occurred" });
     } finally {
@@ -147,20 +101,7 @@ export default function DynamicListForm({
           {field.isRequired && <span className="text-danger">*</span>}
         </label>
 
-        {fieldComponent.type === "input" && (field.propertyType === "date" || field.propertyType === "datetime") ? (
-          <DatePickerField
-            id={fieldId}
-            value={value}
-            onChange={(isoString) => handleChange(field.propertyKey, isoString)}
-            type={field.propertyType}
-            minDate={field.validationRules?.min}
-            maxDate={field.validationRules?.max}
-            placeholder={field.placeholder ?? undefined}
-            disabled={loading || isSubmitting}
-            required={field.isRequired}
-            className={error ? "is-invalid" : ""}
-          />
-        ) : fieldComponent.type === "input" && (
+        {fieldComponent.type === "input" && (
           <input
             id={fieldId}
             name={fieldId}
@@ -226,58 +167,35 @@ export default function DynamicListForm({
           />
         )}
 
-        {fieldComponent.type === "select" && field.propertyType === "multiselect" && (() => {
-          const rawValue = formData[field.propertyKey];
-          const arrayValue = Array.isArray(rawValue) ? rawValue : (rawValue ? [rawValue] : []);
-          return (
-            <div className={`multiselect-checkboxes ${error ? "is-invalid" : ""}`} style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #dee2e6', borderRadius: '0.25rem', padding: '0.5rem' }}>
-              {fieldComponent.props.options?.map((option: string) => {
-                const isChecked = arrayValue.includes(option);
-                return (
-                  <div key={option} className="form-check">
-                    <input
-                      className="form-check-input"
-                      type="checkbox"
-                      id={`${fieldId}-${option}`}
-                      checked={isChecked}
-                      onChange={(e) => {
-                        const currentValue = formData[field.propertyKey];
-                        const currentArray = Array.isArray(currentValue) ? [...currentValue] : (currentValue ? [currentValue] : []);
-                        if (e.target.checked) {
-                          if (!currentArray.includes(option)) {
-                            currentArray.push(option);
-                          }
-                        } else {
-                          const index = currentArray.indexOf(option);
-                          if (index > -1) {
-                            currentArray.splice(index, 1);
-                          }
-                        }
-                        handleChange(field.propertyKey, currentArray);
-                      }}
-                      disabled={loading || isSubmitting}
-                    />
-                    <label className="form-check-label" htmlFor={`${fieldId}-${option}`}>
-                      {option}
-                    </label>
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })()}
-
-        {fieldComponent.type === "select" && field.propertyType !== "multiselect" && (
+        {fieldComponent.type === "select" && (
           <select
             id={fieldId}
             name={fieldId}
             className={`form-select form-select-sm ${error ? "is-invalid" : ""}`}
-            value={value !== null && value !== undefined ? String(value) : ""}
-            onChange={(e) => handleChange(field.propertyKey, e.target.value)}
+            value={
+              field.propertyType === "multiselect"
+                ? undefined
+                : value !== null && value !== undefined
+                ? String(value)
+                : ""
+            }
+            multiple={field.propertyType === "multiselect"}
+            onChange={(e) => {
+              if (field.propertyType === "multiselect") {
+                const selected = Array.from(e.target.selectedOptions).map(
+                  (option) => option.value
+                );
+                handleChange(field.propertyKey, selected);
+              } else {
+                handleChange(field.propertyKey, e.target.value);
+              }
+            }}
             required={field.isRequired}
             disabled={loading || isSubmitting}
           >
-            {!field.isRequired && <option value="">-- Select --</option>}
+            {!field.isRequired && (
+              <option value="">-- Select --</option>
+            )}
             {fieldComponent.props.options?.map((option: string) => (
               <option key={option} value={option}>
                 {option}
