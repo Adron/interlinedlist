@@ -22,7 +22,7 @@ export default async function ListDetailPage({ params, searchParams }: ListDetai
 
   const result = await getListWithAncestorChain(params.id, user.id);
 
-  if (!result) {
+  if (!result || !result.list) {
     notFound();
   }
 

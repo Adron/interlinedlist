@@ -25,7 +25,7 @@ export default async function EditRowPage({ params }: EditRowPageProps) {
     getListDataRowById(rowId, listId, user.id),
   ]);
 
-  if (!chainResult || !properties) {
+  if (!chainResult || !properties || !chainResult.list) {
     notFound();
   }
 

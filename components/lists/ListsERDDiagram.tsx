@@ -10,6 +10,7 @@ import ReactFlow, {
   Node,
   Edge,
   Position,
+  MarkerType,
   useNodesState,
   useEdgesState,
   NodeTypes,
@@ -174,7 +175,7 @@ function buildNodesAndEdges(lists: ListForERD[]): { nodes: Node<ListERDNodeData>
             strokeWidth: 2,
             strokeDasharray: '5 5',
           },
-          markerEnd: { type: 'arrowclosed' as const },
+          markerEnd: { type: MarkerType.ArrowClosed },
         });
       }
     }
