@@ -31,6 +31,14 @@ export default async function EditRowPage({ params }: EditRowPageProps) {
     notFound();
   }
 
+  // Normalize rowData for the form: DB uses JsonValue (can be null), form expects Record<string, any>
+  const rowData =
+    row.rowData &&
+    typeof row.rowData === 'object' &&
+    !Array.isArray(row.rowData)
+      ? (row.rowData as Record<string, any>)
+      : {};
+
   return (
     <div className="container-fluid container-fluid-max py-4">
       <div className="row mb-4">
@@ -54,7 +62,7 @@ export default async function EditRowPage({ params }: EditRowPageProps) {
                 listId={listId}
                 rowId={rowId}
                 fields={properties}
-                initialRowData={row}
+                initialRowData={{ rowData }}
               />
             </div>
           </div>

@@ -173,8 +173,8 @@ export default function DatePickerField({
           timeIntervals={timeIntervals}
           timeFormat="HH:mm"
           dateFormat={dateFormat}
-          minDate={parsedMinDate}
-          maxDate={parsedMaxDate}
+          minDate={parsedMinDate ?? undefined}
+          maxDate={parsedMaxDate ?? undefined}
           inline
           calendarClassName="date-picker-calendar"
         />

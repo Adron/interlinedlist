@@ -446,7 +446,7 @@ export default function ListDataTable({
               type={field.propertyType}
               minDate={field.validationRules?.min}
               maxDate={field.validationRules?.max}
-              placeholder={field.placeholder}
+              placeholder={field.placeholder ?? undefined}
               onBlur={() => handleSaveRow(row.id)}
               autoFocus
             />

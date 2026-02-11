@@ -155,7 +155,7 @@ export default function DynamicListForm({
             type={field.propertyType}
             minDate={field.validationRules?.min}
             maxDate={field.validationRules?.max}
-            placeholder={field.placeholder}
+            placeholder={field.placeholder ?? undefined}
             disabled={loading || isSubmitting}
             required={field.isRequired}
             className={error ? "is-invalid" : ""}
