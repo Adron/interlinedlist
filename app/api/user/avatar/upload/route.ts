@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
 
     if (buffer.length > getMaxSizeBytes()) {
       const resized = await resizeAvatarToLimit(buffer, contentType);
-      buffer = resized.buffer;
+      buffer = Buffer.from(resized.buffer);
     }
 
     const pathname = `avatars/${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 10)}.jpg`;

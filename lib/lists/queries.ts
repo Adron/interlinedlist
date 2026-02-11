@@ -168,6 +168,71 @@ function buildOrderBy(sort: ListDataSort | undefined): Prisma.ListDataRowOrderBy
 }
 
 /**
+ * Gets a list by ID with its full ancestor chain (for breadcrumbs).
+ * Returns { list, ancestors } where ancestors is ordered from root to immediate parent.
+ */
+export async function getListWithAncestorChain(listId: string, userId: string) {
+  const list = await prisma.list.findFirst({
+    where: {
+      id: listId,
+      userId,
+      deletedAt: null,
+    },
+    include: {
+      parent: {
+        select: {
+          id: true,
+          title: true,
+          parentId: true,
+        },
+      },
+      properties: {
+        orderBy: {
+          displayOrder: "asc",
+        },
+      },
+      children: {
+        where: { deletedAt: null },
+        select: {
+          id: true,
+          title: true,
+        },
+      },
+    },
+  });
+
+  if (!list) {
+    return null;
+  }
+
+  const ancestors: Array<{ id: string; title: string }> = [];
+  let currentParentId = list.parentId;
+
+  while (currentParentId) {
+    const parent = await prisma.list.findFirst({
+      where: {
+        id: currentParentId,
+        userId,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        title: true,
+        parentId: true,
+      },
+    });
+    if (!parent) break;
+    ancestors.push({ id: parent.id, title: parent.title });
+    currentParentId = parent.parentId;
+  }
+
+  // Ancestors were built from immediate parent to root; reverse for breadcrumb order (root → parent)
+  ancestors.reverse();
+
+  return { list, ancestors };
+}
+
+/**
  * Gets a list by ID with authorization check
  */
 export async function getListById(listId: string, userId: string) {

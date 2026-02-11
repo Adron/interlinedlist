@@ -33,7 +33,7 @@ export default function ListsTabs({ cardsView, datagridView, erdView }: ListsTab
             role="tab"
           >
             <i className="bx bx-table me-1"></i>
-            Datagrid
+            Data Grid
           </button>
         </li>
         <li className="nav-item" role="presentation">
@@ -44,7 +44,7 @@ export default function ListsTabs({ cardsView, datagridView, erdView }: ListsTab
             role="tab"
           >
             <i className="bx bx-network-chart me-1"></i>
-            ERD
+            Entity Diagram
           </button>
         </li>
       </ul>

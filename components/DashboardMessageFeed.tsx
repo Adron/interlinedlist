@@ -53,6 +53,8 @@ export default async function DashboardMessageFeed() {
       createdAt: message.createdAt.toISOString(),
       updatedAt: message.updatedAt.toISOString(),
       linkMetadata: message.linkMetadata as LinkMetadata | null,
+      imageUrls: (Array.isArray(message.imageUrls) ? message.imageUrls : null) as string[] | null,
+      videoUrls: (Array.isArray(message.videoUrls) ? message.videoUrls : null) as string[] | null,
     }));
 
     return (
