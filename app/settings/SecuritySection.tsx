@@ -3,17 +3,29 @@
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import ConnectedAccountsSection from '@/components/settings/ConnectedAccountsSection';
 
 interface SecuritySectionProps {
   isPrivateAccount: boolean | null;
+  linkedIdentities: Array<{
+    id: string;
+    provider: string;
+    providerUsername: string | null;
+    profileUrl: string | null;
+    avatarUrl: string | null;
+    connectedAt: string;
+    lastVerifiedAt: string | null;
+  }>;
+  initialError?: string;
+  initialSuccess?: string;
 }
 
-export default function SecuritySection({ isPrivateAccount: initialIsPrivateAccount }: SecuritySectionProps) {
+export default function SecuritySection({ isPrivateAccount: initialIsPrivateAccount, linkedIdentities, initialError, initialSuccess }: SecuritySectionProps) {
   const router = useRouter();
   const [isPrivateAccount, setIsPrivateAccount] = useState(initialIsPrivateAccount ?? false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [error, setError] = useState(initialError ?? '');
+  const [success, setSuccess] = useState(initialSuccess ?? '');
 
   const handlePrivacyToggle = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -97,6 +109,10 @@ export default function SecuritySection({ isPrivateAccount: initialIsPrivateAcco
             {loading ? 'Saving...' : 'Save Privacy Setting'}
           </button>
         </form>
+
+        <hr className="my-4" />
+
+        <ConnectedAccountsSection initialIdentities={linkedIdentities} />
 
         <hr className="my-4" />
         

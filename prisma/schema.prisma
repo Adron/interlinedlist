@@ -38,6 +38,7 @@ model User {
   administrator        Administrator?
   followers            Follow[]    @relation("Following")
   following            Follow[]    @relation("Follower")
+  linkedIdentities     LinkedIdentity[]
 
   @@map("users")
 }
@@ -199,4 +200,23 @@ model Follow {
   @@index([followingId, status])
   @@index([followingId, status, createdAt])
   @@map("follows")
+}
+
+model LinkedIdentity {
+  id               String    @id @default(uuid())
+  userId           String
+  provider         String    // "github" | "bluesky" | "mastodon:instance.domain"
+  providerUserId   String
+  providerUsername String?
+  providerData     Json?
+  profileUrl       String?
+  avatarUrl        String?
+  connectedAt      DateTime  @default(now())
+  lastVerifiedAt   DateTime?
+
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+  @@index([provider, providerUserId])
+  @@map("linked_identities")
 }
