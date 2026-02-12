@@ -10,7 +10,7 @@ import MessageSettingsSection from './MessageSettingsSection';
 import SecuritySection from './SecuritySection';
 
 interface SettingsPageProps {
-  searchParams: Promise<{ error?: string; success?: string }>;
+  searchParams: Promise<{ error?: string; success?: string }> | { error?: string; success?: string };
 }
 
 export default async function SettingsPage({ searchParams }: SettingsPageProps) {
@@ -20,7 +20,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
     redirect('/login');
   }
 
-  const params = await searchParams;
+  const params = (searchParams instanceof Promise ? await searchParams : searchParams) ?? {};
   const linkedIdentities = await getLinkedIdentitiesForUser(user.id);
   const serializedIdentities = linkedIdentities.map((i) => ({
     ...i,
