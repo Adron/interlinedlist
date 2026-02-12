@@ -44,9 +44,6 @@ function getProviderConnectUrl(provider: string, instance?: string): string {
 export default function ConnectedAccountsSection({
   initialIdentities,
 }: ConnectedAccountsSectionProps) {
-  // #region agent log
-  useEffect(()=>{fetch('http://127.0.0.1:7243/ingest/39b03427-0fde-45ae-9ce7-7e7f4ee5aa45',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'components/settings/ConnectedAccountsSection.tsx:mount',message:'ConnectedAccountsSection mounted',data:{identitiesCount:initialIdentities?.length},timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});},[]);
-  // #endregion
   const router = useRouter();
   const [identities, setIdentities] = useState<LinkedIdentity[]>(initialIdentities);
   const [mastodonInstance, setMastodonInstance] = useState('');
