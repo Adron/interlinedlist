@@ -19,6 +19,7 @@
     "test-data:seed": "dotenv -e .env.local -- node test-data/seed-test-accounts.js"
   },
   "dependencies": {
+    "@atproto/oauth-client-node": "^0.3.16",
     "@prisma/client": "^5.19.0",
     "@types/react-datepicker": "^6.2.0",
     "@vercel/blob": "^2.2.0",

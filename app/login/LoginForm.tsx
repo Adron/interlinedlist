@@ -11,14 +11,21 @@ export default function LoginForm() {
     email: '',
     password: '',
   });
+  const [mastodonInstance, setMastodonInstance] = useState('');
+  const [showMastodonInput, setShowMastodonInput] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (searchParams.get('reset') === 'success') {
+    const reset = searchParams.get('reset');
+    const errorParam = searchParams.get('error');
+    if (reset === 'success') {
       setSuccess(true);
-      // Clear the URL parameter
+      window.history.replaceState({}, '', '/login');
+    }
+    if (errorParam) {
+      setError(decodeURIComponent(errorParam));
       window.history.replaceState({}, '', '/login');
     }
   }, [searchParams]);
@@ -130,6 +137,69 @@ export default function LoginForm() {
                   {loading ? 'Logging in...' : 'Login'}
                 </button>
               </form>
+
+              <div className="text-center mt-3 mb-2">
+                <span className="text-muted small">Or sign in with</span>
+              </div>
+              <div className="d-flex flex-column gap-2">
+                <a
+                  href="/api/auth/github/authorize?link=false"
+                  className="btn btn-outline-secondary"
+                >
+                  <i className="bx bxl-github me-2"></i>
+                  Sign in with GitHub
+                </a>
+                {showMastodonInput ? (
+                  <div className="d-flex gap-2">
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="mastodon.social"
+                      value={mastodonInstance}
+                      onChange={(e) => setMastodonInstance(e.target.value)}
+                    />
+                    <a
+                      href={
+                        mastodonInstance.trim()
+                          ? `/api/auth/mastodon/authorize?instance=${encodeURIComponent(mastodonInstance.trim())}&link=false`
+                          : '#'
+                      }
+                      className={`btn btn-outline-secondary ${!mastodonInstance.trim() ? 'disabled' : ''}`}
+                      onClick={(e) => {
+                        if (!mastodonInstance.trim()) e.preventDefault();
+                      }}
+                    >
+                      Go
+                    </a>
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary"
+                      onClick={() => {
+                        setShowMastodonInput(false);
+                        setMastodonInstance('');
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={() => setShowMastodonInput(true)}
+                  >
+                    <i className="bx bx-at me-2"></i>
+                    Sign in with Mastodon
+                  </button>
+                )}
+                <a
+                  href="/api/auth/bluesky/authorize?link=false"
+                  className="btn btn-outline-secondary"
+                >
+                  <i className="bx bxl-bluesky me-2"></i>
+                  Sign in with Bluesky
+                </a>
+              </div>
 
               <p className="text-center mt-3 mb-0">
                 Don't have an account? <Link href="/register" className="text-decoration-none">Create one</Link>

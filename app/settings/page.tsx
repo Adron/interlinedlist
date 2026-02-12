@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
+import { getLinkedIdentitiesForUser } from '@/lib/auth/linked-identities';
 import Link from 'next/link';
 import ProfileSettings from './ProfileSettings';
 import PermissionsSection from './PermissionsSection';
@@ -8,12 +9,24 @@ import ViewPreferencesSection from './ViewPreferencesSection';
 import MessageSettingsSection from './MessageSettingsSection';
 import SecuritySection from './SecuritySection';
 
-export default async function SettingsPage() {
+interface SettingsPageProps {
+  searchParams: Promise<{ error?: string; success?: string }>;
+}
+
+export default async function SettingsPage({ searchParams }: SettingsPageProps) {
   const user = await getCurrentUser();
 
   if (!user) {
     redirect('/login');
   }
+
+  const params = await searchParams;
+  const linkedIdentities = await getLinkedIdentitiesForUser(user.id);
+  const serializedIdentities = linkedIdentities.map((i) => ({
+    ...i,
+    connectedAt: i.connectedAt.toISOString(),
+    lastVerifiedAt: i.lastVerifiedAt?.toISOString() ?? null,
+  }));
 
   return (
     <div className="container-fluid container-fluid-max py-4">
@@ -57,7 +70,12 @@ export default async function SettingsPage() {
 
         {/* Column 3: Security Settings */}
         <div className="col-lg-4 col-md-6 col-12 order-3 order-md-3">
-          <SecuritySection isPrivateAccount={user.isPrivateAccount ?? false} />
+          <SecuritySection
+            isPrivateAccount={user.isPrivateAccount ?? false}
+            linkedIdentities={serializedIdentities}
+            initialError={params.error}
+            initialSuccess={params.success}
+          />
         </div>
       </div>
     </div>
