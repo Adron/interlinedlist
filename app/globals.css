@@ -409,3 +409,59 @@ textarea:focus {
 .react-datepicker__week {
   margin: 0;
 }
+
+/* Help documentation markdown */
+.help-content h1,
+.help-content h2,
+.help-content h3 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.help-content h1 { font-size: 1.5rem; }
+.help-content h2 { font-size: 1.25rem; }
+.help-content h3 { font-size: 1.1rem; }
+
+.help-content p {
+  margin-bottom: 1rem;
+}
+
+.help-content ul,
+.help-content ol {
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+}
+
+.help-content code {
+  background-color: var(--color-bg-secondary);
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.25rem;
+  font-size: 0.9em;
+}
+
+.help-pre {
+  background-color: var(--color-bg-secondary);
+  padding: 1rem;
+  border-radius: 0.25rem;
+  overflow-x: auto;
+  margin-bottom: 1rem;
+}
+
+.help-pre code {
+  background: none;
+  padding: 0;
+}
+
+.help-sidebar .nav-link {
+  padding: 0.5rem 1rem;
+  color: var(--color-text);
+}
+
+.help-sidebar .nav-link:hover {
+  background-color: var(--color-bg-secondary);
+}
+
+.help-sidebar .nav-link.active {
+  background-color: var(--color-button-primary);
+  color: var(--color-button-text);
+}
