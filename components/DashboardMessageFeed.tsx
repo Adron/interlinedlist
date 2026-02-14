@@ -1,6 +1,6 @@
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/prisma';
-import { LinkMetadata } from '@/lib/types';
+import { LinkMetadata, CrossPostUrl } from '@/lib/types';
 import MessageTable from './MessageTable';
 
 export default async function DashboardMessageFeed() {
@@ -55,6 +55,7 @@ export default async function DashboardMessageFeed() {
       linkMetadata: message.linkMetadata as LinkMetadata | null,
       imageUrls: (Array.isArray(message.imageUrls) ? message.imageUrls : null) as string[] | null,
       videoUrls: (Array.isArray(message.videoUrls) ? message.videoUrls : null) as string[] | null,
+      crossPostUrls: (Array.isArray(message.crossPostUrls) ? message.crossPostUrls : null) as CrossPostUrl[] | null,
     }));
 
     return (

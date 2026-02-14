@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { detectLinks } from '@/lib/messages/link-detector';
 import { APP_URL } from '@/lib/config/app';
 import { buildMessageWhereClause } from '@/lib/messages/queries';
+import { postToMastodon } from '@/lib/mastodon/post-status';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { content, publiclyVisible, imageUrls, videoUrls } = body;
+    const { content, publiclyVisible, imageUrls, videoUrls, mastodonProviderIds } = body;
 
     // Validate content
     if (!content || typeof content !== 'string' || content.trim().length === 0) {
@@ -129,8 +130,63 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Cross-post to selected Mastodon accounts
+    const crossPostResults: Array<{ providerId: string; instanceName: string; success: boolean; url?: string; error?: string }> = [];
+    const crossPostUrls: Array<{ platform: string; url: string; instanceName: string }> = [];
+    const providerIds = Array.isArray(mastodonProviderIds)
+      ? mastodonProviderIds.filter((id: unknown) => typeof id === 'string')
+      : [];
+
+    if (providerIds.length > 0) {
+      const identities = await prisma.linkedIdentity.findMany({
+        where: {
+          id: { in: providerIds },
+          userId: user.id,
+          provider: { startsWith: 'mastodon:' },
+        },
+        select: {
+          id: true,
+          provider: true,
+          providerUsername: true,
+          providerData: true,
+        },
+      });
+
+      for (const identity of identities) {
+        const result = await postToMastodon(
+          identity as { id: string; provider: string; providerUsername: string | null; providerData: { access_token: string; instance_url: string } | null },
+          {
+            content: content.trim(),
+            publiclyVisible: finalPubliclyVisible as boolean,
+            imageUrls: finalImageUrls,
+            videoUrls: finalVideoUrls,
+          }
+        );
+        crossPostResults.push(result);
+        if (result.success && result.url) {
+          crossPostUrls.push({
+            platform: 'mastodon',
+            url: result.url,
+            instanceName: result.instanceName,
+          });
+        }
+      }
+
+      if (crossPostUrls.length > 0) {
+        await prisma.message.update({
+          where: { id: message.id },
+          data: { crossPostUrls: crossPostUrls as object },
+        });
+        (message as { crossPostUrls?: unknown }).crossPostUrls = crossPostUrls;
+      }
+    }
+
     return NextResponse.json(
-      { message: 'Message created successfully', data: message },
+      {
+        message: 'Message created successfully',
+        data: message,
+        ...(crossPostResults.length > 0 && { crossPostResults }),
+      },
       { status: 201 }
     );
   } catch (error) {

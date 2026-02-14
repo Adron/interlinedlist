@@ -80,6 +80,12 @@ export interface LinkMetadata {
 /**
  * Message type matching Prisma Message model with user relation
  */
+export interface CrossPostUrl {
+  platform: string;
+  url: string;
+  instanceName: string;
+}
+
 export interface Message {
   id: string;
   content: string;
@@ -87,6 +93,7 @@ export interface Message {
   linkMetadata?: LinkMetadata | null;
   imageUrls?: string[] | null;
   videoUrls?: string[] | null;
+  crossPostUrls?: CrossPostUrl[] | null;
   createdAt: string; // ISO string for client components
   updatedAt?: string; // ISO string, optional
   user: MessageUser;

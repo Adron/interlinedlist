@@ -799,6 +799,18 @@ export default function MessageTable({
                           />
                         </div>
                       )}
+                      {message.crossPostUrls && Array.isArray(message.crossPostUrls) && message.crossPostUrls.length > 0 && (
+                        <ul className="list-unstyled mb-0 mt-1 ps-0" style={{ fontSize: '0.75rem' }}>
+                          {message.crossPostUrls.map((cp: { platform: string; url: string; instanceName: string }, i: number) => (
+                            <li key={i} className="mb-1">
+                              <a href={cp.url} target="_blank" rel="noopener noreferrer" className="text-muted text-decoration-none">
+                                <i className="bx bx-link-external me-1" style={{ fontSize: '0.7rem' }}></i>
+                                {cp.platform === 'mastodon' ? `Mastodon (${cp.instanceName})` : cp.platform}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                       {/* Render link previews for all detected links (if showPreviews is enabled) */}
                       {localShowPreviews && (() => {
                         // Detect all links in the message

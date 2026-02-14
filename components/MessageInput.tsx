@@ -4,11 +4,21 @@ import { useState, FormEvent, useRef, useEffect } from 'react';
 
 const MAX_IMAGES = 6;
 
+interface MastodonIdentity {
+  id: string;
+  provider: string;
+  providerUsername: string | null;
+}
+
 interface MessageInputProps {
   maxLength: number;
   defaultPubliclyVisible?: boolean;
   showAdvancedPostSettings?: boolean;
   onSubmit?: () => void;
+}
+
+function getMastodonInstanceName(provider: string): string {
+  return provider.startsWith('mastodon:') ? provider.replace('mastodon:', '') : provider;
 }
 
 export default function MessageInput({ maxLength, defaultPubliclyVisible = false, showAdvancedPostSettings = false, onSubmit }: MessageInputProps) {
@@ -26,6 +36,9 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const [pendingVideoFile, setPendingVideoFile] = useState<File | null>(null);
   const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [mastodonIdentities, setMastodonIdentities] = useState<MastodonIdentity[]>([]);
+  const [selectedMastodonIds, setSelectedMastodonIds] = useState<Set<string>>(new Set());
+  const [crossPostResults, setCrossPostResults] = useState<Array<{ providerId: string; instanceName: string; success: boolean; error?: string }> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -50,6 +63,29 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
     setShowSettingsMenu(showAdvancedPostSettings);
   }, [showAdvancedPostSettings]);
 
+  // Fetch Mastodon identities on mount
+  useEffect(() => {
+    fetch('/api/user/identities')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.identities) {
+          const mastodon = data.identities.filter((i: MastodonIdentity) => i.provider?.startsWith?.('mastodon:'));
+          setMastodonIdentities(mastodon);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const toggleMastodon = (id: string) => {
+    setSelectedMastodonIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    setCrossPostResults(null);
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
@@ -68,6 +104,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
     }
 
     try {
+      setCrossPostResults(null);
       const response = await fetch('/api/messages', {
         method: 'POST',
         headers: {
@@ -78,6 +115,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
           publiclyVisible,
           ...(imageUrls.length > 0 && { imageUrls }),
           ...(videoUrls.length > 0 && { videoUrls }),
+          ...(selectedMastodonIds.size > 0 && { mastodonProviderIds: Array.from(selectedMastodonIds) }),
         }),
       });
 
@@ -87,6 +125,11 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
         setError(data.error || 'Failed to post message');
         setLoading(false);
         return;
+      }
+
+      // Show cross-post results if any
+      if (data.crossPostResults?.length) {
+        setCrossPostResults(data.crossPostResults);
       }
 
       // Clear form and attached images/videos
@@ -209,7 +252,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                 </button>
                 {showSettingsMenu && (
                   <div 
-                    className="d-flex align-items-center gap-2"
+                    className="d-flex flex-wrap align-items-center gap-2"
                     style={{
                       animation: 'slideIn 0.3s ease-in-out',
                     }}
@@ -268,6 +311,27 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                         <span className="ms-1 small">(1)</span>
                       )}
                     </button>
+                    {mastodonIdentities.map((m) => {
+                      const instanceName = getMastodonInstanceName(m.provider);
+                      const isSelected = selectedMastodonIds.has(m.id);
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          className={`btn btn-sm btn-link p-1 ${isSelected ? 'text-primary' : 'text-muted'}`}
+                          aria-label={`Cross-post to ${instanceName}`}
+                          style={{ 
+                            border: 'none',
+                            lineHeight: 1,
+                            minWidth: 'auto',
+                          }}
+                          title={m.providerUsername ? `${instanceName} (@${m.providerUsername})` : instanceName}
+                          onClick={() => toggleMastodon(m.id)}
+                        >
+                          <i className="bx bx-broadcast" style={{ fontSize: '1.1rem' }}></i>
+                        </button>
+                      );
+                    })}
                     <button
                       type="button"
                       className="btn btn-sm btn-link p-1 text-muted"
@@ -323,6 +387,29 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
           {videoUrls.length > 0 && (
             <div className="mb-2 d-flex flex-wrap gap-1 align-items-center">
               <small className="text-muted">Attached: 1 video</small>
+            </div>
+          )}
+
+          {selectedMastodonIds.size > 0 && (
+            <div className="mb-2 d-flex flex-wrap gap-1 align-items-center">
+              <small className="text-muted">
+                Posting to: {mastodonIdentities.filter((m) => selectedMastodonIds.has(m.id)).map((m) => getMastodonInstanceName(m.provider)).join(', ')}
+              </small>
+            </div>
+          )}
+
+          {crossPostResults && crossPostResults.length > 0 && (
+            <div className="mb-2">
+              {crossPostResults.filter((r) => r.success).length > 0 && (
+                <small className="text-success d-block">
+                  Posted to: {crossPostResults.filter((r) => r.success).map((r) => r.instanceName).join(', ')}
+                </small>
+              )}
+              {crossPostResults.filter((r) => !r.success).length > 0 && (
+                <small className="text-danger d-block">
+                  Failed: {crossPostResults.filter((r) => !r.success).map((r) => `${r.instanceName}: ${r.error || 'Unknown error'}`).join('; ')}
+                </small>
+              )}
             </div>
           )}
 

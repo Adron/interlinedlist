@@ -1,6 +1,6 @@
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/prisma';
-import { LinkMetadata } from '@/lib/types';
+import { LinkMetadata, CrossPostUrl } from '@/lib/types';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 
@@ -57,6 +57,7 @@ export default async function MessageFeed() {
       createdAt: message.createdAt.toISOString(),
       updatedAt: message.updatedAt.toISOString(),
       linkMetadata: message.linkMetadata as LinkMetadata | null,
+      crossPostUrls: (Array.isArray(message.crossPostUrls) ? message.crossPostUrls : null) as CrossPostUrl[] | null,
     }));
 
     return (

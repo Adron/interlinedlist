@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/prisma';
 import { buildWallMessageWhereClause, getMessageUserSelect } from '@/lib/messages/queries';
-import { LinkMetadata } from '@/lib/types';
+import { LinkMetadata, CrossPostUrl } from '@/lib/types';
 import ProfileHeader from '@/components/ProfileHeader';
 import MessageList from '@/components/MessageList';
 import PublicListsTreeView from '@/components/PublicListsTreeView';
@@ -117,6 +117,7 @@ export default async function UserProfilePage({
     createdAt: message.createdAt.toISOString(),
     updatedAt: message.updatedAt.toISOString(),
     linkMetadata: message.linkMetadata as LinkMetadata | null,
+    crossPostUrls: (Array.isArray(message.crossPostUrls) ? message.crossPostUrls : null) as CrossPostUrl[] | null,
   }));
 
   // Fetch public lists to get the first root-level list for preview
