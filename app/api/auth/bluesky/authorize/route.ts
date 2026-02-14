@@ -14,9 +14,6 @@ export async function GET(request: NextRequest) {
   const link = searchParams.get('link') === 'true';
 
   const { clientId } = getBlueskyConfig();
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/39b03427-0fde-45ae-9ce7-7e7f4ee5aa45',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'authorize/route.ts:GET',message:'Bluesky authorize entry',data:{clientId,APP_URL,link},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
-  // #endregion
 
   try {
     const { NodeOAuthClient, OAuthClient } = await import('@atproto/oauth-client-node');
@@ -25,9 +22,6 @@ export async function GET(request: NextRequest) {
     const metadata = await OAuthClient.fetchMetadata({
       clientId: clientId as `https://${string}/${string}`,
     });
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/39b03427-0fde-45ae-9ce7-7e7f4ee5aa45',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'authorize/route.ts:afterFetchMetadata',message:'fetchMetadata succeeded',data:{redirectUris:metadata.redirect_uris},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
-    // #endregion
 
     const client = new NodeOAuthClient({
       clientMetadata: metadata,
@@ -44,15 +38,9 @@ export async function GET(request: NextRequest) {
     const url = await client.authorize('bsky.app', {
       state,
     });
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/39b03427-0fde-45ae-9ce7-7e7f4ee5aa45',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'authorize/route.ts:afterAuthorize',message:'authorize succeeded',data:{url:url.toString().slice(0,80)},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
-    // #endregion
 
     return NextResponse.redirect(url.toString());
   } catch (error) {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/39b03427-0fde-45ae-9ce7-7e7f4ee5aa45',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'authorize/route.ts:catch',message:'Bluesky authorize error',data:{error:String(error),name:error instanceof Error?error.name:'',stack:error instanceof Error?error.stack?.slice(0,200):''},timestamp:Date.now(),hypothesisId:'H2,H4'})}).catch(()=>{});
-    // #endregion
     console.error('Bluesky authorize error:', error);
     const message = error instanceof Error ? error.message : 'Bluesky authorization failed';
     const redirectUrl = link ? '/settings' : '/login';

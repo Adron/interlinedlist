@@ -7,15 +7,26 @@ import { APP_URL } from '@/lib/config/app';
 
 export const BLUESKY_PROVIDER = 'bluesky';
 
+/** RFC 8252: localhost not allowed in redirect_uris; use 127.0.0.1 for loopback. */
+function oauthSafeUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    if (u.hostname === 'localhost') {
+      u.hostname = '127.0.0.1';
+      return u.toString();
+    }
+    return url;
+  } catch {
+    return url;
+  }
+}
+
 /** URL to the OAuth client metadata JSON. Used as client_id in Bluesky OAuth. */
 export function getClientMetadataUrl(): string {
-  return `${APP_URL}/api/oauth/client-metadata`;
+  return oauthSafeUrl(`${APP_URL}/api/oauth/client-metadata`);
 }
 
 export function getBlueskyConfig() {
   const clientId = process.env.BLUESKY_CLIENT_ID || getClientMetadataUrl();
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/39b03427-0fde-45ae-9ce7-7e7f4ee5aa45',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'oauth-bluesky.ts:getBlueskyConfig',message:'Bluesky config resolved',data:{clientId,fromEnv:!!process.env.BLUESKY_CLIENT_ID},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
-  // #endregion
   return { clientId };
 }
