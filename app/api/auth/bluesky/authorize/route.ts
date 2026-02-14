@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       random: crypto.randomUUID(),
     });
 
-    const url = await client.authorize('bsky.app', {
+    const url = await client.authorize('https://bsky.app', {
       state,
     });
 
