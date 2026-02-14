@@ -11,6 +11,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const link = searchParams.get('link') === 'true';
+  const handle = searchParams.get('handle')?.trim();
 
   try {
     const { NodeOAuthClient } = await import('@atproto/oauth-client-node');
@@ -31,7 +32,8 @@ export async function GET(request: NextRequest) {
       random: crypto.randomUUID(),
     });
 
-    const url = await client.authorize('https://bsky.app', {
+    const input = handle || 'https://bsky.app';
+    const url = await client.authorize(input, {
       state,
     });
 
