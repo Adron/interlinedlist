@@ -805,7 +805,7 @@ export default function MessageTable({
                             <li key={i} className="mb-1">
                               <a href={cp.url} target="_blank" rel="noopener noreferrer" className="text-muted text-decoration-none">
                                 <i className="bx bx-link-external me-1" style={{ fontSize: '0.7rem' }}></i>
-                                {cp.platform === 'mastodon' ? `Mastodon (${cp.instanceName})` : cp.platform}
+                                {cp.platform === 'mastodon' ? `Mastodon (${cp.instanceName})` : cp.platform === 'bluesky' ? 'Bluesky' : cp.platform}
                               </a>
                             </li>
                           ))}

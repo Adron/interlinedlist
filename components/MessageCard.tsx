@@ -245,7 +245,7 @@ export default function MessageCard({
                       className="text-muted text-decoration-none"
                     >
                       <i className="bx bx-link-external me-1" style={{ fontSize: '0.75rem' }}></i>
-                      {cp.platform === 'mastodon' ? `Mastodon (${cp.instanceName})` : cp.platform}
+                      {cp.platform === 'mastodon' ? `Mastodon (${cp.instanceName})` : cp.platform === 'bluesky' ? 'Bluesky' : cp.platform}
                     </a>
                   </li>
                 ))}

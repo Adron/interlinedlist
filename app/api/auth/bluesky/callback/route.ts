@@ -36,6 +36,17 @@ export async function GET(request: NextRequest) {
     const did = session.did;
     const handle = did;
 
+    const storedSession = await blueskySessionStore.get(did);
+    const providerData = {
+      did,
+      handle,
+      ...(storedSession && {
+        tokenSet: storedSession.tokenSet,
+        dpopJwk: storedSession.dpopJwk,
+        authMethod: storedSession.authMethod ?? 'legacy',
+      }),
+    };
+
     const { prisma } = await import('@/lib/prisma');
     const { hashPassword } = await import('@/lib/auth/password');
     const { getCurrentUser } = await import('@/lib/auth/session');
@@ -49,11 +60,6 @@ export async function GET(request: NextRequest) {
       where: { provider, providerUserId },
       include: { user: true },
     });
-
-    const providerData = {
-      did,
-      handle,
-    };
 
     if (link) {
       const user = await getCurrentUser();

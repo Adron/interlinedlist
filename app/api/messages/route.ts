@@ -5,6 +5,7 @@ import { detectLinks } from '@/lib/messages/link-detector';
 import { APP_URL } from '@/lib/config/app';
 import { buildMessageWhereClause } from '@/lib/messages/queries';
 import { postToMastodon } from '@/lib/mastodon/post-status';
+import { postToBluesky } from '@/lib/bluesky/post-status';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { content, publiclyVisible, imageUrls, videoUrls, mastodonProviderIds } = body;
+    const { content, publiclyVisible, imageUrls, videoUrls, mastodonProviderIds, crossPostToBluesky } = body;
 
     // Validate content
     if (!content || typeof content !== 'string' || content.trim().length === 0) {
@@ -171,14 +172,54 @@ export async function POST(request: NextRequest) {
           });
         }
       }
+    }
 
-      if (crossPostUrls.length > 0) {
-        await prisma.message.update({
-          where: { id: message.id },
-          data: { crossPostUrls: crossPostUrls as object },
+    // Cross-post to Bluesky if enabled
+    if (crossPostToBluesky === true) {
+      const blueskyIdentity = await prisma.linkedIdentity.findFirst({
+        where: {
+          userId: user.id,
+          provider: 'bluesky',
+        },
+        select: {
+          id: true,
+          provider: true,
+          providerUsername: true,
+          providerData: true,
+        },
+      });
+
+      if (blueskyIdentity) {
+        const result = await postToBluesky(blueskyIdentity as Parameters<typeof postToBluesky>[0], {
+          content: content.trim(),
+          publiclyVisible: finalPubliclyVisible as boolean,
+          imageUrls: finalImageUrls,
+          videoUrls: finalVideoUrls,
         });
-        (message as { crossPostUrls?: unknown }).crossPostUrls = crossPostUrls;
+        crossPostResults.push(result);
+        if (result.success && result.url) {
+          crossPostUrls.push({
+            platform: 'bluesky',
+            url: result.url,
+            instanceName: 'Bluesky',
+          });
+        }
+      } else {
+        crossPostResults.push({
+          providerId: '',
+          instanceName: 'Bluesky',
+          success: false,
+          error: 'Bluesky account not linked. Please link in Settings.',
+        });
       }
+    }
+
+    if (crossPostUrls.length > 0) {
+      await prisma.message.update({
+        where: { id: message.id },
+        data: { crossPostUrls: crossPostUrls as object },
+      });
+      (message as { crossPostUrls?: unknown }).crossPostUrls = crossPostUrls;
     }
 
     return NextResponse.json(

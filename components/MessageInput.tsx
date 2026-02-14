@@ -4,7 +4,7 @@ import { useState, FormEvent, useRef, useEffect } from 'react';
 
 const MAX_IMAGES = 6;
 
-interface MastodonIdentity {
+interface Identity {
   id: string;
   provider: string;
   providerUsername: string | null;
@@ -36,8 +36,10 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const [pendingVideoFile, setPendingVideoFile] = useState<File | null>(null);
   const [uploadingVideo, setUploadingVideo] = useState(false);
-  const [mastodonIdentities, setMastodonIdentities] = useState<MastodonIdentity[]>([]);
+  const [mastodonIdentities, setMastodonIdentities] = useState<Identity[]>([]);
+  const [blueskyIdentity, setBlueskyIdentity] = useState<Identity | null>(null);
   const [selectedMastodonIds, setSelectedMastodonIds] = useState<Set<string>>(new Set());
+  const [crossPostToBluesky, setCrossPostToBluesky] = useState(false);
   const [crossPostResults, setCrossPostResults] = useState<Array<{ providerId: string; instanceName: string; success: boolean; error?: string }> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -63,14 +65,16 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
     setShowSettingsMenu(showAdvancedPostSettings);
   }, [showAdvancedPostSettings]);
 
-  // Fetch Mastodon identities on mount
+  // Fetch identities (Mastodon, Bluesky) on mount
   useEffect(() => {
     fetch('/api/user/identities')
       .then((res) => res.json())
       .then((data) => {
         if (data.identities) {
-          const mastodon = data.identities.filter((i: MastodonIdentity) => i.provider?.startsWith?.('mastodon:'));
+          const mastodon = data.identities.filter((i: Identity) => i.provider?.startsWith?.('mastodon:'));
+          const bluesky = data.identities.find((i: Identity) => i.provider === 'bluesky') ?? null;
           setMastodonIdentities(mastodon);
+          setBlueskyIdentity(bluesky);
         }
       })
       .catch(() => {});
@@ -83,6 +87,11 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
       else next.add(id);
       return next;
     });
+    setCrossPostResults(null);
+  };
+
+  const toggleBluesky = () => {
+    setCrossPostToBluesky((prev) => !prev);
     setCrossPostResults(null);
   };
 
@@ -116,6 +125,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
           ...(imageUrls.length > 0 && { imageUrls }),
           ...(videoUrls.length > 0 && { videoUrls }),
           ...(selectedMastodonIds.size > 0 && { mastodonProviderIds: Array.from(selectedMastodonIds) }),
+          ...(crossPostToBluesky && { crossPostToBluesky: true }),
         }),
       });
 
@@ -139,6 +149,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
       setPendingFiles([]);
       setVideoUrls([]);
       setPendingVideoFile(null);
+      setCrossPostToBluesky(false);
       setError('');
       setLoading(false); // Reset loading state so button is enabled for next post
       
@@ -332,6 +343,22 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                         </button>
                       );
                     })}
+                    {blueskyIdentity && (
+                      <button
+                        type="button"
+                        className={`btn btn-sm btn-link p-1 ${crossPostToBluesky ? 'text-primary' : 'text-muted'}`}
+                        aria-label="Cross-post to Bluesky"
+                        style={{ 
+                          border: 'none',
+                          lineHeight: 1,
+                          minWidth: 'auto',
+                        }}
+                        title={blueskyIdentity.providerUsername ? `Bluesky (@${blueskyIdentity.providerUsername})` : 'Bluesky'}
+                        onClick={toggleBluesky}
+                      >
+                        <i className="bx bxl-bluesky" style={{ fontSize: '1.1rem' }}></i>
+                      </button>
+                    )}
                     <button
                       type="button"
                       className="btn btn-sm btn-link p-1 text-muted"
@@ -390,10 +417,13 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
             </div>
           )}
 
-          {selectedMastodonIds.size > 0 && (
+          {(selectedMastodonIds.size > 0 || crossPostToBluesky) && (
             <div className="mb-2 d-flex flex-wrap gap-1 align-items-center">
               <small className="text-muted">
-                Posting to: {mastodonIdentities.filter((m) => selectedMastodonIds.has(m.id)).map((m) => getMastodonInstanceName(m.provider)).join(', ')}
+                Posting to: {[
+                  ...mastodonIdentities.filter((m) => selectedMastodonIds.has(m.id)).map((m) => getMastodonInstanceName(m.provider)),
+                  ...(crossPostToBluesky ? ['Bluesky'] : []),
+                ].join(', ')}
               </small>
             </div>
           )}
