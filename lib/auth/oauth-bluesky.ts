@@ -30,3 +30,21 @@ export function getBlueskyConfig() {
   const clientId = process.env.BLUESKY_CLIENT_ID || getClientMetadataUrl();
   return { clientId };
 }
+
+/** OAuth client metadata object. Use this instead of fetching to avoid network failures. */
+export function getBlueskyClientMetadata() {
+  const { clientId } = getBlueskyConfig();
+  const callbackUrl = clientId.replace('/api/oauth/client-metadata', '/api/auth/bluesky/callback');
+  return {
+    client_id: clientId,
+    client_name: 'InterlinedList',
+    client_uri: APP_URL,
+    application_type: 'web',
+    dpop_bound_access_tokens: true,
+    grant_types: ['authorization_code', 'refresh_token'],
+    redirect_uris: [callbackUrl],
+    response_types: ['code'],
+    scope: 'atproto',
+    token_endpoint_auth_method: 'none',
+  };
+}
