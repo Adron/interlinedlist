@@ -20,7 +20,7 @@ export async function GET() {
     grant_types: ['authorization_code', 'refresh_token'],
     redirect_uris: [`${clientId.replace('/api/oauth/client-metadata', '/api/auth/bluesky/callback')}`],
     response_types: ['code'],
-    scope: 'atproto',
+    scope: 'atproto transition:generic',
     token_endpoint_auth_method: 'none' as const,
     // Using 'none' for simpler setup - no private key required.
     // For production, consider private_key_jwt with jwks

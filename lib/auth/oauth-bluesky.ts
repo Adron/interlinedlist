@@ -44,7 +44,7 @@ export function getBlueskyClientMetadata() {
     grant_types: ['authorization_code', 'refresh_token'],
     redirect_uris: [callbackUrl],
     response_types: ['code'],
-    scope: 'atproto',
+    scope: 'atproto transition:generic',
     token_endpoint_auth_method: 'none',
   };
 }
