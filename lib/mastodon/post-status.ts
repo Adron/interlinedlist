@@ -1,6 +1,7 @@
 /**
  * Cross-post a message to Mastodon.
- * Uploads media from URLs, truncates text to 500 chars, posts status.
+ * Supports threaded posts when content exceeds 500 chars, distributes images (4 per post),
+ * and posts video separately (Mastodon cannot mix images and video).
  */
 
 const MASTODON_CHAR_LIMIT = 500;
@@ -70,7 +71,6 @@ async function uploadMediaToMastodon(
     const data = (await uploadRes.json()) as { id?: string };
     if (!data.id) return null;
 
-    // 202: media still processing - wait before including in status
     if (uploadRes.status === 202) {
       await new Promise((r) => setTimeout(r, 5000));
     }
@@ -99,61 +99,89 @@ export async function postToMastodon(
 
   const instanceUrl = providerData.instance_url.replace(/\/$/, '');
   const accessToken = providerData.access_token;
+  const visibility = options.publiclyVisible ? 'public' : 'private';
 
   try {
-    // Truncate content for Mastodon
-    const status = options.content.length > MASTODON_CHAR_LIMIT
-      ? options.content.slice(0, MASTODON_CHAR_LIMIT - 3) + '...'
-      : options.content;
+    const { splitTextForPlatform } = await import('@/lib/crosspost/text-splitter');
+    const { distributeMedia } = await import('@/lib/crosspost/media-distributor');
 
-    const visibility = options.publiclyVisible ? 'public' : 'private';
+    const textChunks = splitTextForPlatform(options.content, MASTODON_CHAR_LIMIT);
+    const mediaPayloads = distributeMedia(
+      options.imageUrls || [],
+      options.videoUrls || [],
+      'mastodon'
+    );
 
-    // Upload media
-    const mediaIds: string[] = [];
-    const allMediaUrls = [
-      ...(options.imageUrls || []),
-      ...(options.videoUrls || []),
-    ];
+    const numPosts = Math.max(textChunks.length, mediaPayloads.length, 1);
+    let lastStatusId: string | null = null;
+    let firstPostUrl: string | undefined;
 
-    for (const url of allMediaUrls) {
-      const mimeType = url.includes('video') ? 'video/mp4' : 'image/jpeg';
-      const mediaId = await uploadMediaToMastodon(instanceUrl, accessToken, url, mimeType);
-      if (mediaId) mediaIds.push(mediaId);
+    for (let i = 0; i < numPosts; i++) {
+      const text = (textChunks[i] ?? '').trim() || (mediaPayloads[i] ? '.' : '');
+      const mediaPayload = mediaPayloads[i];
+
+      const mediaIds: string[] = [];
+      if (mediaPayload?.images) {
+        for (const url of mediaPayload.images) {
+          const mediaId = await uploadMediaToMastodon(
+            instanceUrl,
+            accessToken,
+            url,
+            'image/jpeg'
+          );
+          if (mediaId) mediaIds.push(mediaId);
+        }
+      } else if (mediaPayload?.video) {
+        const mediaId = await uploadMediaToMastodon(
+          instanceUrl,
+          accessToken,
+          mediaPayload.video,
+          'video/mp4'
+        );
+        if (mediaId) mediaIds.push(mediaId);
+      }
+
+      const formData = new URLSearchParams();
+      formData.append('status', text);
+      formData.append('visibility', visibility);
+      if (lastStatusId) {
+        formData.append('in_reply_to_id', lastStatusId);
+      }
+      for (const id of mediaIds) {
+        formData.append('media_ids[]', id);
+      }
+
+      const statusRes = await fetch(`${instanceUrl}/api/v1/statuses`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData.toString(),
+      });
+
+      if (!statusRes.ok) {
+        const errData = (await statusRes.json().catch(() => ({}))) as { error?: string };
+        return {
+          providerId: identity.id,
+          instanceName,
+          success: false,
+          error: errData.error || `HTTP ${statusRes.status}`,
+        };
+      }
+
+      const statusData = (await statusRes.json()) as { id?: string; url?: string };
+      lastStatusId = statusData.id ?? null;
+      if (!firstPostUrl && statusData.url) {
+        firstPostUrl = statusData.url;
+      }
     }
 
-    // Build form data for status
-    const formData = new URLSearchParams();
-    formData.append('status', status);
-    formData.append('visibility', visibility);
-    for (const id of mediaIds) {
-      formData.append('media_ids[]', id);
-    }
-
-    const statusRes = await fetch(`${instanceUrl}/api/v1/statuses`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: formData.toString(),
-    });
-
-    if (!statusRes.ok) {
-      const errData = (await statusRes.json().catch(() => ({}))) as { error?: string };
-      return {
-        providerId: identity.id,
-        instanceName,
-        success: false,
-        error: errData.error || `HTTP ${statusRes.status}`,
-      };
-    }
-
-    const statusData = (await statusRes.json()) as { url?: string };
     return {
       providerId: identity.id,
       instanceName,
       success: true,
-      url: statusData.url,
+      url: firstPostUrl,
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
