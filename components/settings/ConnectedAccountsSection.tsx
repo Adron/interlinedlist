@@ -27,12 +27,14 @@ function getProviderLabel(provider: string): string {
   return provider;
 }
 
-function getProviderConnectUrl(provider: string, instance?: string): string {
+function getProviderConnectUrl(provider: string, instance?: string, handle?: string): string {
   if (provider === 'github') {
     return '/api/auth/github/authorize?link=true';
   }
   if (provider === 'bluesky') {
-    return '/api/auth/bluesky/authorize?link=true';
+    const params = new URLSearchParams({ link: 'true' });
+    if (handle?.trim()) params.set('handle', handle.trim());
+    return `/api/auth/bluesky/authorize?${params}`;
   }
   if (provider.startsWith('mastodon:') || instance) {
     const inst = instance || provider.replace('mastodon:', '');
@@ -47,6 +49,7 @@ export default function ConnectedAccountsSection({
   const router = useRouter();
   const [identities, setIdentities] = useState<LinkedIdentity[]>(initialIdentities);
   const [mastodonInstance, setMastodonInstance] = useState('');
+  const [blueskyHandle, setBlueskyHandle] = useState('');
   const [verifying, setVerifying] = useState<string | null>(null);
   const [disconnecting, setDisconnecting] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -236,15 +239,30 @@ export default function ConnectedAccountsSection({
                   </button>
                 </>
               ) : (
-                <a
-                  href={getProviderConnectUrl('bluesky')}
-                  className="btn btn-sm btn-primary"
-                >
-                  Connect
-                </a>
+                <div className="d-flex gap-2 align-items-center flex-wrap">
+                  <input
+                    type="text"
+                    className="form-control form-control-sm"
+                    style={{ maxWidth: 200 }}
+                    placeholder="yourhandle.bsky.social"
+                    value={blueskyHandle}
+                    onChange={(e) => setBlueskyHandle(e.target.value)}
+                  />
+                  <a
+                    href={getProviderConnectUrl('bluesky', undefined, blueskyHandle)}
+                    className="btn btn-sm btn-primary"
+                  >
+                    Connect
+                  </a>
+                </div>
               )}
             </div>
           </div>
+          {!blueskyIdentity && (
+            <p className="text-muted small mt-2 mb-0">
+              Enter your Bluesky handle to pre-fill the sign-in form (e.g. adron.bsky.social).
+            </p>
+          )}
         </div>
       </div>
 
