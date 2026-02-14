@@ -1,15 +1,15 @@
 import { NextResponse } from 'next/server';
 import { APP_URL } from '@/lib/config/app';
-import { getClientMetadataUrl } from '@/lib/auth/oauth-bluesky';
+import { getBlueskyConfig } from '@/lib/auth/oauth-bluesky';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * OAuth client metadata for Bluesky/AT Protocol.
- * Uses 127.0.0.1 instead of localhost (RFC 8252) for loopback redirect_uris.
+ * Uses BLUESKY_CLIENT_ID when set so client_id matches the URL used to fetch this document.
  */
 export async function GET() {
-  const clientId = getClientMetadataUrl();
+  const { clientId } = getBlueskyConfig();
 
   const metadata = {
     client_id: clientId,
