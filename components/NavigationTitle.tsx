@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import Logo from './Logo';
 
 function getPageTitle(pathname: string): string {
   // Remove leading slash and split path
@@ -62,9 +63,13 @@ export default function NavigationTitle() {
         textDecoration: 'none',
         display: 'flex',
         alignItems: 'center',
+        gap: '0.5rem',
       }}
+      title="Home"
     >
+      <Logo size="small" iconOnly />
       <span
+        className="d-none d-md-inline"
         style={{
           fontSize: '1.25rem',
           fontWeight: 'bold',

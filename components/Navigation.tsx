@@ -19,8 +19,8 @@ export default async function Navigation() {
             gap: '1rem'
           }}
         >
-          {/* Center - Title text (desktop only) */}
-          <div className="d-none d-md-flex align-items-center justify-content-center" style={{ justifySelf: 'start' }}>
+          {/* Left - Logo + Title (Home link, always visible) */}
+          <div className="d-flex align-items-center" style={{ justifySelf: 'start' }}>
             <NavigationTitle />
           </div>
 
