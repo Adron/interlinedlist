@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { APP_URL } from '@/lib/config/app';
-import { getBlueskyConfig } from '@/lib/auth/oauth-bluesky';
+import { getBlueskyClientMetadata } from '@/lib/auth/oauth-bluesky';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,18 +11,15 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
 
-  const { clientId } = getBlueskyConfig();
-
   try {
-    const { NodeOAuthClient, OAuthClient } = await import('@atproto/oauth-client-node');
+    const { NodeOAuthClient } = await import('@atproto/oauth-client-node');
     const { blueskyStateStore, blueskySessionStore } = await import('@/lib/auth/oauth-bluesky-stores');
 
-    const metadata = await OAuthClient.fetchMetadata({
-      clientId: clientId as `https://${string}/${string}`,
-    });
+    const metadata = getBlueskyClientMetadata();
 
     const client = new NodeOAuthClient({
-      clientMetadata: metadata,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      clientMetadata: metadata as any,
       stateStore: blueskyStateStore,
       sessionStore: blueskySessionStore,
     });
