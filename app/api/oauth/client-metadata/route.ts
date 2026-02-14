@@ -9,6 +9,9 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET() {
   const clientId = `${APP_URL}/api/oauth/client-metadata`;
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/39b03427-0fde-45ae-9ce7-7e7f4ee5aa45',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'client-metadata/route.ts:GET',message:'Client metadata requested',data:{clientId,APP_URL},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
+  // #endregion
 
   const metadata = {
     client_id: clientId,

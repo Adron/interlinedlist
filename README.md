@@ -733,8 +733,13 @@ A test API endpoint is available at `/api/test-db` to verify your database conne
 - `APP_USER_AGENT` - Custom User-Agent string for external API calls (defaults to auto-generated based on app name and contact email)
 - `SESSION_COOKIE_NAME` - Session cookie name (defaults to `session`)
 - `SESSION_MAX_AGE` - Session max age in seconds (defaults to `604800` = 7 days)
+- `BLUESKY_CLIENT_ID` - Bluesky OAuth client metadata URL (optional; defaults to `{NEXT_PUBLIC_APP_URL}/api/oauth/client-metadata`)
 
 **Note**: See `.env.example` for a complete template. Environment variables should be set in `.env` or `.env.local` (both are gitignored).
+
+### Bluesky OAuth
+
+Bluesky account linking uses OAuth 2.0. The client metadata URL is auto-derived from `NEXT_PUBLIC_APP_URL` (e.g. `http://localhost:3000/api/oauth/client-metadata` for local dev). **Important**: Bluesky's servers must be able to fetch this URL. For local development, use a tunnel (e.g. [ngrok](https://ngrok.com)) and set `NEXT_PUBLIC_APP_URL` to your tunnel URL, or set `BLUESKY_CLIENT_ID` explicitly.
 
 ### Local Development
 

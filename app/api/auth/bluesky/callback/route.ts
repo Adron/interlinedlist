@@ -1,22 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { APP_URL } from '@/lib/config/app';
+import { getBlueskyConfig } from '@/lib/auth/oauth-bluesky';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * Bluesky OAuth callback.
- * Placeholder - full implementation requires persisting state/session stores
- * and integrating with User/LinkedIdentity creation.
+ * Handles both sign-in and account linking flows.
  */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
 
-  const clientId = process.env.BLUESKY_CLIENT_ID;
-  if (!clientId) {
-    return NextResponse.redirect(
-      `${APP_URL}/login?error=${encodeURIComponent('Bluesky OAuth not configured')}`
-    );
-  }
+  const { clientId } = getBlueskyConfig();
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/39b03427-0fde-45ae-9ce7-7e7f4ee5aa45',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'callback/route.ts:GET',message:'Bluesky callback entry',data:{clientId,hasCode:searchParams.has('code'),hasState:searchParams.has('state')},timestamp:Date.now(),hypothesisId:'H3,H5'})}).catch(()=>{});
+  // #endregion
 
   try {
     const { NodeOAuthClient, OAuthClient } = await import('@atproto/oauth-client-node');
@@ -34,6 +32,9 @@ export async function GET(request: NextRequest) {
 
     const params = new URLSearchParams(searchParams);
     const { session, state } = await client.callback(params);
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/39b03427-0fde-45ae-9ce7-7e7f4ee5aa45',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'callback/route.ts:afterCallback',message:'callback succeeded',data:{did:session?.did,hasState:!!state},timestamp:Date.now(),hypothesisId:'H3,H5'})}).catch(()=>{});
+    // #endregion
 
     const stateData = JSON.parse(state || '{}');
     const link = stateData.link === true;
@@ -152,6 +153,9 @@ export async function GET(request: NextRequest) {
     });
     return response;
   } catch (error) {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/39b03427-0fde-45ae-9ce7-7e7f4ee5aa45',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'callback/route.ts:catch',message:'Bluesky callback error',data:{error:String(error),name:error instanceof Error?error.name:'',stack:error instanceof Error?error.stack?.slice(0,300):''},timestamp:Date.now(),hypothesisId:'H3,H5'})}).catch(()=>{});
+    // #endregion
     console.error('Bluesky callback error:', error);
     return NextResponse.redirect(
       `${APP_URL}/login?error=${encodeURIComponent(

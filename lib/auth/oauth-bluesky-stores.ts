@@ -11,9 +11,16 @@ const sessionStore = new Map<string, NodeSavedSession>();
 export const blueskyStateStore = {
   async set(key: string, value: NodeSavedState) {
     stateStore.set(key, value);
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/39b03427-0fde-45ae-9ce7-7e7f4ee5aa45',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'oauth-bluesky-stores.ts:stateStore.set',message:'OAuth state stored',data:{key,storeSize:stateStore.size},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
+    // #endregion
   },
   async get(key: string): Promise<NodeSavedState | undefined> {
-    return stateStore.get(key);
+    const v = stateStore.get(key);
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/39b03427-0fde-45ae-9ce7-7e7f4ee5aa45',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'oauth-bluesky-stores.ts:stateStore.get',message:'OAuth state retrieved',data:{key,found:!!v,storeSize:stateStore.size},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
+    // #endregion
+    return v;
   },
   async del(key: string) {
     stateStore.delete(key);
