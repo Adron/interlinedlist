@@ -30,6 +30,8 @@ export interface CrossPostResult {
   instanceName: string;
   success: boolean;
   url?: string;
+  statusId?: string;
+  instanceUrl?: string;
   error?: string;
 }
 
@@ -115,6 +117,7 @@ export async function postToMastodon(
     const numPosts = Math.max(textChunks.length, mediaPayloads.length, 1);
     let lastStatusId: string | null = null;
     let firstPostUrl: string | undefined;
+    let firstStatusId: string | undefined;
 
     for (let i = 0; i < numPosts; i++) {
       const text = (textChunks[i] ?? '').trim() || (mediaPayloads[i] ? '.' : '');
@@ -175,6 +178,9 @@ export async function postToMastodon(
       if (!firstPostUrl && statusData.url) {
         firstPostUrl = statusData.url;
       }
+      if (!firstStatusId && statusData.id) {
+        firstStatusId = String(statusData.id);
+      }
     }
 
     return {
@@ -182,6 +188,8 @@ export async function postToMastodon(
       instanceName,
       success: true,
       url: firstPostUrl,
+      statusId: firstStatusId,
+      instanceUrl: instanceUrl,
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { formatDateTime, formatDatagridDateTime } from '@/lib/utils/relativeTime';
@@ -8,6 +8,7 @@ import { linkifyText } from '@/lib/messages/linkify';
 import { Message as MessageType, LinkMetadataItem } from '@/lib/types';
 import { detectLinks } from '@/lib/messages/link-detector';
 import LinkMetadataCard from './messages/LinkMetadataCard';
+import MessageReplies from './MessageReplies';
 import { extractListNameFromMessage } from '@/lib/utils/message-extractor';
 
 interface MessageUser {
@@ -736,9 +737,11 @@ export default function MessageTable({
                 const isOwner = currentUserId === message.user.id;
                 const isSelected = selectedMessages.has(message.id);
                 const canSelect = isOwner && currentUserId;
+                const colSpan = currentUserId ? 5 : 3; // checkbox + date + content + visibility + actions (or date + content + visibility)
 
                 return (
-                  <tr key={message.id} style={{ lineHeight: '1.3' }}>
+                  <React.Fragment key={message.id}>
+                  <tr style={{ lineHeight: '1.3' }}>
                     {currentUserId && (
                       <td style={{ padding: '0.25rem 0.5rem' }}>
                         {canSelect ? (
@@ -896,6 +899,18 @@ export default function MessageTable({
                       </td>
                     )}
                   </tr>
+                  {!message.parentId && (
+                    <tr>
+                      <td colSpan={colSpan} style={{ padding: '0.25rem 0.5rem', verticalAlign: 'top', borderTop: 'none' }}>
+                        <MessageReplies
+                          parentId={message.id}
+                          currentUserId={currentUserId}
+                          showReplyInput={!!currentUserId}
+                        />
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
                 );
               })}
             </tbody>

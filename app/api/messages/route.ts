@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { content, publiclyVisible, imageUrls, videoUrls, mastodonProviderIds, crossPostToBluesky } = body;
+    const { content, publiclyVisible, imageUrls, videoUrls, mastodonProviderIds, crossPostToBluesky, parentId } = body;
 
     // Validate content
     if (!content || typeof content !== 'string' || content.trim().length === 0) {
@@ -90,12 +90,29 @@ export async function POST(request: NextRequest) {
       finalVideoUrls = urls.length > 0 ? urls : undefined;
     }
 
-    // Create message
+    // Reply: validate parent and visibility
+    let parentMessage: { id: string; userId: string; publiclyVisible: boolean; crossPostUrls: unknown } | null = null;
+    if (parentId && typeof parentId === 'string' && parentId.trim()) {
+      parentMessage = await prisma.message.findUnique({
+        where: { id: parentId.trim() },
+        select: { id: true, userId: true, publiclyVisible: true, crossPostUrls: true },
+      });
+      if (!parentMessage) {
+        return NextResponse.json({ error: 'Parent message not found' }, { status: 404 });
+      }
+      const canReply = parentMessage.publiclyVisible || parentMessage.userId === user.id;
+      if (!canReply) {
+        return NextResponse.json({ error: 'You cannot reply to this message' }, { status: 403 });
+      }
+    }
+
+    // Create message (or reply)
     const message = await prisma.message.create({
       data: {
         content: content.trim(),
         publiclyVisible: finalPubliclyVisible,
         userId: user.id,
+        ...(parentMessage && { parentId: parentMessage.id }),
         ...(finalImageUrls !== undefined && { imageUrls: finalImageUrls }),
         ...(finalVideoUrls !== undefined && { videoUrls: finalVideoUrls }),
       },
@@ -131,10 +148,10 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Cross-post to selected Mastodon accounts
+    // Cross-post to selected Mastodon accounts (skip for replies - reply cross-post handled below)
     const crossPostResults: Array<{ providerId: string; instanceName: string; success: boolean; url?: string; error?: string }> = [];
-    const crossPostUrls: Array<{ platform: string; url: string; instanceName: string }> = [];
-    const providerIds = Array.isArray(mastodonProviderIds)
+    const crossPostUrls: Array<{ platform: string; url: string; instanceName: string; statusId?: string; instanceUrl?: string; uri?: string; cid?: string }> = [];
+    const providerIds = !parentMessage && Array.isArray(mastodonProviderIds)
       ? mastodonProviderIds.filter((id: unknown) => typeof id === 'string')
       : [];
 
@@ -169,13 +186,15 @@ export async function POST(request: NextRequest) {
             platform: 'mastodon',
             url: result.url,
             instanceName: result.instanceName,
+            ...(result.statusId && { statusId: result.statusId }),
+            ...(result.instanceUrl && { instanceUrl: result.instanceUrl }),
           });
         }
       }
     }
 
-    // Cross-post to Bluesky if enabled
-    if (crossPostToBluesky === true) {
+    // Cross-post to Bluesky if enabled (skip for replies)
+    if (!parentMessage && crossPostToBluesky === true) {
       const blueskyIdentity = await prisma.linkedIdentity.findFirst({
         where: {
           userId: user.id,
@@ -202,6 +221,8 @@ export async function POST(request: NextRequest) {
             platform: 'bluesky',
             url: result.url,
             instanceName: 'Bluesky',
+            ...(result.uri && { uri: result.uri }),
+            ...(result.cid && { cid: result.cid }),
           });
         }
       } else {
@@ -220,6 +241,84 @@ export async function POST(request: NextRequest) {
         data: { crossPostUrls: crossPostUrls as object },
       });
       (message as { crossPostUrls?: unknown }).crossPostUrls = crossPostUrls;
+    }
+
+    // Reply cross-post: when replying to a cross-posted message, post reply on platforms where
+    // the replying user follows the original author
+    if (parentMessage && parentMessage.crossPostUrls && Array.isArray(parentMessage.crossPostUrls)) {
+      const { isFollowingOnMastodon } = await import('@/lib/crosspost/check-platform-follow');
+      const { isFollowingOnBluesky } = await import('@/lib/crosspost/check-platform-follow');
+      const { replyToMastodon, replyToBluesky } = await import('@/lib/crosspost/reply-to-external');
+
+      const parentAuthorId = parentMessage.userId;
+      const replyingUserIdentities = await prisma.linkedIdentity.findMany({
+        where: { userId: user.id },
+        select: { id: true, provider: true, providerUserId: true, providerUsername: true, providerData: true },
+      });
+      const parentAuthorIdentities = await prisma.linkedIdentity.findMany({
+        where: { userId: parentAuthorId },
+        select: { id: true, provider: true, providerUserId: true, providerUsername: true, providerData: true },
+      });
+
+      for (const cp of parentMessage.crossPostUrls as Array<{ platform: string; url: string; instanceName: string; statusId?: string; instanceUrl?: string; uri?: string; cid?: string }>) {
+        if (cp.platform === 'mastodon' && cp.statusId && cp.instanceUrl) {
+          const authorMastodon = parentAuthorIdentities.find(
+            (i) => i.provider.startsWith('mastodon:') && cp.instanceUrl && i.provider === `mastodon:${new URL(cp.instanceUrl).hostname}`
+          );
+          const replyingMastodon = replyingUserIdentities.find(
+            (i) => i.provider.startsWith('mastodon:') && cp.instanceUrl && i.provider === `mastodon:${new URL(cp.instanceUrl).hostname}`
+          );
+          if (authorMastodon && replyingMastodon) {
+            const follows = await isFollowingOnMastodon(
+              replyingMastodon as Parameters<typeof isFollowingOnMastodon>[0],
+              authorMastodon as Parameters<typeof isFollowingOnMastodon>[1],
+              cp.instanceUrl
+            );
+            if (follows) {
+              const result = await replyToMastodon(
+                replyingMastodon as Parameters<typeof replyToMastodon>[0],
+                cp as Parameters<typeof replyToMastodon>[1],
+                content.trim(),
+                finalPubliclyVisible
+              );
+              crossPostResults.push({
+                providerId: replyingMastodon.id,
+                instanceName: result.instanceName,
+                success: result.success,
+                url: result.url,
+                error: result.error,
+              });
+            }
+          }
+        } else if (cp.platform === 'bluesky' && cp.uri && cp.cid) {
+          const authorBluesky = parentAuthorIdentities.find((i) => i.provider === 'bluesky');
+          const replyingBluesky = replyingUserIdentities.find((i) => i.provider === 'bluesky');
+          const authorDid = authorBluesky?.providerData && typeof authorBluesky.providerData === 'object' && 'did' in authorBluesky.providerData
+            ? (authorBluesky.providerData as { did?: string }).did ?? authorBluesky.providerUserId
+            : authorBluesky?.providerUserId;
+          if (authorBluesky && replyingBluesky && authorDid) {
+            const follows = await isFollowingOnBluesky(
+              replyingBluesky as Parameters<typeof isFollowingOnBluesky>[0],
+              authorDid
+            );
+            if (follows) {
+              const result = await replyToBluesky(
+                replyingBluesky as Parameters<typeof replyToBluesky>[0],
+                cp as Parameters<typeof replyToBluesky>[1],
+                content.trim(),
+                finalPubliclyVisible
+              );
+              crossPostResults.push({
+                providerId: replyingBluesky.id,
+                instanceName: result.instanceName,
+                success: result.success,
+                url: result.url,
+                error: result.error,
+              });
+            }
+          }
+        }
+      }
     }
 
     return NextResponse.json(
@@ -272,6 +371,9 @@ export async function GET(request: NextRequest) {
       // Unauthenticated users see only public messages
       where = await buildMessageWhereClause(null, 'all_messages');
     }
+
+    // Only top-level messages (no replies in main feed)
+    where = { ...where, parentId: null };
 
     // Fetch messages ordered by createdAt DESC (newest first)
     const messages = await prisma.message.findMany({

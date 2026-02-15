@@ -14,6 +14,7 @@ export default async function MessageFeed() {
     if (user) {
       // Authenticated users see: their own messages (public or private) + all public messages
       where = {
+        parentId: null, // Only top-level messages
         OR: [
           { userId: user.id }, // User's own messages
           { publiclyVisible: true }, // All public messages
@@ -22,6 +23,7 @@ export default async function MessageFeed() {
     } else {
       // Unauthenticated users see only public messages
       where = {
+        parentId: null,
         publiclyVisible: true,
       };
     }
