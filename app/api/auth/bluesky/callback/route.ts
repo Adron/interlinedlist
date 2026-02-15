@@ -31,9 +31,22 @@ export async function GET(request: NextRequest) {
     const link = stateData.link === true;
 
     const did = session.did;
-    const handle = did;
-
     const storedSession = await blueskySessionStore.get(did);
+
+    let handle: string = did;
+    try {
+      const aud = (storedSession?.tokenSet as { aud?: string } | undefined)?.aud ?? 'https://bsky.social';
+      const pdsUrl = aud.replace(/\/$/, '');
+      const describeRes = await fetch(
+        `${pdsUrl}/xrpc/com.atproto.repo.describeRepo?repo=${encodeURIComponent(did)}`
+      );
+      if (describeRes.ok) {
+        const describeData = (await describeRes.json()) as { handle?: string };
+        if (describeData.handle) handle = describeData.handle;
+      }
+    } catch {
+      // Fall back to DID if resolve fails
+    }
     const providerData = {
       did,
       handle,

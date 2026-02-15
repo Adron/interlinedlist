@@ -87,7 +87,9 @@ export async function postToBluesky(
   }
 
   const did = providerData.did ?? (providerData.tokenSet as { sub?: string } | undefined)?.sub;
-  const handle = identity.providerUsername || providerData.handle || did;
+  let handle = identity.providerUsername || providerData.handle || did;
+
+  const isDid = (s: string) => s.startsWith('did:');
 
   if (!did) {
     return {
@@ -126,6 +128,22 @@ export async function postToBluesky(
     });
 
     const session = await client.restore(did);
+
+    if (handle && isDid(handle)) {
+      try {
+        const aud = (providerData.tokenSet as { aud?: string } | undefined)?.aud ?? 'https://bsky.social';
+        const pdsUrl = aud.replace(/\/$/, '');
+        const describeRes = await fetch(
+          `${pdsUrl}/xrpc/com.atproto.repo.describeRepo?repo=${encodeURIComponent(did)}`
+        );
+        if (describeRes.ok) {
+          const describeData = (await describeRes.json()) as { handle?: string };
+          if (describeData.handle) handle = describeData.handle;
+        }
+      } catch {
+        // Keep DID if resolve fails - URL may not work
+      }
+    }
 
     const textChunks = splitTextForPlatform(options.content, BLUESKY_CHAR_LIMIT);
     const mediaPayloads = distributeMedia(
