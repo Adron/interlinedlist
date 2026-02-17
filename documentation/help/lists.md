@@ -13,6 +13,10 @@ Lists let you organize and manage structured data with custom fields.
 3. Enter a title and optional description
 4. Define your schema (fields) using the form builder
 
+## Create List from Message
+
+Use the list-plus icon on any message to create a new list with that message. The message content is used as the list description, and the app may suggest a list name extracted from the message. This is a quick way to turn a message into a structured list.
+
 ## Schema and Fields
 
 Each list has a **schema** that defines what data you can store:

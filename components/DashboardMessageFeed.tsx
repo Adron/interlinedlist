@@ -13,11 +13,13 @@ export default async function DashboardMessageFeed() {
     if (user) {
       // Only show user's own messages (public or private)
       where = {
+        parentId: null,
         userId: user.id, // Only user's own messages
       };
     } else {
       // Unauthenticated users see only public messages
       where = {
+        parentId: null,
         publiclyVisible: true,
       };
     }

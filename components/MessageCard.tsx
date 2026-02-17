@@ -7,6 +7,7 @@ import { Avatar } from './Avatar';
 import { formatDateTime } from '@/lib/utils/relativeTime';
 import { linkifyText } from '@/lib/messages/linkify';
 import LinkMetadataCard from './messages/LinkMetadataCard';
+import MessageReplies from './MessageReplies';
 import { Message as MessageType, LinkMetadataItem } from '@/lib/types';
 import { detectLinks } from '@/lib/messages/link-detector';
 import { extractListNameFromMessage } from '@/lib/utils/message-extractor';
@@ -291,6 +292,15 @@ export default function MessageCard({
                 </div>
               );
             })()}
+
+            {/* Replies - only for top-level messages */}
+            {!message.parentId && (
+              <MessageReplies
+                parentId={message.id}
+                currentUserId={currentUserId}
+                showReplyInput={!!currentUserId}
+              />
+            )}
           </div>
         </div>
       </div>

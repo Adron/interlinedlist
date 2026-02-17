@@ -11,6 +11,8 @@ Access your settings from the user dropdown (top right) → **Settings**.
 - **Display Name**: How you appear to others (defaults to username if not set)
 - **Bio**: Short description for your profile
 - **Avatar**: Profile picture; upload or set from a URL
+- **Theme**: Light, dark, or system (follows your device preference)
+- **Max message length**: Character limit per message (default 666)
 
 ## View Preferences
 
@@ -21,12 +23,11 @@ Access your settings from the user dropdown (top right) → **Settings**.
 ## Message Settings
 
 - **Default message visibility**: Set whether new messages default to public or private
-- **Max message length**: Character limit per message (default 666)
-- **Advanced post settings**: Show advanced options when composing
+- **Advanced post settings**: Show advanced options (cross-posting, images, video) when composing
 
 ## Profile Location
 
-- **Latitude / Longitude**: Optional location for your profile (used by widgets like Weather)
+- **Latitude / Longitude**: Optional location for your profile. Used by widgets such as Weather.
 
 ## Permissions
 

@@ -35,6 +35,8 @@ export interface CrossPostResult {
   instanceName: string;
   success: boolean;
   url?: string;
+  uri?: string;
+  cid?: string;
   error?: string;
 }
 
@@ -250,6 +252,8 @@ export async function postToBluesky(
       instanceName: 'Bluesky',
       success: true,
       url,
+      uri: rootUri,
+      cid: rootCid,
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';

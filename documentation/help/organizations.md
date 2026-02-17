@@ -40,4 +40,4 @@ As an owner or admin:
 
 ## Your Organizations
 
-Go to **User** → **Organizations** in the dropdown to see all organizations you belong to and your role in each.
+Go to **Profile dropdown** → **My Organizations** to see all organizations you belong to and your role in each.

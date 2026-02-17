@@ -27,7 +27,8 @@ export async function GET(
     const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
-    const where = buildWallMessageWhereClause(profileUser.id, currentUser?.id ?? null);
+    const baseWhere = buildWallMessageWhereClause(profileUser.id, currentUser?.id ?? null);
+    const where = { ...baseWhere, parentId: null };
 
     const messages = await prisma.message.findMany({
       where,

@@ -6,6 +6,7 @@ export const HELP_TOPICS = [
   { slug: 'getting-started', title: 'Getting Started' },
   { slug: 'lists', title: 'Lists' },
   { slug: 'messages', title: 'Messages' },
+  { slug: 'people', title: 'People' },
   { slug: 'organizations', title: 'Organizations' },
   { slug: 'export', title: 'Exporting Data' },
   { slug: 'settings', title: 'Settings' },

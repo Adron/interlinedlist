@@ -20,13 +20,13 @@ Your email must be verified before you can post messages:
 
 ## Linked Identities (OAuth)
 
-Connect accounts for easier sign-in:
+Connect accounts for sign-in and cross-posting:
 
 - **GitHub**: Sign in with your GitHub account
-- **Mastodon**: Connect to your Mastodon instance
-- **Bluesky**: Connect to your Bluesky account
+- **Mastodon**: Connect to your Mastodon instance (also used to cross-post messages)
+- **Bluesky**: Connect to your Bluesky account (also used to cross-post messages)
 
-Go to Settings → Security (or Connected Accounts) to link or unlink identities. Once linked, you can sign in with those providers.
+Go to Settings → Security (or the Connected Accounts section on the Settings page) to link or unlink identities. Once linked, you can sign in with those providers and cross-post messages to Mastodon and Bluesky when composing.
 
 ## Private Account
 

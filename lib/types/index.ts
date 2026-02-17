@@ -84,6 +84,10 @@ export interface CrossPostUrl {
   platform: string;
   url: string;
   instanceName: string;
+  statusId?: string;
+  instanceUrl?: string;
+  uri?: string;
+  cid?: string;
 }
 
 export interface Message {
@@ -98,6 +102,9 @@ export interface Message {
   updatedAt?: string; // ISO string, optional
   user: MessageUser;
   userId?: string; // Optional, may not be included in all queries
+  parentId?: string | null;
+  parent?: Message | null;
+  replies?: Message[];
 }
 
 /**
