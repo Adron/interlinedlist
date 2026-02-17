@@ -28,6 +28,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if account is cleared (admin-approved)
+    if (!user.cleared) {
+      return NextResponse.json(
+        { error: 'Your account is pending approval. Contact an administrator.' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const { content, publiclyVisible, imageUrls, videoUrls, mastodonProviderIds, crossPostToBluesky, parentId } = body;
 

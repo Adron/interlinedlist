@@ -248,6 +248,7 @@ export async function GET(request: NextRequest) {
           avatar: true,
           bio: true,
           emailVerified: true,
+          cleared: true,
           createdAt: true,
         },
         orderBy: {

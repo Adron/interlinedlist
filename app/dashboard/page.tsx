@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getCurrentUser } from '@/lib/auth/session';
 import { getUserRoleInOrganization } from '@/lib/organizations/queries';
 import EmailVerificationBanner from '@/components/EmailVerificationBanner';
+import ClearedStatusBanner from '@/components/ClearedStatusBanner';
 import DashboardMessageFeed from '@/components/DashboardMessageFeed';
 import ListsTreeView from '@/components/ListsTreeView';
 
@@ -41,6 +42,13 @@ export default async function DashboardPage() {
           <EmailVerificationBanner emailVerified={user.emailVerified} />
         </div>
       </div>
+      {!user.cleared && (
+        <div className="row mb-3">
+          <div className="col-12">
+            <ClearedStatusBanner cleared={user.cleared} />
+          </div>
+        </div>
+      )}
 
       <div className="row">
         {/* Left Column - Messages Table */}

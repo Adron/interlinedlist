@@ -1,6 +1,7 @@
 import { getCurrentUser } from '@/lib/auth/session';
 import MessageFeed from '@/components/MessageFeed';
 import EmailVerificationBanner from '@/components/EmailVerificationBanner';
+import ClearedStatusBanner from '@/components/ClearedStatusBanner';
 import RightSidebar from '@/components/RightSidebar';
 
 export default async function Home() {
@@ -12,6 +13,13 @@ export default async function Home() {
         <div className="row mb-3">
           <div className="col-12">
             <EmailVerificationBanner emailVerified={user.emailVerified} />
+          </div>
+        </div>
+      )}
+      {user && user.emailVerified && !user.cleared && (
+        <div className="row mb-3">
+          <div className="col-12">
+            <ClearedStatusBanner cleared={user.cleared} />
           </div>
         </div>
       )}

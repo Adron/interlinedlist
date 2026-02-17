@@ -48,6 +48,12 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    if (!user.cleared) {
+      return NextResponse.json(
+        { error: "Your account is pending approval. Contact an administrator." },
+        { status: 403 }
+      );
+    }
 
     const body = await request.json();
     const { title, description, messageId, metadata, schema, parentId, isPublic } = body;

@@ -11,6 +11,7 @@ interface User {
   avatar: string | null;
   bio: string | null;
   emailVerified: boolean;
+  cleared?: boolean;
   createdAt: string;
   isAdministrator?: boolean;
 }
@@ -38,7 +39,10 @@ export default function UserManagement({ initialUsers, initialTotal, currentUser
   const [setStatusModalOpen, setSetStatusModalOpen] = useState(false);
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
   const [bulkError, setBulkError] = useState<string | null>(null);
+  const [selectAllLoading, setSelectAllLoading] = useState(false);
   const itemsPerPage = 10;
+
+  const allInDbSelected = total > 0 && selectedIds.size === total;
 
   const pageUserIds = users.map((u) => u.id);
   const allOnPageSelected = pageUserIds.length > 0 && pageUserIds.every((id) => selectedIds.has(id));
@@ -73,6 +77,38 @@ export default function UserManagement({ initialUsers, initialTotal, currentUser
       else next.add(userId);
       return next;
     });
+  };
+
+  const handleSelectAllInDb = async () => {
+    if (total === 0) return;
+    if (allInDbSelected) {
+      setSelectedIds(new Set());
+      return;
+    }
+    setSelectAllLoading(true);
+    try {
+      const ids: string[] = [];
+      let page = 1;
+      let hasMore = true;
+      while (hasMore) {
+        const params = new URLSearchParams({
+          page: page.toString(),
+          limit: '100',
+          ...(searchTerm && { search: searchTerm }),
+        });
+        const res = await fetch(`/api/admin/users?${params.toString()}`);
+        const data = await res.json();
+        const usersList = data.users || [];
+        ids.push(...usersList.map((u: User) => u.id));
+        hasMore = data.pagination?.hasMore ?? false;
+        page++;
+      }
+      setSelectedIds(new Set(ids));
+    } catch (err) {
+      console.error('Failed to fetch all user IDs:', err);
+    } finally {
+      setSelectAllLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -132,6 +168,7 @@ export default function UserManagement({ initialUsers, initialTotal, currentUser
       avatar: user.avatar || '',
       bio: user.bio || '',
       emailVerified: user.emailVerified,
+      cleared: user.cleared ?? false,
       isAdministrator: user.isAdministrator || false,
     });
     setSaveError(null);
@@ -287,6 +324,36 @@ export default function UserManagement({ initialUsers, initialTotal, currentUser
     }
   };
 
+  const handleSetClearanceClick = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setBulkActionLoading(true);
+    setBulkError(null);
+    try {
+      const response = await fetch('/api/admin/users/bulk-clearance', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userIds: ids }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setBulkError(data.error || 'Failed to update clearance');
+        return;
+      }
+      setUsers((prev) =>
+        prev.map((u) =>
+          selectedIds.has(u.id) ? { ...u, cleared: !u.cleared } : u
+        )
+      );
+      setSelectedIds(new Set());
+    } catch (e) {
+      console.error(e);
+      setBulkError('An error occurred');
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
   return (
     <div className="card">
       <div className="card-body">
@@ -324,39 +391,68 @@ export default function UserManagement({ initialUsers, initialTotal, currentUser
         </div>
 
         {/* Bulk actions toolbar */}
-        {selectedIds.size > 0 && (
-          <div className="mb-3 d-flex align-items-center gap-2 flex-wrap">
-            <span className="text-muted small me-2">
-              {selectedIds.size} selected
-            </span>
+        <div className="mb-3 d-flex align-items-center justify-content-between gap-2 flex-wrap">
+          <div className="d-flex align-items-center gap-2 flex-wrap">
             <button
               type="button"
               className="btn btn-sm btn-outline-secondary"
-              onClick={toggleSelectAll}
-              disabled={bulkActionLoading}
+              onClick={handleSelectAllInDb}
+              disabled={bulkActionLoading || selectAllLoading || total === 0}
+              title={allInDbSelected ? 'Deselect all users' : 'Select all users in database'}
             >
-              {allOnPageSelected ? 'Deselect all on page' : 'Select all on page'}
+              {selectAllLoading ? (
+                <>
+                  <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                  Loading...
+                </>
+              ) : (
+                allInDbSelected ? `Deselect All (${total})` : `Select All (${total})`
+              )}
             </button>
-            <button
-              type="button"
-              className="btn btn-sm btn-danger"
-              onClick={handleBulkDeleteClick}
-              disabled={bulkActionLoading}
-            >
-              <i className="bx bx-trash me-1"></i>
-              Delete All
-            </button>
-            <button
-              type="button"
-              className="btn btn-sm btn-outline-primary"
-              onClick={handleSetStatusClick}
-              disabled={bulkActionLoading}
-            >
-              <i className="bx bx-check-circle me-1"></i>
-              Set Status
-            </button>
+            {selectedIds.size > 0 && (
+              <>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary"
+                  onClick={toggleSelectAll}
+                  disabled={bulkActionLoading}
+                >
+                  {allOnPageSelected ? 'Deselect all on page' : 'Select all on page'}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-danger"
+                  onClick={handleBulkDeleteClick}
+                  disabled={bulkActionLoading}
+                >
+                  <i className="bx bx-trash me-1"></i>
+                  Delete All
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-primary"
+                  onClick={handleSetStatusClick}
+                  disabled={bulkActionLoading}
+                >
+                  <i className="bx bx-check-circle me-1"></i>
+                  Set Status
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-primary"
+                  onClick={handleSetClearanceClick}
+                  disabled={bulkActionLoading}
+                >
+                  <i className="bx bx-shield-quarter me-1"></i>
+                  Set Clearance
+                </button>
+              </>
+            )}
           </div>
-        )}
+          <span className="text-muted small ms-auto">
+            {selectedIds.size} selected
+          </span>
+        </div>
 
         {/* Users Table */}
         {loading ? (
@@ -389,6 +485,7 @@ export default function UserManagement({ initialUsers, initialTotal, currentUser
                     <th>Email</th>
                     <th>Username</th>
                     <th>Status</th>
+                    <th>Cleared</th>
                     <th>Created</th>
                     <th>Actions</th>
                   </tr>
@@ -446,6 +543,13 @@ export default function UserManagement({ initialUsers, initialTotal, currentUser
                           <span className="badge bg-success">Verified</span>
                         ) : (
                           <span className="badge bg-warning">Unverified</span>
+                        )}
+                      </td>
+                      <td>
+                        {user.cleared ? (
+                          <span className="badge bg-success">Cleared</span>
+                        ) : (
+                          <span className="badge bg-warning">Not cleared</span>
                         )}
                       </td>
                       <td>
@@ -683,6 +787,26 @@ export default function UserManagement({ initialUsers, initialTotal, currentUser
                     </div>
                   </div>
 
+                  <div className="col-md-6 mb-3">
+                    <div className="form-check">
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
+                        id="editCleared"
+                        checked={editFormData.cleared ?? false}
+                        onChange={(e) =>
+                          setEditFormData({
+                            ...editFormData,
+                            cleared: e.target.checked,
+                          })
+                        }
+                        disabled={isSaving}
+                      />
+                      <label className="form-check-label" htmlFor="editCleared">
+                        Cleared
+                      </label>
+                    </div>
+                  </div>
                   <div className="col-md-6 mb-3">
                     <div className="form-check">
                       <input

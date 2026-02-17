@@ -83,6 +83,9 @@ export async function PUT(
     if (body.emailVerified !== undefined) {
       updateData.emailVerified = body.emailVerified;
     }
+    if (body.cleared !== undefined) {
+      updateData.cleared = body.cleared;
+    }
 
     // Update user
     const updatedUser = await prisma.user.update({
@@ -96,6 +99,7 @@ export async function PUT(
         avatar: true,
         bio: true,
         emailVerified: true,
+        cleared: true,
         createdAt: true,
       },
     });

@@ -104,7 +104,7 @@ export default async function Navigation() {
                       }}
                       title="Administration"
                     >
-                      <i className="bx bx-user-check fs-22 align-middle"></i>
+                      <i className="bx bx-cog fs-22 align-middle"></i>
                     </Link>
                   </div>
                 )}

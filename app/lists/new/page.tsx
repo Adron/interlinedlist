@@ -10,6 +10,10 @@ export default async function NewListPage() {
     redirect('/login');
   }
 
+  if (!user.cleared) {
+    redirect('/lists');
+  }
+
   const breadcrumbItems = [
     { label: 'Lists', href: '/lists' },
     { label: 'New List' },

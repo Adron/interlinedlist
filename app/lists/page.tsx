@@ -21,10 +21,14 @@ export default async function ListsPage() {
     <div className="container-fluid container-fluid-max py-4">
       <div className="row mb-4">
         <div className="col-12 d-flex justify-content-end">
-          <Link href="/lists/new" className="btn btn-primary">
-            <i className="bx bx-plus me-2"></i>
-            Create New List
-          </Link>
+          {user.cleared ? (
+            <Link href="/lists/new" className="btn btn-primary">
+              <i className="bx bx-plus me-2"></i>
+              Create New List
+            </Link>
+          ) : (
+            <span className="text-muted small align-self-center">Contact an administrator to create lists.</span>
+          )}
         </div>
       </div>
 
@@ -33,11 +37,15 @@ export default async function ListsPage() {
           <div className="card-body text-center py-5">
             <i className="bx bx-list-ul fs-1 text-muted mb-3 d-block"></i>
             <h3 className="h5 mb-2">No lists yet</h3>
-            <p className="text-muted mb-4">Create your first list to get started!</p>
-            <Link href="/lists/new" className="btn btn-primary">
-              <i className="bx bx-plus me-2"></i>
-              Create Your First List
-            </Link>
+            <p className="text-muted mb-4">
+              {user.cleared ? 'Create your first list to get started!' : 'Contact an administrator to create lists.'}
+            </p>
+            {user.cleared && (
+              <Link href="/lists/new" className="btn btn-primary">
+                <i className="bx bx-plus me-2"></i>
+                Create Your First List
+              </Link>
+            )}
           </div>
         </div>
       ) : (

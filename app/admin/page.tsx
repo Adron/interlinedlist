@@ -26,6 +26,7 @@ export default async function AdminPage() {
       avatar: true,
       bio: true,
       emailVerified: true,
+      cleared: true,
       createdAt: true,
     },
     orderBy: {

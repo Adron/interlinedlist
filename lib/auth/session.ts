@@ -51,6 +51,7 @@ export async function getCurrentUser() {
           latitude: true,
           longitude: true,
           isPrivateAccount: true,
+          cleared: true,
           createdAt: true,
         },
       });
@@ -102,6 +103,7 @@ export async function getCurrentUser() {
             showAdvancedPostSettings: true,
             latitude: true,
             longitude: true,
+            cleared: true,
             createdAt: true,
           },
         });
@@ -130,6 +132,7 @@ export async function getCurrentUser() {
         return {
           ...user,
           isPrivateAccount: false,
+          cleared: (user as { cleared?: boolean }).cleared ?? true,
           isAdministrator,
         };
       }
@@ -182,6 +185,7 @@ export async function getCurrentUser() {
           latitude: null,
           longitude: null,
           isPrivateAccount: false,
+          cleared: (user as { cleared?: boolean }).cleared ?? true,
           isAdministrator,
         };
       }

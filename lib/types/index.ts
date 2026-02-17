@@ -39,6 +39,7 @@ export interface User {
   viewingPreference: string | null;
   showPreviews: boolean | null;
   isPrivateAccount?: boolean | null;
+  cleared?: boolean;
   createdAt: Date | string;
   isAdministrator?: boolean;
   followerCount?: number;  // Optional, included when counts are fetched

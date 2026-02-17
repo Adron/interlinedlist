@@ -64,7 +64,7 @@ export default async function MessageFeed() {
 
     return (
       <>
-        {user && user.emailVerified && (
+        {user && user.emailVerified && user.cleared && (
           <div className="mb-3">
             <MessageInput
               maxLength={user.maxMessageLength || 666}
