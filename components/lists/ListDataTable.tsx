@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import type { KeyboardEvent } from "react";
 import { ParsedField, FormData } from "@/lib/lists/dsl-types";
 import { validateFormData } from "@/lib/lists/dsl-validator";
 import { parseFieldValue, getFieldComponent } from "@/lib/lists/form-generator";
@@ -128,8 +127,11 @@ export default function ListDataTable({
         throw new Error("Failed to delete row");
       }
 
-      // Refresh data
-      fetchData();
+      setRows((prev) => prev.filter((r) => r.id !== rowId));
+      setPagination((prev) => ({
+        ...prev,
+        total: Math.max(0, prev.total - 1),
+      }));
     } catch (err: any) {
       setError(err.message || "Failed to delete row");
     }
@@ -181,9 +183,24 @@ export default function ListDataTable({
         throw new Error("Failed to update row");
       }
 
+      const result = await response.json();
+      const updatedRow = result.data;
+      if (updatedRow) {
+        setRows((prev) =>
+          prev.map((r) =>
+            r.id === rowId
+              ? {
+                  id: updatedRow.id,
+                  rowData: updatedRow.rowData,
+                  createdAt: updatedRow.createdAt,
+                  updatedAt: updatedRow.updatedAt,
+                }
+              : r
+          )
+        );
+      }
       setEditingCell(null);
       setEditingData({});
-      fetchData();
     } catch (err: any) {
       setError(err.message || "Failed to update row");
       setEditingCell(null);
@@ -258,11 +275,23 @@ export default function ListDataTable({
         throw new Error(errorData.error || "Failed to add row");
       }
 
-      // Clear empty row and refresh
+      const result = await response.json();
+      const newRow = result.data;
+      if (newRow) {
+        setRows((prev) => [
+          {
+            id: newRow.id,
+            rowData: newRow.rowData,
+            createdAt: newRow.createdAt,
+            updatedAt: newRow.updatedAt,
+          },
+          ...prev,
+        ]);
+        setPagination((prev) => ({ ...prev, total: prev.total + 1 }));
+      }
       setNewRowData({});
       setNewRowErrors({});
-      fetchData();
-      
+
       // Focus first input of new empty row after a brief delay
       setTimeout(() => {
         const firstField = sortedFields[0];
@@ -281,36 +310,6 @@ export default function ListDataTable({
   const handleCancelNewRow = () => {
     setNewRowData({});
     setNewRowErrors({});
-  };
-
-  const handleTabFromLastColumn = async (e: KeyboardEvent<HTMLElement>) => {
-    e.preventDefault();
-    
-    // Check if all required fields have data
-    if (!checkRequiredFieldsComplete()) {
-      // Validate to show which fields are missing
-      const validation = validateFormData(sortedFields, newRowData);
-      if (!validation.isValid) {
-        const errorMap: Record<string, string> = {};
-        validation.errors.forEach((error) => {
-          errorMap[error.field] = error.message;
-        });
-        setNewRowErrors(errorMap);
-        
-        // Focus on first invalid field
-        const firstInvalidField = sortedFields.find((f) => 
-          f.isRequired && (!newRowData[f.propertyKey] || newRowData[f.propertyKey] === "")
-        );
-        if (firstInvalidField) {
-          const inputRef = newRowInputRefs.current[firstInvalidField.propertyKey];
-          inputRef?.focus();
-        }
-        return;
-      }
-    }
-    
-    // All required fields have data, validate and save
-    await handleSaveNewRow();
   };
 
   const formatValue = (field: ParsedField, value: any): string => {
@@ -432,11 +431,10 @@ export default function ListDataTable({
     );
   };
 
-  const renderEmptyRowCell = (field: ParsedField, index: number) => {
+  const renderEmptyRowCell = (field: ParsedField) => {
     const fieldComponent = getFieldComponent(field);
     const value = newRowData[field.propertyKey];
     const hasError = !!newRowErrors[field.propertyKey];
-    const isLastColumn = index === sortedFields.length - 1;
 
     if (field.propertyType === "boolean" || fieldComponent.type === "checkbox") {
       return (
@@ -476,9 +474,6 @@ export default function ListDataTable({
               handleNewRowChange(field.propertyKey, parsed);
             }}
             onKeyDown={(e) => {
-              if (e.key === "Tab" && isLastColumn && !e.shiftKey) {
-                handleTabFromLastColumn(e);
-              }
               if (e.key === "Escape") {
                 handleCancelNewRow();
               }
@@ -504,9 +499,6 @@ export default function ListDataTable({
             value={value !== null && value !== undefined ? String(value) : ""}
             onChange={(e) => handleNewRowChange(field.propertyKey, e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Tab" && isLastColumn && !e.shiftKey) {
-                handleTabFromLastColumn(e);
-              }
               if (e.key === "Escape") {
                 handleCancelNewRow();
               }
@@ -636,7 +628,7 @@ export default function ListDataTable({
                   
                   {/* Empty row - always visible at bottom */}
                   <tr className="table-light">
-                    {sortedFields.map((field, index) => renderEmptyRowCell(field, index))}
+                    {sortedFields.map((field) => renderEmptyRowCell(field))}
                     <td>
                       {checkRequiredFieldsComplete() && (
                         <button
