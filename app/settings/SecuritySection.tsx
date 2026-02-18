@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ConnectedAccountsSection from '@/components/settings/ConnectedAccountsSection';
 
+type DeleteModalStep = 0 | 1 | 2;
+
 interface SecuritySectionProps {
   isPrivateAccount: boolean | null;
   linkedIdentities: Array<{
@@ -26,6 +28,11 @@ export default function SecuritySection({ isPrivateAccount: initialIsPrivateAcco
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(initialError ?? '');
   const [success, setSuccess] = useState(initialSuccess ?? '');
+  const [deleteModalStep, setDeleteModalStep] = useState<DeleteModalStep>(0);
+  const [deleteUsername, setDeleteUsername] = useState('');
+  const [deleteEmail, setDeleteEmail] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const handlePrivacyToggle = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -58,6 +65,59 @@ export default function SecuritySection({ isPrivateAccount: initialIsPrivateAcco
     } catch (err) {
       setError('An error occurred. Please try again.');
       setLoading(false);
+    }
+  };
+
+  const openDeleteModal = () => {
+    setDeleteModalStep(1);
+    setDeleteError('');
+    setDeleteUsername('');
+    setDeleteEmail('');
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModalStep(0);
+    setDeleteError('');
+    setDeleteUsername('');
+    setDeleteEmail('');
+  };
+
+  const proceedToDeleteStep2 = () => {
+    setDeleteModalStep(2);
+    setDeleteError('');
+  };
+
+  const handleDeleteAccount = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setDeleteError('');
+    setDeleteLoading(true);
+
+    try {
+      const response = await fetch('/api/user/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: deleteUsername.trim(),
+          email: deleteEmail.trim(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setDeleteError(data.error || 'Failed to delete account');
+        setDeleteLoading(false);
+        return;
+      }
+
+      closeDeleteModal();
+      router.push('/');
+      router.refresh();
+    } catch (err) {
+      setDeleteError('An error occurred. Please try again.');
+      setDeleteLoading(false);
     }
   };
 
@@ -125,7 +185,143 @@ export default function SecuritySection({ isPrivateAccount: initialIsPrivateAcco
             Reset Password
           </Link>
         </div>
+
+        <hr className="my-4" />
+
+        <div>
+          <h4 className="h6 mb-2">Delete Account</h4>
+          <p className="text-muted small mb-3">
+            Permanently delete your account and all your data. This cannot be undone.
+          </p>
+          <button
+            type="button"
+            className="btn btn-outline-danger"
+            onClick={openDeleteModal}
+          >
+            Delete my account
+          </button>
+        </div>
       </div>
+
+      {/* Delete Account - Step 1: Confirmation */}
+      {deleteModalStep === 1 && (
+        <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} tabIndex={-1}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Delete your account?</h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  aria-label="Close"
+                  onClick={closeDeleteModal}
+                />
+              </div>
+              <div className="modal-body">
+                <p className="mb-0">
+                  Are you sure you want to permanently delete your account? This cannot be undone. All your messages and data will be removed.
+                </p>
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={closeDeleteModal}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={proceedToDeleteStep2}
+                >
+                  Yes, I want to delete my account
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Account - Step 2: Username and email verification */}
+      {deleteModalStep === 2 && (
+        <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} tabIndex={-1}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <form onSubmit={handleDeleteAccount}>
+                <div className="modal-header">
+                  <h5 className="modal-title">Verify your identity</h5>
+                  <button
+                    type="button"
+                    className="btn-close"
+                    aria-label="Close"
+                    onClick={closeDeleteModal}
+                  />
+                </div>
+                <div className="modal-body">
+                  <p className="text-muted small mb-3">
+                    Enter your username and email address to confirm account deletion.
+                  </p>
+                  {deleteError && (
+                    <div className="alert alert-danger py-2 mb-3" role="alert">
+                      {deleteError}
+                    </div>
+                  )}
+                  <div className="mb-3">
+                    <label htmlFor="deleteUsername" className="form-label">
+                      Username
+                    </label>
+                    <input
+                      type="text"
+                      id="deleteUsername"
+                      className="form-control"
+                      placeholder="Enter your username"
+                      value={deleteUsername}
+                      onChange={(e) => setDeleteUsername(e.target.value)}
+                      required
+                      disabled={deleteLoading}
+                      autoComplete="username"
+                    />
+                  </div>
+                  <div className="mb-0">
+                    <label htmlFor="deleteEmail" className="form-label">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      id="deleteEmail"
+                      className="form-control"
+                      placeholder="Enter your email"
+                      value={deleteEmail}
+                      onChange={(e) => setDeleteEmail(e.target.value)}
+                      required
+                      disabled={deleteLoading}
+                      autoComplete="email"
+                    />
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={closeDeleteModal}
+                    disabled={deleteLoading}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-danger"
+                    disabled={deleteLoading}
+                  >
+                    {deleteLoading ? 'Deleting...' : 'Permanently delete my account'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
