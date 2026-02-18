@@ -426,6 +426,11 @@ export async function removeUserFromOrganization(
     throw new Error('User is not a member of this organization');
   }
 
+  // Users cannot leave or be removed from system organizations (e.g. "The Public")
+  if (membership.organization.isSystem) {
+    throw new Error('Cannot leave or be removed from this organization');
+  }
+
   // Check permissions: user can remove themselves, or admin/owner can remove others
   if (userId !== removedBy) {
     const removerMembership = await prisma.userOrganization.findUnique({

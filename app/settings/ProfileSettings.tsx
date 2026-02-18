@@ -14,6 +14,7 @@ interface User {
   bio: string | null;
   theme: string | null;
   maxMessageLength: number | null;
+  pendingEmail?: string | null;
 }
 
 interface ProfileSettingsProps {
@@ -43,6 +44,10 @@ export default function ProfileSettings({ user }: ProfileSettingsProps) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [emailChangeLoading, setEmailChangeLoading] = useState(false);
+  const [emailChangeError, setEmailChangeError] = useState('');
+  const [emailChangeSuccess, setEmailChangeSuccess] = useState('');
   const [avatarValidation, setAvatarValidation] = useState<{
     status: 'idle' | 'validating' | 'valid' | 'invalid';
     message: string;
@@ -235,6 +240,39 @@ export default function ProfileSettings({ user }: ProfileSettingsProps) {
     }
   };
 
+  const handleChangeEmailRequest = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setEmailChangeError('');
+    setEmailChangeSuccess('');
+    setEmailChangeLoading(true);
+
+    try {
+      const response = await fetch('/api/user/change-email/request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ newEmail: newEmail.trim() }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setEmailChangeError(data.error || 'Failed to send verification email');
+        setEmailChangeLoading(false);
+        return;
+      }
+
+      setEmailChangeSuccess(data.message || 'Verification email sent. Check your inbox.');
+      setNewEmail('');
+      setEmailChangeLoading(false);
+      router.refresh();
+    } catch (err) {
+      setEmailChangeError('An error occurred. Please try again.');
+      setEmailChangeLoading(false);
+    }
+  };
+
   return (
     <div className="card h-100">
       <div className="card-body">
@@ -252,6 +290,50 @@ export default function ProfileSettings({ user }: ProfileSettingsProps) {
               value={formData.displayName}
               onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
             />
+          </div>
+
+          <div className="mb-3">
+            <label className="form-label">Email</label>
+            <p className="form-control-plaintext text-muted small mb-2">
+              Current: {user.email}
+            </p>
+            {user.pendingEmail ? (
+              <div className="alert alert-info py-2 mb-2" role="alert">
+                Verification email sent to <strong>{user.pendingEmail}</strong>. Check your inbox and click the link to complete the change.
+              </div>
+            ) : (
+              <form onSubmit={handleChangeEmailRequest} className="d-flex flex-column gap-2">
+                <input
+                  type="email"
+                  className="form-control"
+                  placeholder="Enter new email address"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  disabled={emailChangeLoading}
+                  required
+                />
+                <small className="form-text text-muted">
+                  We&apos;ll send a verification link to your new email. Click it to complete the change.
+                </small>
+                {emailChangeError && (
+                  <div className="alert alert-danger py-2" role="alert">
+                    {emailChangeError}
+                  </div>
+                )}
+                {emailChangeSuccess && (
+                  <div className="alert alert-success py-2" role="alert">
+                    {emailChangeSuccess}
+                  </div>
+                )}
+                <button
+                  type="submit"
+                  className="btn btn-outline-primary btn-sm align-self-start"
+                  disabled={emailChangeLoading}
+                >
+                  {emailChangeLoading ? 'Sending...' : 'Send verification email'}
+                </button>
+              </form>
+            )}
           </div>
 
           <div className="mb-3">

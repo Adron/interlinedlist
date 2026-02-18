@@ -177,43 +177,45 @@ export default function MessageList({ initialMessages, currentUserId, initialTot
 
   return (
     <div>
-      {/* Header with preview toggle */}
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <div></div>
-        <div className="d-flex align-items-center gap-2">
-          <small className="text-muted me-2">Message Previews:</small>
-          <div className="d-flex gap-3">
-            <div className="form-check form-check-inline">
-              <input
-                className="form-check-input"
-                type="radio"
-                name="messagePreviewsToggle"
-                id="showPreviewsToggle"
-                checked={localShowPreviews === true}
-                onChange={() => handlePreviewsToggleChange(true)}
-                disabled={isSavingPreference}
-              />
-              <label className="form-check-label" htmlFor="showPreviewsToggle">
-                Show
-              </label>
-            </div>
-            <div className="form-check form-check-inline">
-              <input
-                className="form-check-input"
-                type="radio"
-                name="messagePreviewsToggle"
-                id="hidePreviewsToggle"
-                checked={localShowPreviews === false}
-                onChange={() => handlePreviewsToggleChange(false)}
-                disabled={isSavingPreference}
-              />
-              <label className="form-check-label" htmlFor="hidePreviewsToggle">
-                Hide
-              </label>
+      {/* Header with preview toggle - only show when logged in */}
+      {currentUserId && (
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <div></div>
+          <div className="d-flex align-items-center gap-2">
+            <small className="text-muted me-2">Message Previews:</small>
+            <div className="d-flex gap-3">
+              <div className="form-check form-check-inline">
+                <input
+                  className="form-check-input"
+                  type="radio"
+                  name="messagePreviewsToggle"
+                  id="showPreviewsToggle"
+                  checked={localShowPreviews === true}
+                  onChange={() => handlePreviewsToggleChange(true)}
+                  disabled={isSavingPreference}
+                />
+                <label className="form-check-label" htmlFor="showPreviewsToggle">
+                  Show
+                </label>
+              </div>
+              <div className="form-check form-check-inline">
+                <input
+                  className="form-check-input"
+                  type="radio"
+                  name="messagePreviewsToggle"
+                  id="hidePreviewsToggle"
+                  checked={localShowPreviews === false}
+                  onChange={() => handlePreviewsToggleChange(false)}
+                  disabled={isSavingPreference}
+                />
+                <label className="form-check-label" htmlFor="hidePreviewsToggle">
+                  Hide
+                </label>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {isRefreshing && (
         <div className="text-center mb-3">

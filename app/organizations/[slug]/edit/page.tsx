@@ -70,6 +70,7 @@ export default async function EditOrganizationPage({
             organizationId={organization.id}
             existingMemberIds={existingMemberIds}
             currentUserRole={userRole}
+            isSystemOrganization={organization.isSystem}
           />
         </div>
       </div>

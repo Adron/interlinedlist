@@ -96,6 +96,7 @@ export default async function OrganizationDetailPage({
             organizationId={organization.id}
             currentUserRole={userRole}
             canManage={canManage}
+            isSystemOrganization={organization.isSystem}
           />
         </div>
       </div>

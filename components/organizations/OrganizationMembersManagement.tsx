@@ -9,12 +9,14 @@ interface OrganizationMembersManagementProps {
   organizationId: string;
   existingMemberIds: string[];
   currentUserRole: OrganizationRole | null;
+  isSystemOrganization?: boolean;
 }
 
 export default function OrganizationMembersManagement({
   organizationId,
   existingMemberIds,
   currentUserRole,
+  isSystemOrganization = false,
 }: OrganizationMembersManagementProps) {
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -35,6 +37,7 @@ export default function OrganizationMembersManagement({
         organizationId={organizationId}
         currentUserRole={currentUserRole}
         onRefresh={handleMemberAdded}
+        isSystemOrganization={isSystemOrganization}
       />
     </>
   );

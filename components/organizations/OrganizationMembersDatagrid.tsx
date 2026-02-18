@@ -19,12 +19,14 @@ interface OrganizationMembersDatagridProps {
   organizationId: string;
   currentUserRole?: OrganizationRole | null;
   onRefresh?: () => void;
+  isSystemOrganization?: boolean;
 }
 
 export default function OrganizationMembersDatagrid({
   organizationId,
   currentUserRole,
   onRefresh,
+  isSystemOrganization = false,
 }: OrganizationMembersDatagridProps) {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
@@ -328,14 +330,16 @@ export default function OrganizationMembersDatagrid({
                             >
                               Cancel
                             </button>
-                            <button
-                              className="btn btn-sm btn-danger"
-                              onClick={() => handleRemoveMember(member.id, member.displayName || member.username)}
-                              disabled={isUpdating}
-                              title="Remove Member"
-                            >
-                              <i className="bx bx-trash"></i>
-                            </button>
+                            {!isSystemOrganization && (
+                              <button
+                                className="btn btn-sm btn-danger"
+                                onClick={() => handleRemoveMember(member.id, member.displayName || member.username)}
+                                disabled={isUpdating}
+                                title="Remove Member"
+                              >
+                                <i className="bx bx-trash"></i>
+                              </button>
+                            )}
                           </div>
                         ) : (
                           <button
