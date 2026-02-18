@@ -42,6 +42,7 @@ export async function getCurrentUser() {
           bio: true,
           theme: true,
           emailVerified: true,
+          pendingEmail: true,
           maxMessageLength: true,
           defaultPubliclyVisible: true,
           messagesPerPage: true,
