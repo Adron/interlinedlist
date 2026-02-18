@@ -321,6 +321,73 @@ export async function getUserLists(
 }
 
 /**
+ * Gets all lists for a user with properties included (for ERD diagram)
+ */
+export async function getUserListsWithProperties(
+  userId: string,
+  pagination: PaginationParams = {},
+  options?: { isPublic?: boolean }
+) {
+  const { take, skip } = buildPagination(pagination);
+
+  const whereClause: any = {
+    userId,
+    deletedAt: null,
+  };
+
+  if (options?.isPublic !== undefined) {
+    whereClause.isPublic = options.isPublic;
+  }
+
+  const [lists, total] = await Promise.all([
+    prisma.list.findMany({
+      where: whereClause,
+      include: {
+        parent: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+        children: {
+          where: {
+            deletedAt: null,
+            ...(options?.isPublic !== undefined && { isPublic: options.isPublic }),
+          },
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+        properties: {
+          orderBy: {
+            displayOrder: "asc",
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take,
+      skip,
+    }),
+    prisma.list.count({
+      where: whereClause,
+    }),
+  ]);
+
+  return {
+    lists,
+    pagination: {
+      total,
+      limit: take,
+      offset: skip,
+      hasMore: skip + take < total,
+    },
+  };
+}
+
+/**
  * Gets public lists for a user with pagination
  */
 export async function getPublicListsByUser(
