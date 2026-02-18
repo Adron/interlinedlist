@@ -91,7 +91,7 @@ export default function OrganizationCard({
                     </Link>
                   )}
                   {isMember ? (
-                    onLeave && (
+                    onLeave && !organization.isSystem && (
                       <button
                         className="btn btn-sm btn-outline-danger"
                         onClick={() => onLeave(organization.id)}

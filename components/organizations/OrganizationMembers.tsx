@@ -17,12 +17,14 @@ interface OrganizationMembersProps {
   organizationId: string;
   currentUserRole?: OrganizationRole | null;
   canManage?: boolean;
+  isSystemOrganization?: boolean;
 }
 
 export default function OrganizationMembers({
   organizationId,
   currentUserRole,
   canManage = false,
+  isSystemOrganization = false,
 }: OrganizationMembersProps) {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
@@ -216,15 +218,19 @@ export default function OrganizationMembers({
                           </button>
                         </li>
                       )}
-                      <li><hr className="dropdown-divider" /></li>
-                      <li>
-                        <button
-                          className="dropdown-item text-danger"
-                          onClick={() => handleRemoveMember(member.id, member.displayName || member.username)}
-                        >
-                          Remove Member
-                        </button>
-                      </li>
+                      {!isSystemOrganization && (
+                        <>
+                          <li><hr className="dropdown-divider" /></li>
+                          <li>
+                            <button
+                              className="dropdown-item text-danger"
+                              onClick={() => handleRemoveMember(member.id, member.displayName || member.username)}
+                            >
+                              Remove Member
+                            </button>
+                          </li>
+                        </>
+                      )}
                     </ul>
                   </div>
                 )}
