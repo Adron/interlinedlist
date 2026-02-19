@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import type { KeyboardEvent } from "react";
 import { ParsedField, FormData } from "@/lib/lists/dsl-types";
 import { validateFormData } from "@/lib/lists/dsl-validator";
 import { parseFieldValue, getFieldComponent } from "@/lib/lists/form-generator";
@@ -18,6 +17,10 @@ interface ListDataTableProps {
   fields: ParsedField[];
   onEdit?: (rowId: string) => void;
   onAdd?: () => void;
+  /** When set, fetch from this URL instead of /api/lists/[id]/data */
+  dataApiUrl?: string;
+  /** When true, hide inline edit, add row, delete - show read-only table */
+  readOnly?: boolean;
 }
 
 export default function ListDataTable({
@@ -25,6 +28,8 @@ export default function ListDataTable({
   fields,
   onEdit,
   onAdd,
+  dataApiUrl,
+  readOnly = false,
 }: ListDataTableProps) {
   const [rows, setRows] = useState<ListDataRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,7 +81,8 @@ export default function ListDataTable({
         params.append("order", sortOrder);
       }
 
-      const response = await fetch(`/api/lists/${listId}/data?${params.toString()}`);
+      const url = dataApiUrl ?? `/api/lists/${listId}/data`;
+      const response = await fetch(`${url}?${params.toString()}`);
 
       if (!response.ok) {
         throw new Error("Failed to fetch data");
@@ -128,8 +134,11 @@ export default function ListDataTable({
         throw new Error("Failed to delete row");
       }
 
-      // Refresh data
-      fetchData();
+      setRows((prev) => prev.filter((r) => r.id !== rowId));
+      setPagination((prev) => ({
+        ...prev,
+        total: Math.max(0, prev.total - 1),
+      }));
     } catch (err: any) {
       setError(err.message || "Failed to delete row");
     }
@@ -181,9 +190,24 @@ export default function ListDataTable({
         throw new Error("Failed to update row");
       }
 
+      const result = await response.json();
+      const updatedRow = result.data;
+      if (updatedRow) {
+        setRows((prev) =>
+          prev.map((r) =>
+            r.id === rowId
+              ? {
+                  id: updatedRow.id,
+                  rowData: updatedRow.rowData,
+                  createdAt: updatedRow.createdAt,
+                  updatedAt: updatedRow.updatedAt,
+                }
+              : r
+          )
+        );
+      }
       setEditingCell(null);
       setEditingData({});
-      fetchData();
     } catch (err: any) {
       setError(err.message || "Failed to update row");
       setEditingCell(null);
@@ -258,11 +282,23 @@ export default function ListDataTable({
         throw new Error(errorData.error || "Failed to add row");
       }
 
-      // Clear empty row and refresh
+      const result = await response.json();
+      const newRow = result.data;
+      if (newRow) {
+        setRows((prev) => [
+          {
+            id: newRow.id,
+            rowData: newRow.rowData,
+            createdAt: newRow.createdAt,
+            updatedAt: newRow.updatedAt,
+          },
+          ...prev,
+        ]);
+        setPagination((prev) => ({ ...prev, total: prev.total + 1 }));
+      }
       setNewRowData({});
       setNewRowErrors({});
-      fetchData();
-      
+
       // Focus first input of new empty row after a brief delay
       setTimeout(() => {
         const firstField = sortedFields[0];
@@ -281,36 +317,6 @@ export default function ListDataTable({
   const handleCancelNewRow = () => {
     setNewRowData({});
     setNewRowErrors({});
-  };
-
-  const handleTabFromLastColumn = async (e: KeyboardEvent<HTMLElement>) => {
-    e.preventDefault();
-    
-    // Check if all required fields have data
-    if (!checkRequiredFieldsComplete()) {
-      // Validate to show which fields are missing
-      const validation = validateFormData(sortedFields, newRowData);
-      if (!validation.isValid) {
-        const errorMap: Record<string, string> = {};
-        validation.errors.forEach((error) => {
-          errorMap[error.field] = error.message;
-        });
-        setNewRowErrors(errorMap);
-        
-        // Focus on first invalid field
-        const firstInvalidField = sortedFields.find((f) => 
-          f.isRequired && (!newRowData[f.propertyKey] || newRowData[f.propertyKey] === "")
-        );
-        if (firstInvalidField) {
-          const inputRef = newRowInputRefs.current[firstInvalidField.propertyKey];
-          inputRef?.focus();
-        }
-        return;
-      }
-    }
-    
-    // All required fields have data, validate and save
-    await handleSaveNewRow();
   };
 
   const formatValue = (field: ParsedField, value: any): string => {
@@ -338,6 +344,14 @@ export default function ListDataTable({
   };
 
   const renderEditableCell = (row: ListDataRow, field: ParsedField) => {
+    if (readOnly) {
+      const value = row.rowData[field.propertyKey];
+      return (
+        <td key={field.propertyKey}>
+          {formatValue(field, value)}
+        </td>
+      );
+    }
     const isEditing = editingCell?.rowId === row.id && editingCell?.fieldKey === field.propertyKey;
     const value = isEditing ? editingData[field.propertyKey] : row.rowData[field.propertyKey];
     const fieldComponent = getFieldComponent(field);
@@ -423,8 +437,8 @@ export default function ListDataTable({
     return (
       <td
         key={field.propertyKey}
-        onClick={() => startEditing(row.id, field.propertyKey)}
-        style={{ cursor: "pointer" }}
+        onClick={() => !readOnly && startEditing(row.id, field.propertyKey)}
+        style={{ cursor: readOnly ? "default" : "pointer" }}
         className={isEditing ? "table-active" : ""}
       >
         {formatValue(field, value)}
@@ -432,11 +446,10 @@ export default function ListDataTable({
     );
   };
 
-  const renderEmptyRowCell = (field: ParsedField, index: number) => {
+  const renderEmptyRowCell = (field: ParsedField) => {
     const fieldComponent = getFieldComponent(field);
     const value = newRowData[field.propertyKey];
     const hasError = !!newRowErrors[field.propertyKey];
-    const isLastColumn = index === sortedFields.length - 1;
 
     if (field.propertyType === "boolean" || fieldComponent.type === "checkbox") {
       return (
@@ -476,9 +489,6 @@ export default function ListDataTable({
               handleNewRowChange(field.propertyKey, parsed);
             }}
             onKeyDown={(e) => {
-              if (e.key === "Tab" && isLastColumn && !e.shiftKey) {
-                handleTabFromLastColumn(e);
-              }
               if (e.key === "Escape") {
                 handleCancelNewRow();
               }
@@ -504,9 +514,6 @@ export default function ListDataTable({
             value={value !== null && value !== undefined ? String(value) : ""}
             onChange={(e) => handleNewRowChange(field.propertyKey, e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Tab" && isLastColumn && !e.shiftKey) {
-                handleTabFromLastColumn(e);
-              }
               if (e.key === "Escape") {
                 handleCancelNewRow();
               }
@@ -614,48 +621,52 @@ export default function ListDataTable({
                         )}
                       </th>
                     ))}
-                    <th>Actions</th>
+                    {!readOnly && <th>Actions</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((row) => (
                     <tr key={row.id}>
                       {sortedFields.map((field) => renderEditableCell(row, field))}
-                      <td>
-                        <div className="btn-group btn-group-sm">
-                          <button
-                            className="btn btn-outline-danger"
-                            onClick={() => handleDelete(row.id)}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
+                      {!readOnly && (
+                        <td>
+                          <div className="btn-group btn-group-sm">
+                            <button
+                              className="btn btn-outline-danger"
+                              onClick={() => handleDelete(row.id)}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))}
                   
-                  {/* Empty row - always visible at bottom */}
-                  <tr className="table-light">
-                    {sortedFields.map((field, index) => renderEmptyRowCell(field, index))}
-                    <td>
-                      {checkRequiredFieldsComplete() && (
+                  {/* Empty row - only when not readOnly */}
+                  {!readOnly && (
+                    <tr className="table-light">
+                      {sortedFields.map((field) => renderEmptyRowCell(field))}
+                      <td>
+                        {checkRequiredFieldsComplete() && (
+                          <button
+                            className="btn btn-sm btn-primary"
+                            onClick={handleSaveNewRow}
+                            disabled={isSavingNewRow}
+                          >
+                            {isSavingNewRow ? "Adding..." : "Add"}
+                          </button>
+                        )}
                         <button
-                          className="btn btn-sm btn-primary"
-                          onClick={handleSaveNewRow}
+                          className="btn btn-sm btn-outline-secondary ms-1"
+                          onClick={handleCancelNewRow}
                           disabled={isSavingNewRow}
                         >
-                          {isSavingNewRow ? "Adding..." : "Add"}
+                          Cancel
                         </button>
-                      )}
-                      <button
-                        className="btn btn-sm btn-outline-secondary ms-1"
-                        onClick={handleCancelNewRow}
-                        disabled={isSavingNewRow}
-                      >
-                        Cancel
-                      </button>
-                    </td>
-                  </tr>
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

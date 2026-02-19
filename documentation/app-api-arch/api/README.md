@@ -48,7 +48,7 @@ Response often includes:
 
 | Area | Endpoints |
 |------|-----------|
-| [Lists](lists.md) | `/api/lists`, `/api/lists/[id]`, schema, data |
+| [Lists](lists.md) | `/api/lists`, `/api/lists/[id]`, schema, data, watchers, public lists via `/api/users/[username]/lists/[id]` |
 | [Messages](messages.md) | `/api/messages`, `/api/messages/[id]` |
 | [Auth](auth.md) | login, register, logout, password reset, OAuth |
 | [Organizations](organizations.md) | CRUD, members |

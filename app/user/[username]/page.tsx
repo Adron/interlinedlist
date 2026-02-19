@@ -170,13 +170,17 @@ export default async function UserProfilePage({
       <div className="row">
         {/* Left column - public lists tree view */}
         <div className="col-lg-3 col-md-4 mb-4">
-          <PublicListsTreeView username={username} />
+          <PublicListsTreeView
+            username={username}
+            showWatchButtons={!!currentUser && currentUser.id !== profileUser.id}
+          />
           {firstListPreview && (
             <ListPreview
               listId={firstListPreview.listId}
               listTitle={firstListPreview.listTitle}
               fields={firstListPreview.fields}
               items={firstListPreview.items}
+              ownerUsername={username}
             />
           )}
         </div>

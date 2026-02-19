@@ -5,6 +5,7 @@ import Link from 'next/link';
 import ListBreadcrumbs from '@/components/lists/ListBreadcrumbs';
 import ListChildLinks from '@/components/lists/ListChildLinks';
 import ListDataTable from '@/components/lists/ListDataTable';
+import ListAccessSection from '@/components/lists/ListAccessSection';
 import EditSchemaForm from './EditSchemaForm';
 import AddRowForm from './AddRowForm';
 
@@ -122,6 +123,12 @@ export default async function ListDetailPage({ params, searchParams }: ListDetai
               listId={params.id}
               fields={properties}
             />
+            {list.isPublic && (
+              <ListAccessSection
+                listId={params.id}
+                isPublic={list.isPublic}
+              />
+            )}
           </div>
         </div>
       )}

@@ -398,6 +398,71 @@ export async function getPublicListsByUser(
 }
 
 /**
+ * Gets lists the user is watching (or has other role access to).
+ * Returns list details with owner info for display on /lists page.
+ */
+export async function getWatchedLists(
+  userId: string,
+  pagination: PaginationParams = {}
+) {
+  const { take, skip } = buildPagination(pagination);
+
+  const watchers = await prisma.listWatcher.findMany({
+    where: {
+      userId,
+      list: { deletedAt: null, isPublic: true },
+    },
+    include: {
+      list: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+            },
+          },
+          parent: {
+            select: { id: true, title: true },
+          },
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    take,
+    skip,
+  });
+
+  const lists = watchers.map((w) => ({
+    id: w.list.id,
+    title: w.list.title,
+    description: w.list.description,
+    createdAt: w.list.createdAt,
+    parentId: w.list.parentId,
+    parent: w.list.parent,
+    role: (w.role || "watcher") as string,
+    owner: w.list.user,
+  }));
+
+  const total = await prisma.listWatcher.count({
+    where: {
+      userId,
+      list: { deletedAt: null, isPublic: true },
+    },
+  });
+
+  return {
+    lists,
+    pagination: {
+      total,
+      limit: take,
+      offset: skip,
+      hasMore: skip + take < total,
+    },
+  };
+}
+
+/**
  * Gets lists for parent selection (excludes a specific list if editing)
  */
 export async function getListsForParentSelection(
@@ -575,6 +640,84 @@ export async function getListDataRows(
 }
 
 /**
+ * Gets a public list by ID with its full ancestor chain (for breadcrumbs).
+ * Verifies list exists, is public, and belongs to user with given username.
+ * Returns { list, ancestors } where ancestors is ordered from root to immediate parent.
+ */
+export async function getPublicListWithAncestorChain(
+  listId: string,
+  ownerUsername: string
+) {
+  const owner = await prisma.user.findUnique({
+    where: { username: ownerUsername },
+    select: { id: true },
+  });
+
+  if (!owner) {
+    return null;
+  }
+
+  const list = await prisma.list.findFirst({
+    where: {
+      id: listId,
+      userId: owner.id,
+      isPublic: true,
+      deletedAt: null,
+    },
+    include: {
+      parent: {
+        select: {
+          id: true,
+          title: true,
+          parentId: true,
+        },
+      },
+      properties: {
+        orderBy: {
+          displayOrder: "asc",
+        },
+      },
+      children: {
+        where: { deletedAt: null, isPublic: true },
+        select: {
+          id: true,
+          title: true,
+        },
+      },
+    },
+  });
+
+  if (!list) {
+    return null;
+  }
+
+  const ancestors: Array<{ id: string; title: string }> = [];
+  let currentParentId = list.parentId;
+
+  while (currentParentId) {
+    const parent = await prisma.list.findFirst({
+      where: {
+        id: currentParentId,
+        userId: owner.id,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        title: true,
+        parentId: true,
+      },
+    });
+    if (!parent) break;
+    ancestors.push({ id: parent.id, title: parent.title });
+    currentParentId = parent.parentId;
+  }
+
+  ancestors.reverse();
+
+  return { list, ancestors };
+}
+
+/**
  * Gets list properties (schema) for a public list
  * No authentication required - verifies list exists and is public
  */
@@ -604,6 +747,33 @@ export async function getPublicListProperties(
   });
 
   return properties.map(convertToParsedField);
+}
+
+/**
+ * Verifies a list exists, is public, and belongs to the user with the given username.
+ * Returns the list or null.
+ */
+export async function verifyPublicListBelongsToUser(
+  listId: string,
+  ownerUsername: string
+) {
+  const owner = await prisma.user.findUnique({
+    where: { username: ownerUsername },
+    select: { id: true },
+  });
+
+  if (!owner) {
+    return null;
+  }
+
+  return await prisma.list.findFirst({
+    where: {
+      id: listId,
+      userId: owner.id,
+      isPublic: true,
+      deletedAt: null,
+    },
+  });
 }
 
 /**

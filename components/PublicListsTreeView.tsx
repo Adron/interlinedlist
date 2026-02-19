@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { List } from '@/lib/types';
 import { buildListTree, TreeNode } from '@/lib/lists/queries';
 
 interface PublicListsTreeViewProps {
   username: string;
+  /** When true, show Watch button next to each list (viewing another user's wall, logged in) */
+  showWatchButtons?: boolean;
 }
 
 interface PublicTreeNodeComponentProps {
@@ -14,11 +16,21 @@ interface PublicTreeNodeComponentProps {
   level: number;
   expandedNodes: Set<string>;
   onToggle: (id: string) => void;
+  username: string;
+  showWatchButtons: boolean;
 }
 
-function PublicTreeNodeComponent({ node, level, expandedNodes, onToggle }: PublicTreeNodeComponentProps) {
+function PublicTreeNodeComponent({
+  node,
+  level,
+  expandedNodes,
+  onToggle,
+  username,
+  showWatchButtons,
+}: PublicTreeNodeComponentProps) {
   const hasChildren = node.children.length > 0;
   const isExpanded = expandedNodes.has(node.list.id);
+  const listHref = `/user/${encodeURIComponent(username)}/lists/${node.list.id}`;
 
   return (
     <li className="mb-1" style={{ minWidth: 0 }}>
@@ -32,8 +44,8 @@ function PublicTreeNodeComponent({ node, level, expandedNodes, onToggle }: Publi
             >
               <i className={`bx ${isExpanded ? 'bx-chevron-down' : 'bx-chevron-right'} me-2`} style={{ flexShrink: 0 }}></i>
               <i className="bx bx-folder me-2 text-muted" style={{ flexShrink: 0 }}></i>
-              <Link 
-                href={`/lists/${node.list.id}`} 
+              <Link
+                href={listHref}
                 className="text-decoration-none text-truncate"
                 style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                 data-bs-toggle="tooltip"
@@ -47,8 +59,8 @@ function PublicTreeNodeComponent({ node, level, expandedNodes, onToggle }: Publi
           ) : (
             <div className="d-flex align-items-center" style={{ minWidth: 0, flex: 1 }}>
               <i className="bx bx-folder me-2 text-muted" style={{ flexShrink: 0 }}></i>
-              <Link 
-                href={`/lists/${node.list.id}`} 
+              <Link
+                href={listHref}
                 className="text-decoration-none text-truncate"
                 style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                 data-bs-toggle="tooltip"
@@ -61,6 +73,9 @@ function PublicTreeNodeComponent({ node, level, expandedNodes, onToggle }: Publi
             </div>
           )}
         </div>
+        {showWatchButtons && (
+          <WatchButton listId={node.list.id} />
+        )}
       </div>
       {hasChildren && isExpanded && (
         <ul className="list-unstyled ms-4 mt-1 mb-0" style={{ minWidth: 0 }}>
@@ -71,6 +86,8 @@ function PublicTreeNodeComponent({ node, level, expandedNodes, onToggle }: Publi
               level={level + 1}
               expandedNodes={expandedNodes}
               onToggle={onToggle}
+              username={username}
+              showWatchButtons={showWatchButtons}
             />
           ))}
         </ul>
@@ -79,7 +96,40 @@ function PublicTreeNodeComponent({ node, level, expandedNodes, onToggle }: Publi
   );
 }
 
-export default function PublicListsTreeView({ username }: PublicListsTreeViewProps) {
+function WatchButton({ listId }: { listId: string }) {
+  const [watching, setWatching] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (watching || loading) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/lists/${listId}/watchers`, { method: 'POST' });
+      if (res.ok) setWatching(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (watching) {
+    return <span className="badge bg-secondary ms-1" style={{ fontSize: '0.65rem' }}>Watching</span>;
+  }
+  return (
+    <button
+      type="button"
+      className="btn btn-sm btn-outline-primary py-0 px-1 ms-1"
+      style={{ fontSize: '0.7rem' }}
+      onClick={handleClick}
+      disabled={loading}
+    >
+      {loading ? '...' : 'Watch'}
+    </button>
+  );
+}
+
+export default function PublicListsTreeView({ username, showWatchButtons = false }: PublicListsTreeViewProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [lists, setLists] = useState<List[]>([]);
@@ -212,6 +262,8 @@ export default function PublicListsTreeView({ username }: PublicListsTreeViewPro
                       level={0}
                       expandedNodes={expandedNodes}
                       onToggle={handleToggle}
+                      username={username}
+                      showWatchButtons={showWatchButtons}
                     />
                   ))}
                 </ul>

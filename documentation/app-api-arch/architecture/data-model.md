@@ -11,7 +11,7 @@ Prisma schema defines the following models.
 - Preferences: `theme`, `maxMessageLength`, `defaultPubliclyVisible`, `messagesPerPage`, `viewingPreference`, `showPreviews`, `showAdvancedPostSettings`
 - Security: `emailVerified`, `emailVerificationToken`, `passwordResetToken`, `isPrivateAccount`
 - Location: `latitude`, `longitude`
-- Relations: `messages`, `lists`, `organizations`, `followers`, `following`, `linkedIdentities`
+- Relations: `messages`, `lists`, `organizations`, `followers`, `following`, `linkedIdentities`, `listWatchers`
 
 ### Message
 
@@ -30,7 +30,18 @@ Prisma schema defines the following models.
 - `message` → Message (optional)
 - `properties` → ListProperty[]
 - `dataRows` → ListDataRow[]
+- `watchers` → ListWatcher[]
 - Soft delete: `deletedAt`
+
+### ListWatcher
+
+- `userId` → User
+- `listId` → List
+- `role`: `"watcher"` | `"collaborator"` | `"manager"` (default: watcher)
+- Unique on `[userId, listId]`
+- **Watcher**: Can follow the list; shown on owner's public profile
+- **Collaborator**: Can add, edit, delete rows
+- **Manager**: Collaborator + can edit list schema
 
 ### ListProperty
 

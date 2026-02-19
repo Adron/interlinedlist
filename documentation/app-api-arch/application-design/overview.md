@@ -13,6 +13,7 @@ app/
 ├── settings/           # User settings
 ├── organizations/      # Organizations: index, [slug], new
 ├── user/[username]/    # User profile, followers, following
+├── user/[username]/lists/[id]/  # Public list view (read-only, watch button)
 ├── login/, register/   # Auth pages
 ├── forgot-password/, reset-password/, verify-email/
 └── api/                # API routes
