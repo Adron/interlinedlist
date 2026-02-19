@@ -55,7 +55,7 @@ export default async function Navigation() {
                     }}
                     title="Dashboard"
                   >
-                    <i className="bx bx-bar-chart fs-22 align-middle"></i>
+                    <i className="bx bxs-dashboard fs-22 align-middle"></i>
                   </Link>
                 </div>
                 <div className="topbar-item">
@@ -104,7 +104,7 @@ export default async function Navigation() {
                       }}
                       title="Administration"
                     >
-                      <i className="bx bx-cog fs-22 align-middle"></i>
+                      <i className="bx bx-shield-quarter fs-22 align-middle"></i>
                     </Link>
                   </div>
                 )}
