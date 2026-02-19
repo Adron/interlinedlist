@@ -34,7 +34,8 @@ Click your profile icon in the top right for the dropdown menu:
 1. **Post a message** — Use the input on the Home page (left sidebar) to share an update
 2. **Create a list** — Go to Lists and click "New List" to add your first list
 3. **Follow people** — Visit People or user profiles to follow others and see their messages in your feed
-4. **Update your profile** — Visit Settings to add a display name, avatar, and bio
+4. **Watch lists** — Visit another user's profile to see their public lists; click "Watch" or "Add self as watcher" to follow a list
+5. **Update your profile** — Visit Settings to add a display name, avatar, and bio
 
 ## Exports
 
@@ -42,4 +43,4 @@ Export your data (messages, lists, follows) from the **Exports** page. Reach it 
 
 ## Need More Help?
 
-Use the sidebar to explore other topics. See **Lists** for creating and managing lists, **Messages** for posting and visibility, **People** for followers and following, and **Settings** for customizing your experience.
+Use the sidebar to explore other topics. See **Lists** for creating and managing lists, list access and permissions, and watching others' lists; **Messages** for posting and visibility; **People** for followers and following; and **Settings** for customizing your experience.

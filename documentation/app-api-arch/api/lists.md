@@ -86,3 +86,75 @@ Update a row. Body: `{ data: { fieldKey: value, ... } }`
 ## DELETE /api/lists/[id]/data/[rowId]
 
 Soft delete a row.
+
+---
+
+## List Watchers (Access & Permissions)
+
+Lists support roles: **watcher**, **collaborator**, **manager**. Only list owners can add or change other users; any logged-in user can add themselves as a watcher to a public list they don't own.
+
+### GET /api/lists/[id]/watchers
+
+Get watchers for a list. **List owner only.**
+
+**Response:** `{ watchers: [{ id, userId, role, createdAt, user: { id, username, displayName, avatar } }] }`
+
+### POST /api/lists/[id]/watchers
+
+Add watcher(s) to a list.
+
+**Owner adding another user** — Body: `{ userId: string, role?: "watcher" | "collaborator" | "manager" }`. List must be public. Default role is `watcher`.
+
+**Current user adding self** — Body: `{}` or omit body. List must be public and not owned by current user. Idempotent (returns success if already watching).
+
+**Response:** `{ watching: true }` (200 or 201)
+
+### PUT /api/lists/[id]/watchers/[userId]
+
+Change a user's role. **List owner only.**
+
+**Body:** `{ role: "watcher" | "collaborator" | "manager" }`
+
+**Response:** `{ role: string }`
+
+### DELETE /api/lists/[id]/watchers/[userId]
+
+Remove a user from list access. **List owner only.**
+
+**Response:** `{ removed: true }`
+
+### GET /api/lists/[id]/watchers/me
+
+Check if current user is watching the list. Requires auth.
+
+**Response:** `{ watching: boolean }`
+
+### GET /api/lists/[id]/watchers/users
+
+Search for users to add. **List owner only.** Excludes existing watchers and the list owner.
+
+**Query params:** `search`, `limit`, `offset`
+
+**Response:** `{ users, total, pagination }`
+
+---
+
+## Public List APIs (Viewing Other Users' Lists)
+
+These endpoints allow unauthenticated access to public list metadata and data when the list belongs to the specified user.
+
+### GET /api/users/[username]/lists/[id]
+
+Get public list metadata and ancestor chain for breadcrumbs. No auth required.
+
+**Response:** `{ list: { id, title, description, parentId, children }, ancestors }`
+
+- 404: List not found or not public
+
+### GET /api/users/[username]/lists/[id]/data
+
+Get list data rows for a public list. Same query params as `GET /api/lists/[id]/data` (limit, offset, page, sort, order, filter by field).
+
+**Response:** `{ rows, pagination }`
+
+- 404: List not found or not public

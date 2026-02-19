@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import ListSchemaForm from '@/components/lists/ListSchemaForm';
+import ListAccessSection from '@/components/lists/ListAccessSection';
 import { DSLSchema } from '@/lib/lists/dsl-types';
 import { parsedSchemaToDSL } from '@/lib/lists/dsl-parser';
 
@@ -83,6 +84,10 @@ export default function EditSchemaForm({ listId, initialSchema }: EditSchemaForm
         onCancel={handleCancel}
         submitLabel="Update Schema"
         loading={loading}
+      />
+      <ListAccessSection
+        listId={listId}
+        isPublic={initialSchema.isPublic ?? false}
       />
     </>
   );

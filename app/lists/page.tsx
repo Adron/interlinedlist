@@ -1,12 +1,13 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
-import { getUserLists, getUserListsWithProperties } from '@/lib/lists/queries';
+import { getUserLists, getUserListsWithProperties, getWatchedLists } from '@/lib/lists/queries';
 import Link from 'next/link';
 import DeleteListButton from '@/components/lists/DeleteListButton';
 import ListConnections from '@/components/lists/ListConnections';
 import ListsTabs from '@/components/lists/ListsTabs';
 import ListsDataGrid from '@/components/lists/ListsDataGrid';
 import ListsERDDiagram from '@/components/lists/ListsERDDiagram';
+import WatchedListsDataGrid from '@/components/lists/WatchedListsDataGrid';
 import ParentLink from '@/components/lists/ParentLink';
 import ChildLink from '@/components/lists/ChildLink';
 
@@ -17,9 +18,10 @@ export default async function ListsPage() {
     redirect('/login');
   }
 
-  const [result, resultWithProperties] = await Promise.all([
+  const [result, resultWithProperties, watchedResult] = await Promise.all([
     getUserLists(user.id, { limit: 100 }),
     getUserListsWithProperties(user.id, { limit: 100 }),
+    getWatchedLists(user.id, { limit: 100 }),
   ]);
 
   return (
@@ -182,6 +184,18 @@ export default async function ListsPage() {
               {Math.min(result.pagination.offset + result.pagination.limit, result.pagination.total)} of{' '}
               {result.pagination.total} lists
             </p>
+          </div>
+        </div>
+      )}
+
+      {watchedResult.lists.length > 0 && (
+        <div className="row mt-5">
+          <div className="col-12">
+            <h4 className="h5 mb-3">Lists you&apos;re watching</h4>
+            <p className="text-muted small mb-3">
+              Lists owned by others that you have access to (watcher or other role).
+            </p>
+            <WatchedListsDataGrid lists={watchedResult.lists} />
           </div>
         </div>
       )}

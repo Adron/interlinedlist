@@ -418,7 +418,7 @@ interlinedlist/
 - **`app/api/`**: RESTful API endpoints organized by feature:
   - `auth/`: Authentication endpoints (login, register, password reset, email verification)
   - `images/`: Image proxy endpoints for external images (CORS bypass)
-  - `lists/`: List CRUD operations, schema management, and data row operations
+  - `lists/`: List CRUD operations, schema management, data row operations, watchers (access & permissions)
   - `location/`: Location widget API endpoint
   - `messages/`: Message CRUD operations and link metadata fetching
   - `organizations/`: Organization CRUD operations and member management
@@ -428,7 +428,7 @@ interlinedlist/
 
 - **`components/`**: Reusable React components organized by feature:
   - Message-related: `MessageInput`, `MessageCard`, `MessageFeed`, `MessageList`, `MessageGrid`, `MessageTable`, `LinkMetadataCard`
-  - List-related: `ListsTreeView`, `DynamicListForm`, `ListDataTable`, `ListSchemaForm`, `DeleteListButton`
+  - List-related: `ListsTreeView`, `DynamicListForm`, `ListDataTable`, `ListSchemaForm`, `DeleteListButton`, `ListAccessSection`, `WatchedListsDataGrid`, `PublicListsTreeView`
   - Organization-related: `OrganizationCard`, `OrganizationList`, `OrganizationMembers`, `CreateOrganizationForm`, `UserOrganizations`
   - UI components: `Avatar`, `Navigation`, `Footer`, `Logo`, `UserDropdown`, `SidebarToggle`
   - Widgets: `LocationWidget`, `WeatherWidget`
@@ -490,8 +490,12 @@ The application includes the following models:
   - Schema: JSONB metadata field storing DSL-defined schema
   - Properties: Related ListProperty records defining fields
   - Data Rows: Related ListDataRow records storing actual data
+  - Watchers: Related ListWatcher records for access and permissions
   - Relationships: linked to user and optionally to a message
   - Soft deletes: deletedAt timestamp for soft deletion
+- **ListWatcher**: List access and permissions (public lists only)
+  - Roles: watcher (follow), collaborator (add/edit/delete rows), manager (collaborator + edit schema)
+  - Unique on [userId, listId]
 - **ListProperty**: Field definitions for lists
   - Defines field types, validation rules, display order, visibility conditions
   - Supports conditional logic and field dependencies

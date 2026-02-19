@@ -15,9 +15,11 @@ interface ListPreviewProps {
   listTitle: string;
   fields: ParsedField[];
   items: ListDataRow[];
+  /** When set, links go to /user/[ownerUsername]/lists/[id] instead of /lists/[id] */
+  ownerUsername?: string;
 }
 
-export default function ListPreview({ listId, listTitle, fields, items }: ListPreviewProps) {
+export default function ListPreview({ listId, listTitle, fields, items, ownerUsername }: ListPreviewProps) {
   // Take only first 2 fields
   const displayFields = fields.slice(0, 2);
   
@@ -30,7 +32,10 @@ export default function ListPreview({ listId, listTitle, fields, items }: ListPr
         <div className="card-body">
           <h6 className="mb-2">{listTitle}</h6>
           <p className="text-muted small mb-0">No items yet</p>
-          <Link href={`/lists/${listId}`} className="btn btn-sm btn-outline-primary mt-2">
+          <Link
+            href={ownerUsername ? `/user/${encodeURIComponent(ownerUsername)}/lists/${listId}` : `/lists/${listId}`}
+            className="btn btn-sm btn-outline-primary mt-2"
+          >
             View List
           </Link>
         </div>
@@ -67,7 +72,10 @@ export default function ListPreview({ listId, listTitle, fields, items }: ListPr
             </div>
           ))}
         </div>
-        <Link href={`/lists/${listId}`} className="btn btn-sm btn-outline-primary mt-3 w-100">
+        <Link
+          href={ownerUsername ? `/user/${encodeURIComponent(ownerUsername)}/lists/${listId}` : `/lists/${listId}`}
+          className="btn btn-sm btn-outline-primary mt-3 w-100"
+        >
           View Full List
         </Link>
       </div>

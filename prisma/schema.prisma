@@ -43,6 +43,7 @@ model User {
   followers            Follow[]    @relation("Following")
   following            Follow[]    @relation("Follower")
   linkedIdentities     LinkedIdentity[]
+  listWatchers         ListWatcher[]
 
   @@map("users")
 }
@@ -89,6 +90,7 @@ model List {
   children    List[]   @relation("ListParent")
   properties  ListProperty[]
   dataRows    ListDataRow[]
+  watchers    ListWatcher[]
 
   @@index([userId, deletedAt])
   @@index([messageId])
@@ -209,6 +211,22 @@ model Follow {
   @@index([followingId, status])
   @@index([followingId, status, createdAt])
   @@map("follows")
+}
+
+model ListWatcher {
+  id        String   @id @default(uuid())
+  userId    String
+  listId    String
+  role      String   @default("watcher")  // "watcher" | "collaborator" | "manager"
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  list List @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listId])
+  @@index([userId])
+  @@index([listId])
+  @@map("list_watchers")
 }
 
 model LinkedIdentity {

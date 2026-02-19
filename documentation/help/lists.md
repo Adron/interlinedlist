@@ -50,4 +50,33 @@ Click **Edit Schema** on a list to change its fields. You can add, remove, or mo
 ## Public vs Private
 
 - **Private lists** (default): Only you can see and edit them
-- **Public lists**: Set "Public" when creating or editing to make them visible to others
+- **Public lists**: Set "Public" when creating or editing to make them visible to others. Public lists can be viewed by anyone and support list access and permissions.
+
+## List Access & Permissions
+
+For **public lists**, you can manage who has access and at what level. The "List access & permissions" section appears below the list table (main view) and in the Edit Schema view.
+
+### Roles
+
+- **Watcher** — Can follow this list. Shown when viewing your public profile.
+- **Collaborator** — Can add, edit, and delete rows in this list.
+- **Manager** — Can do everything a Collaborator can, plus edit the list schema.
+
+### Managing Access (List Owner)
+
+1. Open a public list (main view or Edit Schema)
+2. Scroll to "List access & permissions" below the table
+3. Search for users and add them with a role (Watcher, Collaborator, or Manager)
+4. Change a user's role or remove access using the table controls
+
+## Viewing Other Users' Lists
+
+When you visit another user's profile at `/user/[username]`, you see their public lists in a tree on the left. Click a list to open it at `/user/[username]/lists/[id]`.
+
+- **Read-only view** — You can browse the list data but cannot edit
+- **Watch button** — In the tree view, a "Watch" button appears next to each list (when logged in and viewing someone else's profile). Click to add yourself as a watcher
+- **Add self as watcher** — On the public list page, an "Add self as watcher to list?" button appears when you are logged in, not the owner, and not already watching
+
+## Watched Lists
+
+On the **Lists** page (`/lists`), a datagrid shows lists you watch or have access to (watcher, collaborator, or manager). Each entry shows the list title, owner, your role, and a link to view the list.
