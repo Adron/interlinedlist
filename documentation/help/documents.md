@@ -68,6 +68,8 @@ Use the Document Sync CLI to edit documents locally in your favorite editor. The
 - **Pulls** changes from the website to your local folder
 - Handles images: uploads local images on push, downloads blob images on pull
 
+During setup (`il-sync init`), you enter your email and password. The CLI authenticates and stores a sync token automatically — no API key to manage.
+
 See **Tooling (CLI)** in the Help sidebar for setup and usage.
 
 ## Public vs Private
@@ -80,4 +82,3 @@ Set visibility when creating or editing a document.
 ## Related
 
 - **Tooling (CLI)** — Set up the sync daemon for local editing
-- **Settings** — Create an API key for the CLI under Document Sync (CLI)

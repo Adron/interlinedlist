@@ -48,6 +48,48 @@ type syncOp struct {
 	Data interface{} `json:"data,omitempty"`
 }
 
+// FetchSyncToken authenticates with email and password and returns a sync token.
+// Call this during init before AuthToken is set.
+func FetchSyncToken(serverURL, email, password string) (token string, err error) {
+	base, err := url.Parse(strings.TrimSuffix(serverURL, "/"))
+	if err != nil {
+		return "", err
+	}
+	u, _ := base.Parse("/api/auth/sync-token")
+	body, err := json.Marshal(map[string]string{"email": email, "password": password})
+	if err != nil {
+		return "", err
+	}
+	req, err := http.NewRequest("POST", u.String(), bytes.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != 200 {
+		var out struct {
+			Error string `json:"error"`
+		}
+		_ = json.Unmarshal(b, &out)
+		if out.Error != "" {
+			return "", fmt.Errorf("%s", out.Error)
+		}
+		return "", fmt.Errorf("auth failed: %s", string(b))
+	}
+	var out struct {
+		Token string `json:"token"`
+	}
+	if err := json.Unmarshal(b, &out); err != nil {
+		return "", err
+	}
+	return out.Token, nil
+}
+
 func (c *Config) doRequest(method, path string, body io.Reader) (*http.Response, error) {
 	base, err := url.Parse(strings.TrimSuffix(c.ServerURL, "/"))
 	if err != nil {

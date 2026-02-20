@@ -17,8 +17,8 @@ var (
 )
 
 func main() {
-	// Subcommand: sync init (check before flag parse)
-	if len(os.Args) >= 3 && os.Args[1] == "sync" && os.Args[2] == "init" {
+	// Subcommand: init (check before flag parse)
+	if len(os.Args) >= 2 && os.Args[1] == "init" {
 		if err := sync.RunInit(); err != nil {
 			fmt.Fprintf(os.Stderr, "Init failed: %v\n", err)
 			os.Exit(1)
@@ -28,12 +28,25 @@ func main() {
 
 	flag.Parse()
 
-	if *install {
-		cfg, err := sync.LoadConfig()
-		if err != nil || cfg == nil || cfg.SyncRoot == "" || cfg.ServerURL == "" {
-			fmt.Fprintln(os.Stderr, "Config missing or invalid. Run 'il-sync sync init' to configure.")
+	cfg, err := sync.LoadConfig()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Config error: %v\n", err)
+		os.Exit(1)
+	}
+	if cfg == nil || cfg.SyncRoot == "" || cfg.ServerURL == "" || cfg.AuthToken == "" {
+		fmt.Println("Config not found. Enter your sync settings:")
+		if err := sync.RunInit(); err != nil {
+			fmt.Fprintf(os.Stderr, "Setup failed: %v\n", err)
 			os.Exit(1)
 		}
+		cfg, err = sync.LoadConfig()
+		if err != nil || cfg == nil || cfg.SyncRoot == "" || cfg.ServerURL == "" {
+			fmt.Fprintln(os.Stderr, "Config still invalid after setup.")
+			os.Exit(1)
+		}
+	}
+
+	if *install {
 		if err := sync.InstallService(); err != nil {
 			fmt.Fprintf(os.Stderr, "Install failed: %v\n", err)
 			os.Exit(1)
@@ -52,11 +65,6 @@ func main() {
 	}
 
 	// Default: run sync daemon
-	cfg, err := sync.LoadConfig()
-	if err != nil || cfg == nil || cfg.SyncRoot == "" || cfg.ServerURL == "" {
-		fmt.Fprintln(os.Stderr, "Config missing or invalid. Run 'il-sync sync init' to configure.")
-		os.Exit(1)
-	}
 
 	engine, err := sync.NewEngine(cfg)
 	if err != nil {

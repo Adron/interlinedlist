@@ -5,7 +5,7 @@ DIST := dist
 
 .PHONY: all build clean test test-integration darwin linux windows
 
-all: darwin linux windows
+all: build darwin linux windows
 
 test:
 	go test ./...
@@ -33,3 +33,4 @@ windows:
 
 clean:
 	rm -rf $(DIST)
+	rm -f interlinedlist-sync interlinedlist-sync-*

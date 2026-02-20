@@ -30,11 +30,11 @@ After downloading, make the file executable on macOS/Linux: `chmod +x il-sync`
    mv ~/Downloads/il-sync /usr/local/bin/il-sync
    chmod +x /usr/local/bin/il-sync
    ```
-3. Run `sync init` to configure:
+3. Run `il-sync init` to configure:
    ```bash
-   il-sync sync init
+   il-sync init
    ```
-4. Follow the prompts to set your sync root folder, server URL, and API key.
+4. Follow the prompts to set your sync root folder, server URL, and account credentials (email and password).
 
 ### Linux
 
@@ -44,11 +44,11 @@ After downloading, make the file executable on macOS/Linux: `chmod +x il-sync`
    mv ~/Downloads/il-sync /usr/local/bin/il-sync
    chmod +x /usr/local/bin/il-sync
    ```
-3. Run `sync init` to configure:
+3. Run `il-sync init` to configure:
    ```bash
-   il-sync sync init
+   il-sync init
    ```
-4. Follow the prompts to set your sync root folder, server URL, and API key.
+4. Follow the prompts to set your sync root folder, server URL, and account credentials (email and password).
 
 ### Windows
 
@@ -56,20 +56,15 @@ After downloading, make the file executable on macOS/Linux: `chmod +x il-sync`
 2. Place it in a folder in your PATH (e.g. `C:\Program Files\InterlinedList\` or your user `bin` folder).
 3. Open Command Prompt or PowerShell and run:
    ```cmd
-   il-sync.exe sync init
+   il-sync.exe init
    ```
-4. Follow the prompts to set your sync root folder, server URL, and API key.
+4. Follow the prompts to set your sync root folder, server URL, and account credentials (email and password).
 
 ---
 
-## Getting an API Key
+## Authentication
 
-The CLI uses an API key instead of a password. Create one from the website:
-
-1. Log in and go to **Settings**
-2. In the **Document Sync (CLI)** section, click **Create API key**
-3. Copy the key immediately — it is shown only once
-4. Paste it when prompted during `sync init`
+During `il-sync init`, you enter your **email and password**. The CLI authenticates with the server and receives a sync token, which it stores locally. You do not manage the token yourself — the CLI handles it. Use the same credentials you use to log in to the website.
 
 ---
 
@@ -118,13 +113,14 @@ il-sync --verify
 
 ## Other Functionality
 
-### `sync init`
+### `init`
 
 Interactive setup. Prompts for:
 
 - **Sync root path** — The local folder that contains your markdown files (e.g. `~/Documents/notes`)
 - **Server URL** — Your InterlinedList instance (e.g. `https://app.example.com`)
-- **API key** — Created from Settings → Document Sync (CLI)
+- **Email** — Your account email
+- **Password** — Your account password (the CLI authenticates and stores a sync token automatically)
 
 Config is saved to:
 
@@ -133,7 +129,7 @@ Config is saved to:
 
 ### `--install`
 
-Installs the daemon as an OS service so it runs in the background and starts on boot. Requires that `sync init` has been run first.
+Installs the daemon as an OS service so it runs in the background and starts on boot. Requires that `il-sync init` has been run first.
 
 ### `--verify`
 
@@ -156,7 +152,7 @@ To test the CLI against a local dev server instead of production, see [Local Tes
 
 ## Troubleshooting
 
-- **"Config missing or invalid"** — Run `il-sync sync init` first.
-- **"Push skipped: no API key configured"** — Add your API key via `sync init` or edit the config file.
-- **401 Unauthorized** — Your API key may be invalid. Create a new one in Settings and run `sync init` again.
+- **"Config missing or invalid"** — Run `il-sync init` first.
+- **"Push skipped: no API key configured"** — Run `il-sync init` and enter your email and password.
+- **401 Unauthorized** — Authentication failed. Check your email and password, then run `il-sync init` again.
 - **Image upload fails** — Ensure the document exists on the server first (push runs create before image upload).

@@ -18,17 +18,15 @@ Use a local InterlinedList dev server instead of production to test the CLI with
 
 1. **Create a test user**: Register or log in at http://localhost:3000.
 
-2. **Create an API key**: Go to **Settings** → **Document Sync (CLI)** → **Create API key**. Copy the key (it is shown only once).
-
-3. **Configure the CLI**: Run `il-sync sync init` and enter:
+2. **Configure the CLI**: Run `il-sync init` and enter:
    - **Sync root path**: e.g. `~/test-sync-docs` (create this folder first)
    - **Server URL**: `http://localhost:3000`
-   - **API key**: Paste the key from step 2
+   - **Email** and **Password**: Your account credentials (the CLI authenticates and stores a sync token automatically)
 
-4. **Run the daemon**: Run `il-sync` in the foreground. It will watch your sync folder and push/pull changes. Press Ctrl+C to stop.
+3. **Run the daemon**: Run `il-sync` in the foreground. It will watch your sync folder and push/pull changes. Press Ctrl+C to stop.
 
-5. **Verify**: Add a `.md` file to your sync root, save it, and wait a few seconds. Check the Documents page at http://localhost:3000 to confirm it appeared.
+4. **Verify**: Add a `.md` file to your sync root, save it, and wait a few seconds. Check the Documents page at http://localhost:3000 to confirm it appeared.
 
 ## Switching Back to Production
 
-Re-run `il-sync sync init` and enter your production server URL and API key. The config is overwritten; there is one config per machine.
+Re-run `il-sync init` and enter your production server URL and credentials. The config is overwritten; there is one config per machine.
