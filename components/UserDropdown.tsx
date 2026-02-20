@@ -137,6 +137,16 @@ export default function UserDropdown({ user }: UserDropdownProps) {
           <span className="align-middle">Documents</span>
         </Link>
 
+        {/* Tooling */}
+        <Link 
+          className="dropdown-item" 
+          href="/help/tooling"
+          onClick={() => setIsOpen(false)}
+        >
+          <i className="bx bx-sync align-middle me-2" style={{ fontSize: '18px' }}></i>
+          <span className="align-middle">Tooling</span>
+        </Link>
+
         {/* Help */}
         <Link 
           className="dropdown-item" 
