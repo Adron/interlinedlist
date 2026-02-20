@@ -214,6 +214,12 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - `npm run restore` - Restore database from backup file
 - `npm run test-data:seed` - Seed test accounts and messages into the database
 - `node scripts/seed-initial-data.js` - Seed initial data ("The Public" organization and seed user)
+- `npm run cli:build` - Build the Document Sync CLI for all platforms and copy to `public/downloads/`
+- `npm run cli:test` - Run CLI unit tests
+
+## CLI (Document Sync)
+
+The project includes a Document Sync CLI (`il-sync`) for syncing local markdown files with the website. See [cli/README.md](cli/README.md) for build steps and how the CLI is integrated with interlinedlist.com.
 
 ## Project Structure
 

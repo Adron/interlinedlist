@@ -44,8 +44,25 @@ model User {
   following            Follow[]    @relation("Follower")
   linkedIdentities     LinkedIdentity[]
   listWatchers         ListWatcher[]
+  folders              Folder[]
+  documents            Document[]
+  syncTokens           SyncToken[]
 
   @@map("users")
+}
+
+model SyncToken {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String
+  name      String   @default("CLI")
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tokenHash])
+  @@index([userId])
+  @@map("sync_tokens")
 }
 
 model Message {
@@ -227,6 +244,49 @@ model ListWatcher {
   @@index([userId])
   @@index([listId])
   @@map("list_watchers")
+}
+
+model Folder {
+  id        String    @id @default(uuid())
+  userId    String
+  parentId  String?
+  name      String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent    Folder?   @relation("FolderTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children  Folder[]  @relation("FolderTree")
+  documents Document[]
+
+  @@unique([userId, parentId, name])
+  @@index([userId, deletedAt])
+  @@index([parentId])
+  @@map("folders")
+}
+
+model Document {
+  id          String    @id @default(uuid())
+  userId      String
+  folderId    String?
+  title       String
+  content     String    @db.Text
+  relativePath String
+  isPublic    Boolean   @default(false)
+  contentHash String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder Folder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+
+  @@unique([folderId, relativePath])
+  @@index([userId, deletedAt])
+  @@index([folderId])
+  @@index([userId, folderId])
+  @@map("documents")
 }
 
 model LinkedIdentity {

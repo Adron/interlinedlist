@@ -72,6 +72,18 @@ export default async function Navigation() {
                 </div>
                 <div className="topbar-item">
                   <Link
+                    href="/documents"
+                    className="topbar-button btn btn-link text-decoration-none d-flex align-items-center"
+                    style={{
+                      color: 'var(--bs-topbar-item-color, var(--color-text))',
+                    }}
+                    title="Documents"
+                  >
+                    <i className="bx bx-note fs-22 align-middle"></i>
+                  </Link>
+                </div>
+                <div className="topbar-item">
+                  <Link
                     href="/organizations"
                     className="topbar-button btn btn-link text-decoration-none d-flex align-items-center"
                     style={{

@@ -69,7 +69,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         </div>
 
         {/* Column 3: Security Settings */}
-        <div className="col-lg-4 col-md-6 col-12 order-3 order-md-3">
+        <div className="col-lg-4 col-md-6 col-12 order-3 order-md-3 d-flex flex-column gap-4">
           <SecuritySection
             isPrivateAccount={user.isPrivateAccount ?? false}
             linkedIdentities={serializedIdentities}

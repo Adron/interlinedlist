@@ -21,6 +21,7 @@ export function getHelpSlugs(): string[] {
 /**
  * Get help content for a given slug.
  * Returns null if slug is invalid or file not found.
+ * Topics with sourceFile load from that path (relative to process.cwd()).
  */
 export function getHelpContent(slug: string): HelpContent | null {
   const validSlugs = getHelpSlugs();
@@ -28,14 +29,18 @@ export function getHelpContent(slug: string): HelpContent | null {
     return null;
   }
 
-  const filePath = path.join(HELP_DIR, `${slug}.md`);
+  const topic = HELP_TOPICS.find((t) => t.slug === slug);
+  const sourceFile = (topic as { sourceFile?: string })?.sourceFile;
+  const filePath = sourceFile
+    ? path.join(process.cwd(), sourceFile)
+    : path.join(HELP_DIR, `${slug}.md`);
+
   if (!fs.existsSync(filePath)) {
     return null;
   }
 
   const fileContents = fs.readFileSync(filePath, 'utf8');
   const { data: frontmatter, content } = matter(fileContents);
-  const topic = HELP_TOPICS.find((t) => t.slug === slug);
 
   return {
     slug,
