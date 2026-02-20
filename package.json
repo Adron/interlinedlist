@@ -16,12 +16,16 @@
     "db:studio": "dotenv -e .env.local -- prisma studio",
     "backup": "node scripts/backup-database.js",
     "restore": "node scripts/restore-database.js",
-    "test-data:seed": "dotenv -e .env.local -- node test-data/seed-test-accounts.js"
+    "test-data:seed": "dotenv -e .env.local -- node test-data/seed-test-accounts.js",
+    "cli:test": "make -C cli test",
+    "cli:test-local": "echo 'Start dev server (npm run dev) in another terminal, then run: il-sync sync init'",
+    "cli:build": "make -C cli all && mkdir -p public/downloads/darwin-arm64 public/downloads/darwin-amd64 public/downloads/linux-arm64 public/downloads/linux-amd64 public/downloads/windows && cp cli/dist/il-sync-darwin-arm64 public/downloads/darwin-arm64/il-sync && cp cli/dist/il-sync-darwin-amd64 public/downloads/darwin-amd64/il-sync && cp cli/dist/il-sync-linux-arm64 public/downloads/linux-arm64/il-sync && cp cli/dist/il-sync-linux-amd64 public/downloads/linux-amd64/il-sync && cp cli/dist/il-sync-windows-amd64.exe public/downloads/windows/il-sync.exe"
   },
   "dependencies": {
     "@atproto/oauth-client-node": "^0.3.16",
     "@prisma/client": "^5.19.0",
     "@types/react-datepicker": "^6.2.0",
+    "@uiw/react-md-editor": "^4.0.11",
     "@vercel/blob": "^2.2.0",
     "bcryptjs": "^3.0.3",
     "bootstrap": "^5.3.3",

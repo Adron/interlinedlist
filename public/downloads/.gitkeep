@@ -1,0 +1,2 @@
+# CLI binaries in darwin-arm64/, darwin-amd64/, linux-arm64/, linux-amd64/, windows/
+# Run: npm run cli:build
