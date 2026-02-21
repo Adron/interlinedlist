@@ -7,9 +7,11 @@ interface DeleteListButtonProps {
   listId: string;
   listTitle: string;
   onDeleteSuccess?: () => void;
+  /** When true, shows "Delete" label next to the icon (for use on list detail page) */
+  showLabel?: boolean;
 }
 
-export default function DeleteListButton({ listId, listTitle, onDeleteSuccess }: DeleteListButtonProps) {
+export default function DeleteListButton({ listId, listTitle, onDeleteSuccess, showLabel }: DeleteListButtonProps) {
   const router = useRouter();
   const [showModal, setShowModal] = useState(false);
   const [step, setStep] = useState<'confirm' | 'verify'>('confirm');
@@ -94,7 +96,7 @@ export default function DeleteListButton({ listId, listTitle, onDeleteSuccess }:
   return (
     <>
       <button
-        className="btn btn-sm btn-outline-danger"
+        className={`btn btn-outline-danger ${showLabel ? '' : 'btn-sm'}`}
         onClick={(e) => {
           e.stopPropagation();
           e.preventDefault();
@@ -103,6 +105,7 @@ export default function DeleteListButton({ listId, listTitle, onDeleteSuccess }:
         title="Delete"
       >
         <i className="bx bx-trash"></i>
+        {showLabel && <span className="ms-1">Delete</span>}
       </button>
 
       {showModal && (
@@ -191,7 +194,7 @@ export default function DeleteListButton({ listId, listTitle, onDeleteSuccess }:
                     onClick={handleConfirm}
                     disabled={isDeleting}
                   >
-                    Continue
+                    Confirm
                   </button>
                 ) : (
                   <button
@@ -200,7 +203,7 @@ export default function DeleteListButton({ listId, listTitle, onDeleteSuccess }:
                     onClick={handleDelete}
                     disabled={isDeleting || listNameInput.trim() !== listTitle.trim()}
                   >
-                    {isDeleting ? 'Deleting...' : 'Delete List'}
+                    {isDeleting ? 'Deleting...' : 'Confirm'}
                   </button>
                 )}
               </div>

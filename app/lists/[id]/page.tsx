@@ -1,11 +1,11 @@
 import { redirect, notFound } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
 import { getListWithAncestorChain, getListProperties } from '@/lib/lists/queries';
-import Link from 'next/link';
 import ListBreadcrumbs from '@/components/lists/ListBreadcrumbs';
 import ListChildLinks from '@/components/lists/ListChildLinks';
 import ListDataTable from '@/components/lists/ListDataTable';
 import ListAccessSection from '@/components/lists/ListAccessSection';
+import ListDetailActions from '@/components/lists/ListDetailActions';
 import EditSchemaForm from './EditSchemaForm';
 import AddRowForm from './AddRowForm';
 
@@ -55,44 +55,12 @@ export default async function ListDetailPage({ params, searchParams }: ListDetai
       )}
       <div className="row mb-4">
         <div className="col-12 d-flex justify-content-end">
-          <div className="d-flex gap-2">
-            {!isEditMode && !isAddMode && (
-              <>
-                <Link
-                  href={`/lists/${params.id}?edit=true`}
-                  className="btn btn-outline-secondary"
-                >
-                  <i className="bx bx-edit me-1"></i>
-                  Edit Schema
-                </Link>
-                <Link
-                  href={`/lists/${params.id}?add=true`}
-                  className="btn btn-primary"
-                >
-                  <i className="bx bx-plus me-1"></i>
-                  Add Row
-                </Link>
-              </>
-            )}
-            {isEditMode && (
-              <Link
-                href={`/lists/${params.id}`}
-                className="btn btn-outline-secondary"
-              >
-                <i className="bx bx-x me-1"></i>
-                Cancel Edit
-              </Link>
-            )}
-            {isAddMode && (
-              <Link
-                href={`/lists/${params.id}`}
-                className="btn btn-outline-secondary"
-              >
-                <i className="bx bx-x me-1"></i>
-                Cancel
-              </Link>
-            )}
-          </div>
+          <ListDetailActions
+            listId={params.id}
+            listTitle={list.title}
+            isEditMode={isEditMode}
+            isAddMode={isAddMode}
+          />
         </div>
       </div>
 

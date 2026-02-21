@@ -147,10 +147,10 @@ async function addUserToPublicOrganization(userId) {
       data: {
         userId,
         organizationId: PUBLIC_ORG_ID,
-        role: 'member',
+        role: 'owner',
       },
     });
-    logSuccess('User added to "The Public" organization');
+    logSuccess('User added to "The Public" organization as owner');
   } else {
     logSuccess('User is already a member of "The Public" organization');
   }

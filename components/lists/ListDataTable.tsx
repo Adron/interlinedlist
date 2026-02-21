@@ -632,10 +632,18 @@ export default function ListDataTable({
                         <td>
                           <div className="btn-group btn-group-sm">
                             <button
+                              className="btn btn-outline-secondary"
+                              onClick={() => sortedFields[0] && startEditing(row.id, sortedFields[0].propertyKey)}
+                              title="Edit row"
+                            >
+                              <i className="bx bx-edit"></i>
+                            </button>
+                            <button
                               className="btn btn-outline-danger"
                               onClick={() => handleDelete(row.id)}
+                              title="Delete row"
                             >
-                              Delete
+                              <i className="bx bx-trash"></i>
                             </button>
                           </div>
                         </td>
