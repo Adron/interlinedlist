@@ -11,7 +11,6 @@ import {
   formatFieldValue,
 } from "@/lib/lists/form-generator";
 import { validateFormData } from "@/lib/lists/dsl-validator";
-import DatePickerField from "./DatePickerField";
 import { parseDateFromInput } from "@/lib/lists/date-utils";
 
 interface DynamicListFormProps {
@@ -146,17 +145,17 @@ export default function DynamicListForm({
         </label>
 
         {fieldComponent.type === "input" && (field.propertyType === "date" || field.propertyType === "datetime") ? (
-          <DatePickerField
+          <input
             id={fieldId}
-            value={value}
-            onChange={(isoString) => handleChange(field.propertyKey, isoString)}
-            type={field.propertyType}
-            minDate={field.validationRules?.min}
-            maxDate={field.validationRules?.max}
-            placeholder={field.placeholder ?? undefined}
-            disabled={loading || isSubmitting}
+            name={fieldId}
+            type={field.propertyType === "date" ? "date" : "datetime-local"}
+            className={`form-control form-control-sm ${error ? "is-invalid" : ""}`}
+            value={formatFieldValue(field, value) || ""}
+            onChange={(e) => handleChange(field.propertyKey, e.target.value)}
             required={field.isRequired}
-            className={error ? "is-invalid" : ""}
+            disabled={loading || isSubmitting}
+            min={field.validationRules?.min}
+            max={field.validationRules?.max}
           />
         ) : fieldComponent.type === "input" && (
           <input

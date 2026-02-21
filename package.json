@@ -24,7 +24,6 @@
   "dependencies": {
     "@atproto/oauth-client-node": "^0.3.16",
     "@prisma/client": "^5.19.0",
-    "@types/react-datepicker": "^6.2.0",
     "@uiw/react-md-editor": "^4.0.11",
     "@vercel/blob": "^2.2.0",
     "bcryptjs": "^3.0.3",
@@ -35,7 +34,6 @@
     "gulp": "^5.0.1",
     "next": "^14.2.0",
     "react": "^18.3.0",
-    "react-datepicker": "^9.1.0",
     "react-dom": "^18.3.0",
     "react-markdown": "^10.1.0",
     "reactflow": "^11.11.4",
