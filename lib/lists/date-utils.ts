@@ -3,7 +3,23 @@
  */
 
 /**
- * Formats a date value for input fields (ISO format strings)
+ * Formats a Date to local-time string for input fields.
+ * Uses local time components (not UTC) so datetime-local displays correctly.
+ */
+function formatDateToLocal(date: Date, type: "date" | "datetime"): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  if (type === "date") {
+    return `${y}-${m}-${d}`;
+  }
+  const h = String(date.getHours()).padStart(2, "0");
+  const min = String(date.getMinutes()).padStart(2, "0");
+  return `${y}-${m}-${d}T${h}:${min}`;
+}
+
+/**
+ * Formats a date value for input fields (local time for datetime-local)
  */
 export function formatDateForInput(
   date: Date | string | null | undefined,
@@ -13,23 +29,16 @@ export function formatDateForInput(
     return "";
   }
 
+  let d: Date;
   if (typeof date === "string") {
-    if (type === "date") {
-      return date;
-    } else {
-      return date.slice(0, 16);
-    }
+    d = new Date(date.replace(" ", "T"));
+    if (isNaN(d.getTime())) return "";
+    return formatDateToLocal(d, type);
   }
 
   if (date instanceof Date) {
-    if (isNaN(date.getTime())) {
-      return "";
-    }
-    if (type === "date") {
-      return date.toISOString().split("T")[0];
-    } else {
-      return date.toISOString().slice(0, 16);
-    }
+    if (isNaN(date.getTime())) return "";
+    return formatDateToLocal(date, type);
   }
 
   return "";
@@ -73,6 +82,7 @@ export function parseDateFromInput(
 /**
  * Parses a date string flexibly (e.g. 2/20/2024, Feb 20 2024) and returns canonical format.
  * Use when normalizing values from API, clipboard, or other sources.
+ * Returns local-time format for datetime-local input compatibility.
  */
 export function parseDateFlexible(
   value: string,
@@ -88,11 +98,7 @@ export function parseDateFlexible(
     return null;
   }
 
-  if (type === "date") {
-    return parsed.toISOString().split("T")[0];
-  } else {
-    return parsed.toISOString().slice(0, 16);
-  }
+  return formatDateToLocal(parsed, type);
 }
 
 /**

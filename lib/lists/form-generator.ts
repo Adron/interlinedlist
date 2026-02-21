@@ -6,6 +6,7 @@
 
 import { ParsedField, FormData } from "./dsl-types";
 import { getVisibleFields, getDefaultValues } from "./dsl-validator";
+import { formatDateForInput } from "./date-utils";
 
 /**
  * Field component props
@@ -198,16 +199,7 @@ export function formatFieldValue(field: ParsedField, value: any): string {
   switch (field.propertyType) {
     case "date":
     case "datetime":
-      if (value instanceof Date) {
-        if (field.propertyType === "date") {
-          return value.toISOString().split("T")[0];
-        }
-        return value.toISOString().slice(0, 16);
-      }
-      if (typeof value === "string") {
-        return value;
-      }
-      return "";
+      return formatDateForInput(value, field.propertyType);
 
     case "boolean":
       return value ? "true" : "false";
