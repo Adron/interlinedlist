@@ -14,12 +14,9 @@ export function formatDateForInput(
   }
 
   if (typeof date === "string") {
-    // If it's already a string, validate it's in the right format
     if (type === "date") {
-      // Should be YYYY-MM-DD
       return date;
     } else {
-      // Should be YYYY-MM-DDTHH:mm or YYYY-MM-DDTHH:mm:ss
       return date.slice(0, 16);
     }
   }
@@ -59,17 +56,43 @@ export function parseDateFromInput(
     return null;
   }
 
-  // For datetime type, ensure we have YYYY-MM-DDTHH:mm format
+  // For datetime type, accept YYYY-MM-DDTHH:mm or YYYY-MM-DD HH:mm
   if (type === "datetime") {
-    const datetimeMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    const normalized = value.replace(" ", "T");
+    const datetimeMatch = normalized.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
     if (datetimeMatch) {
-      const date = new Date(value);
+      const date = new Date(normalized);
       return isNaN(date.getTime()) ? null : date;
     }
     return null;
   }
 
   return null;
+}
+
+/**
+ * Parses a date string flexibly (e.g. 2/20/2024, Feb 20 2024) and returns canonical format.
+ * Use when normalizing values from API, clipboard, or other sources.
+ */
+export function parseDateFlexible(
+  value: string,
+  type: "date" | "datetime"
+): string | null {
+  if (!value || value.trim() === "") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  const parsed = new Date(trimmed);
+  if (isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  if (type === "date") {
+    return parsed.toISOString().split("T")[0];
+  } else {
+    return parsed.toISOString().slice(0, 16);
+  }
 }
 
 /**

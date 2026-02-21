@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { ParsedField, FormData } from "@/lib/lists/dsl-types";
 import { validateFormData } from "@/lib/lists/dsl-validator";
-import { parseFieldValue, getFieldComponent } from "@/lib/lists/form-generator";
+import { parseFieldValue, getFieldComponent, formatFieldValue } from "@/lib/lists/form-generator";
+import { parseDateFromInput } from "@/lib/lists/date-utils";
 
 interface ListDataRow {
   id: string;
@@ -165,9 +167,22 @@ export default function ListDataTable({
 
     // Merge editing data with existing row data
     const updatedData = { ...row.rowData, ...editingData };
-    
+
+    // Convert date/datetime ISO strings to Date for validation
+    const dataToValidate = { ...updatedData };
+    sortedFields.forEach((field) => {
+      if (field.propertyType === "date" || field.propertyType === "datetime") {
+        const v = dataToValidate[field.propertyKey];
+        if (typeof v === "string" && v.trim() !== "") {
+          dataToValidate[field.propertyKey] = parseDateFromInput(v, field.propertyType);
+        } else if (!v) {
+          dataToValidate[field.propertyKey] = null;
+        }
+      }
+    });
+
     // Validate
-    const validation = validateFormData(sortedFields, updatedData);
+    const validation = validateFormData(sortedFields, dataToValidate);
     if (!validation.isValid) {
       // Show validation errors (could be enhanced with toast/alert)
       const errorMessages = validation.errors.map((e) => e.message).join(", ");
@@ -249,8 +264,21 @@ export default function ListDataTable({
     setNewRowErrors({});
     setError("");
 
+    // Convert date/datetime ISO strings to Date for validation
+    const dataToValidate = { ...newRowData };
+    sortedFields.forEach((field) => {
+      if (field.propertyType === "date" || field.propertyType === "datetime") {
+        const v = dataToValidate[field.propertyKey];
+        if (typeof v === "string" && v.trim() !== "") {
+          dataToValidate[field.propertyKey] = parseDateFromInput(v, field.propertyType);
+        } else if (!v) {
+          dataToValidate[field.propertyKey] = null;
+        }
+      }
+    });
+
     // Validate
-    const validation = validateFormData(sortedFields, newRowData);
+    const validation = validateFormData(sortedFields, dataToValidate);
     if (!validation.isValid) {
       const errorMap: Record<string, string> = {};
       validation.errors.forEach((error) => {
@@ -380,7 +408,32 @@ export default function ListDataTable({
             />
           </td>
         );
-      } else if (fieldComponent.type === "input") {
+      } else if (field.propertyType === "date" || field.propertyType === "datetime") {
+        return (
+          <td key={field.propertyKey} className="p-1">
+            <input
+              className="form-control form-control-sm"
+              type={field.propertyType === "date" ? "date" : "datetime-local"}
+              value={formatFieldValue(field, value) || ""}
+              onChange={(e) => handleCellChange(field.propertyKey, e.target.value)}
+              onBlur={() => handleSaveRow(row.id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleSaveRow(row.id);
+                }
+                if (e.key === "Escape") {
+                  e.preventDefault();
+                  handleCancelEdit();
+                }
+              }}
+              autoFocus
+              min={field.validationRules?.min}
+              max={field.validationRules?.max}
+            />
+          </td>
+        );
+      } else if (fieldComponent.type === "input" && field.propertyType !== "date" && field.propertyType !== "datetime") {
         return (
           <td key={field.propertyKey} className="p-1">
             <input
@@ -464,6 +517,27 @@ export default function ListDataTable({
             checked={Boolean(value)}
             onChange={(e) => handleNewRowChange(field.propertyKey, e.target.checked)}
             disabled={isSavingNewRow}
+          />
+          {hasError && (
+            <div className="invalid-feedback d-block small">
+              {newRowErrors[field.propertyKey]}
+            </div>
+          )}
+        </td>
+      );
+    } else if (field.propertyType === "date" || field.propertyType === "datetime") {
+      return (
+        <td key={field.propertyKey} className="p-1">
+          <input
+            id={`new-row-${field.propertyKey}`}
+            className={`form-control form-control-sm ${hasError ? "is-invalid" : ""}`}
+            type={field.propertyType === "date" ? "date" : "datetime-local"}
+            value={formatFieldValue(field, value) || ""}
+            onChange={(e) => handleNewRowChange(field.propertyKey, e.target.value)}
+            disabled={isSavingNewRow}
+            required={field.isRequired}
+            min={field.validationRules?.min}
+            max={field.validationRules?.max}
           />
           {hasError && (
             <div className="invalid-feedback d-block small">
@@ -638,6 +712,13 @@ export default function ListDataTable({
                             >
                               <i className="bx bx-edit"></i>
                             </button>
+                            <Link
+                              href={`/lists/${listId}/edit/${row.id}`}
+                              className="btn btn-outline-secondary btn-sm"
+                              title="Edit in form"
+                            >
+                              <i className="bx bx-window-open"></i>
+                            </Link>
                             <button
                               className="btn btn-outline-danger"
                               onClick={() => handleDelete(row.id)}
