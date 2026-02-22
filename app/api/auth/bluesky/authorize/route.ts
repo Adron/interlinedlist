@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       random: crypto.randomUUID(),
     });
 
-    const input = handle || 'https://bsky.app';
+    const input = handle || 'https://bsky.social';
     const url = await client.authorize(input, {
       state,
     });
