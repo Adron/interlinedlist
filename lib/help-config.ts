@@ -13,6 +13,7 @@ export const HELP_TOPICS = [
   { slug: 'export', title: 'Exporting Data' },
   { slug: 'settings', title: 'Settings' },
   { slug: 'account', title: 'Account & Security' },
+  { slug: 'apis', title: 'Developer APIs' },
   { slug: 'tooling', title: 'Tooling (CLI)', sourceFile: 'documentation/tooling/overview.md' },
   { slug: 'local-testing', title: 'Local Testing (CLI)', sourceFile: 'documentation/tooling/local-testing.md' },
 ] as const;

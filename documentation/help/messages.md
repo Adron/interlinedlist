@@ -11,7 +11,8 @@ Messages are time-series posts similar to micro-blogging. Share updates, links, 
 1. Go to **Home** (or Dashboard; the message input appears in the left sidebar on Home)
 2. Type your message in the input field
 3. Use the visibility toggle to set public or private
-4. Click to post
+4. Optionally, open the **advanced options** (gear icon) to attach images or video, or to cross-post
+5. Click to post
 
 ## Visibility
 
@@ -45,7 +46,22 @@ When you include URLs in your messages, the app fetches metadata (titles, descri
 
 ## Images and Videos
 
-You can attach up to 6 images or 1 video per message using the upload options. Media is stored and displayed inline with your message.
+You can attach images and video to messages from the **advanced post options**. Enable "Advanced post settings" in **Settings → Message Settings** so the gear icon appears next to the message input. Click the gear to open the menu, then use the **Image** or **Video** button.
+
+### Images
+
+- **Limit**: Up to 6 images per message.
+- **Size**: Large images are automatically resized so the longest side is at most 1200 pixels and the file size is under 1.4 MB. You can select any size; the app handles resizing.
+- **Flow**: Click **Image** → choose file(s) → click **Upload**. Use **Done** to close the modal and keep your attachments, or **Cancel** to discard any images added in this session.
+
+### Video
+
+- **Limit**: 1 video per message.
+- **Size**: Maximum 3 MB. Files over 3 MB are rejected (no automatic compression).
+- **Formats**: MP4, WebM, QuickTime (.mov), and AVI.
+- **Flow**: Click **Video** → choose a file → click **Upload**. Use **Done** or **Cancel** as with images.
+
+Media is stored securely and displayed inline with your message. You must have **verified your email** before you can post images or video; see Account & Security for how to verify.
 
 ## Character Limit
 
