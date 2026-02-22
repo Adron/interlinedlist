@@ -307,3 +307,21 @@ model LinkedIdentity {
   @@index([provider, providerUserId])
   @@map("linked_identities")
 }
+
+model EmailLog {
+  id           String    @id @default(uuid())
+  emailType    String    // "signup_verification" | "resend_verification" | "admin_user_verification" | "email_change_verification" | "forgot_password"
+  recipient    String
+  userId       String?
+  status       String    // "sent" | "failed"
+  providerId   String?   // Resend email_id when successful
+  errorMessage String?   @db.Text
+  metadata     Json?
+  createdAt    DateTime  @default(now())
+
+  @@index([emailType])
+  @@index([recipient])
+  @@index([createdAt])
+  @@index([status])
+  @@map("email_logs")
+}

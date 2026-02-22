@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { hashPassword } from '@/lib/auth/password';
 import { generateEmailVerificationToken, getEmailVerificationExpiration } from '@/lib/auth/tokens';
 import { resend, FROM_EMAIL } from '@/lib/email/resend';
+import { logEmailSend } from '@/lib/email/log-email';
 import { getEmailVerificationEmailHtml, getEmailVerificationEmailText } from '@/lib/email/templates/email-verification';
 
 export const dynamic = 'force-dynamic';
@@ -154,16 +155,29 @@ export async function POST(request: NextRequest) {
     // Send verification email if email is not verified and verification fields exist
     if (!emailVerified && hasEmailVerificationFields && verificationToken) {
       try {
-        await resend.emails.send({
+        const result = await resend.emails.send({
           from: FROM_EMAIL,
           to: createdUser.email,
           subject: 'Verify Your Email - InterlinedList',
           html: getEmailVerificationEmailHtml(verificationToken, createdUser.displayName || createdUser.username),
           text: getEmailVerificationEmailText(verificationToken, createdUser.displayName || createdUser.username),
         });
+        await logEmailSend({
+          emailType: 'admin_user_verification',
+          recipient: createdUser.email,
+          userId: createdUser.id,
+          status: 'sent',
+          providerId: (result as { data?: { id?: string } })?.data?.id ?? undefined,
+        });
       } catch (emailError: any) {
         console.error('Failed to send verification email:', emailError);
-        // Don't fail the request if email fails
+        await logEmailSend({
+          emailType: 'admin_user_verification',
+          recipient: createdUser.email,
+          userId: createdUser.id,
+          status: 'failed',
+          errorMessage: emailError?.message ?? String(emailError),
+        });
       }
     }
 

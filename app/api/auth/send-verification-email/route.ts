@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { resend, FROM_EMAIL } from '@/lib/email/resend';
+import { logEmailSend } from '@/lib/email/log-email';
 import { generateEmailVerificationToken, getEmailVerificationExpiration } from '@/lib/auth/tokens';
 import { getEmailVerificationEmailHtml, getEmailVerificationEmailText } from '@/lib/email/templates/email-verification';
 import { getCurrentUser } from '@/lib/auth/session';
@@ -88,17 +89,29 @@ export async function POST(request: NextRequest) {
     // Send email only if we successfully stored the token
     if (hasEmailVerificationFields) {
       try {
-        await resend.emails.send({
+        const result = await resend.emails.send({
           from: FROM_EMAIL,
           to: user.email,
           subject: 'Verify Your Email - InterlinedList',
           html: getEmailVerificationEmailHtml(verificationToken, user.displayName || user.username),
           text: getEmailVerificationEmailText(verificationToken, user.displayName || user.username),
         });
-      } catch (emailError) {
+        await logEmailSend({
+          emailType: 'resend_verification',
+          recipient: user.email,
+          userId: user.id,
+          status: 'sent',
+          providerId: (result as { data?: { id?: string } })?.data?.id ?? undefined,
+        });
+      } catch (emailError: any) {
         console.error('Failed to send verification email:', emailError);
-        // Don't fail the request if email fails - log it
-        // In production, you might want to use a queue system
+        await logEmailSend({
+          emailType: 'resend_verification',
+          recipient: user.email,
+          userId: user.id,
+          status: 'failed',
+          errorMessage: emailError?.message ?? String(emailError),
+        });
       }
     }
 

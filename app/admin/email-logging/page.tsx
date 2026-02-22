@@ -1,0 +1,50 @@
+import { redirect } from 'next/navigation';
+import { getCurrentUser } from '@/lib/auth/session';
+import { prisma } from '@/lib/prisma';
+import EmailLogTable from '@/components/admin/EmailLogTable';
+
+export default async function EmailLoggingPage() {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect('/login');
+  }
+
+  if (!user.isAdministrator) {
+    redirect('/dashboard');
+  }
+
+  const initialLogs = await prisma.emailLog.findMany({
+    orderBy: { createdAt: 'desc' },
+    take: 25,
+  });
+
+  const total = await prisma.emailLog.count();
+
+  const logsWithDates = initialLogs.map((log) => ({
+    ...log,
+    createdAt: log.createdAt.toISOString(),
+  }));
+
+  return (
+    <div className="container-fluid container-fluid-max py-4">
+      <div className="row mb-4">
+        <div className="col-12">
+          <h1 className="h4 mb-0">Email Logging</h1>
+          <p className="text-muted small mb-0">
+            Transactional emails sent for verification, password reset, and related flows.
+          </p>
+        </div>
+      </div>
+
+      <div className="row">
+        <div className="col-12">
+          <EmailLogTable
+            initialLogs={logsWithDates}
+            initialTotal={total}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}

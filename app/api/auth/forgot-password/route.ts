@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { resend, FROM_EMAIL } from '@/lib/email/resend';
+import { logEmailSend } from '@/lib/email/log-email';
 import { generatePasswordResetToken, getTokenExpiration } from '@/lib/auth/tokens';
 import { getPasswordResetEmailHtml, getPasswordResetEmailText } from '@/lib/email/templates/password-reset';
 
@@ -54,17 +55,29 @@ export async function POST(request: NextRequest) {
 
     // Send email
     try {
-      await resend.emails.send({
+      const result = await resend.emails.send({
         from: FROM_EMAIL,
         to: user.email,
         subject: 'Reset Your Password - InterlinedList',
         html: getPasswordResetEmailHtml(resetToken, user.displayName || user.username),
         text: getPasswordResetEmailText(resetToken, user.displayName || user.username),
       });
-    } catch (emailError) {
+      await logEmailSend({
+        emailType: 'forgot_password',
+        recipient: user.email,
+        userId: user.id,
+        status: 'sent',
+        providerId: (result as { data?: { id?: string } })?.data?.id ?? undefined,
+      });
+    } catch (emailError: any) {
       console.error('Failed to send password reset email:', emailError);
-      // Don't fail the request if email fails - log it
-      // In production, you might want to use a queue system
+      await logEmailSend({
+        emailType: 'forgot_password',
+        recipient: user.email,
+        userId: user.id,
+        status: 'failed',
+        errorMessage: emailError?.message ?? String(emailError),
+      });
     }
 
     return NextResponse.json(

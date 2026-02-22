@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { resend, FROM_EMAIL } from '@/lib/email/resend';
+import { logEmailSend } from '@/lib/email/log-email';
 import { generateEmailVerificationToken, getEmailVerificationExpiration } from '@/lib/auth/tokens';
 import {
   getEmailChangeVerificationHtml,
@@ -101,15 +102,29 @@ export async function POST(request: NextRequest) {
     });
 
     try {
-      await resend.emails.send({
+      const result = await resend.emails.send({
         from: FROM_EMAIL,
         to: newEmail,
         subject: 'Confirm your new email address - InterlinedList',
         html: getEmailChangeVerificationHtml(token, user.displayName || user.username),
         text: getEmailChangeVerificationText(token, user.displayName || user.username),
       });
-    } catch (emailError) {
+      await logEmailSend({
+        emailType: 'email_change_verification',
+        recipient: newEmail,
+        userId: user.id,
+        status: 'sent',
+        providerId: (result as { data?: { id?: string } })?.data?.id ?? undefined,
+      });
+    } catch (emailError: any) {
       console.error('Failed to send email change verification:', emailError);
+      await logEmailSend({
+        emailType: 'email_change_verification',
+        recipient: newEmail,
+        userId: user.id,
+        status: 'failed',
+        errorMessage: emailError?.message ?? String(emailError),
+      });
       // Clear pending state on send failure
       await prisma.user.update({
         where: { id: user.id },

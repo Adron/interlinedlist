@@ -57,7 +57,10 @@ export default async function AdminPage() {
   return (
     <div className="container-fluid container-fluid-max py-4">
       <div className="row mb-4">
-        <div className="col-12 d-flex justify-content-end">
+        <div className="col-12 d-flex justify-content-end gap-2">
+          <a href="/admin/email-logging" className="btn btn-outline-secondary">
+            <i className="bx bx-envelope me-2"></i>Email Logging
+          </a>
           <a href="/admin/users/new" className="btn btn-primary">
             <i className="bx bx-plus me-2"></i>Add User
           </a>
