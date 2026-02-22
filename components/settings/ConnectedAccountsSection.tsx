@@ -20,6 +20,7 @@ interface ConnectedAccountsSectionProps {
 function getProviderLabel(provider: string): string {
   if (provider === 'github') return 'GitHub';
   if (provider === 'bluesky') return 'Bluesky';
+  if (provider === 'linkedin') return 'LinkedIn';
   if (provider.startsWith('mastodon:')) {
     const instance = provider.replace('mastodon:', '');
     return `Mastodon @ ${instance}`;
@@ -121,13 +122,14 @@ export default function ConnectedAccountsSection({
 
   const githubIdentity = getIdentity('github');
   const blueskyIdentity = getIdentity('bluesky');
+  const linkedinIdentity = getIdentity('linkedin');
   const mastodonIdentities = identities.filter((i) => i.provider.startsWith('mastodon:'));
 
   return (
     <div className="mt-4">
       <h4 className="h6 mb-3">Connected Accounts</h4>
       <p className="text-muted small mb-3">
-        Link your GitHub, Mastodon, and Bluesky accounts for sign-in and verification.
+        Link your GitHub, Mastodon, Bluesky, and LinkedIn accounts for sign-in and verification.
       </p>
 
       {message && (
@@ -263,6 +265,64 @@ export default function ConnectedAccountsSection({
               Enter your Bluesky handle to pre-fill the sign-in form (e.g. adron.bsky.social).
             </p>
           )}
+        </div>
+      </div>
+
+      {/* LinkedIn */}
+      <div className="card mb-3">
+        <div className="card-body py-3">
+          <div className="d-flex align-items-center justify-between flex-wrap gap-2">
+            <div className="d-flex align-items-center gap-2">
+              <span className="badge bg-primary">LinkedIn</span>
+              {linkedinIdentity ? (
+                <>
+                  {linkedinIdentity.avatarUrl && (
+                    <img
+                      src={linkedinIdentity.avatarUrl}
+                      alt=""
+                      className="rounded-circle"
+                      width={24}
+                      height={24}
+                    />
+                  )}
+                  <span>{linkedinIdentity.providerUsername || 'Connected'}</span>
+                </>
+              ) : (
+                <span className="text-muted">Not connected</span>
+              )}
+            </div>
+            <div className="d-flex gap-1">
+              {linkedinIdentity ? (
+                <>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-secondary"
+                    onClick={() => handleVerify('linkedin')}
+                    disabled={verifying === 'linkedin'}
+                  >
+                    {verifying === 'linkedin' ? 'Verifying...' : 'Verify'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-danger"
+                    onClick={() => handleDisconnect('linkedin')}
+                    disabled={disconnecting === 'linkedin'}
+                  >
+                    {disconnecting === 'linkedin' ? 'Disconnecting...' : 'Disconnect'}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary"
+                  disabled
+                  title="Coming soon"
+                >
+                  Connect (coming soon)
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
