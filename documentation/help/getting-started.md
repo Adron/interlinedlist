@@ -32,7 +32,7 @@ Click your profile icon in the top right for the dropdown menu:
 
 ## First Steps
 
-1. **Post a message** — Use the input on the Home page (left sidebar) to share an update
+1. **Post a message** — Use the input on the Home page (left sidebar) to share an update; use the advanced options (gear) to attach images or video
 2. **Create a list** — Go to Lists and click "New List" to add your first list
 3. **Create a document** — Go to Documents to write markdown notes in folders; sync with the CLI for local editing
 4. **Follow people** — Visit People or user profiles to follow others and see their messages in your feed
