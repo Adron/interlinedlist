@@ -235,39 +235,6 @@ Telephone number input field.
 **Validation Options:**
 - `pattern` (string): Regex pattern for phone number format
 
-## Other Field Types
-
-### `color`
-
-Color picker field.
-
-**Example:**
-```javascript
-{
-  key: "themeColor",
-  type: "color",
-  label: "Theme Color",
-  defaultValue: "#000000"
-}
-```
-
-**Default Value:** Hex color code (e.g., `#FF0000`)
-
-### `file`
-
-File upload field.
-
-**Example:**
-```javascript
-{
-  key: "avatar",
-  type: "file",
-  label: "Profile Picture"
-}
-```
-
-**Note:** File handling depends on your application's file upload implementation.
-
 ## Field Type Comparison
 
 | Type | Input Type | Value Type | Supports Options | Supports Pattern |
@@ -283,8 +250,6 @@ File upload field.
 | `email` | Email input | string | No | Yes |
 | `url` | URL input | string | No | No |
 | `tel` | Tel input | string | No | Yes |
-| `color` | Color picker | string (hex) | No | No |
-| `file` | File input | File/string | No | No |
 
 ## Choosing the Right Field Type
 
@@ -298,8 +263,6 @@ File upload field.
 - **Email addresses**: Use `email`
 - **Websites**: Use `url`
 - **Phone numbers**: Use `tel`
-- **Color selection**: Use `color`
-- **File uploads**: Use `file`
 
 ## Default Values by Type
 
@@ -309,5 +272,3 @@ File upload field.
 - `boolean`: `false`
 - `select`: First option value (or `""` if not set)
 - `multiselect`: `[]` (empty array)
-- `color`: `#000000` (black)
-- `file`: `null`

@@ -120,8 +120,6 @@ import { toJSON, fromJSON, mergeSchemas, cloneSchema } from "@/DSL/utilities/tra
 | `email` | Email input | Email addresses |
 | `url` | URL input | Websites |
 | `tel` | Phone input | Phone numbers |
-| `color` | Color picker | Theme colors |
-| `file` | File upload | Documents, images |
 
 See [Field Types Documentation](./docs/field-types.md) for details.
 

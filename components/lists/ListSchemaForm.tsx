@@ -29,8 +29,6 @@ const FIELD_TYPES: FieldType[] = [
   "email",
   "url",
   "tel",
-  "color",
-  "file",
 ];
 
 const VISIBILITY_OPERATORS = [
@@ -88,7 +86,13 @@ export default function ListSchemaForm({
   // Always ensure we have a valid default field for new schemas
   const getInitialFields = (): DSLField[] => {
     if (initialSchema?.fields && initialSchema.fields.length > 0) {
-      return initialSchema.fields;
+      // Convert deprecated color/file types to text when loading for edit (legacy data)
+      const deprecatedTypes = ["color", "file"];
+      return initialSchema.fields.map((f) =>
+        deprecatedTypes.includes(f.type as string)
+          ? { ...f, type: "text" as FieldType }
+          : f
+      );
     }
     // Create new schema - always include default field
     const defaultFieldName = generateDefaultFieldName();

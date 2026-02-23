@@ -135,24 +135,6 @@ export function getFieldComponent(field: ParsedField): {
         },
       };
 
-    case "color":
-      return {
-        type: "input",
-        props: {
-          ...baseProps,
-          type: "color",
-        },
-      };
-
-    case "file":
-      return {
-        type: "input",
-        props: {
-          ...baseProps,
-          type: "file",
-        },
-      };
-
     default:
       return {
         type: "input",

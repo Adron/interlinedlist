@@ -76,8 +76,6 @@ Available field types:
 - `email` - Email input with validation
 - `url` - URL input with validation
 - `tel` - Telephone number input
-- `color` - Color picker
-- `file` - File upload
 
 See [Field Types Documentation](./field-types.md) for detailed information about each type.
 

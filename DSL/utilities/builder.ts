@@ -247,20 +247,6 @@ export const FieldHelpers = {
   tel(key: string, label: string): FieldBuilder {
     return FieldBuilder.create(key, "tel", label);
   },
-
-  /**
-   * Create a color picker field
-   */
-  color(key: string, label: string): FieldBuilder {
-    return FieldBuilder.create(key, "color", label);
-  },
-
-  /**
-   * Create a file upload field
-   */
-  file(key: string, label: string): FieldBuilder {
-    return FieldBuilder.create(key, "file", label);
-  },
 };
 
 /**

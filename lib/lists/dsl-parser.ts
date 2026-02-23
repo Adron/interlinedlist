@@ -29,8 +29,6 @@ const VALID_FIELD_TYPES: FieldType[] = [
   "email",
   "url",
   "tel",
-  "color",
-  "file",
 ];
 
 /**
