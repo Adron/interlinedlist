@@ -55,7 +55,11 @@ export default async function AdminPage() {
       <div className="row mb-4">
         <div className="col-12 d-flex justify-content-end gap-2">
           <a href="/admin/email-logging" className="btn btn-outline-primary">
+<<<<<<< HEAD
           <a href="/admin/support-links" className="btn btn-outline-primary">
+=======
+          <a href="/admin/support-links" className="btn btn-outline-secondary">
+>>>>>>> 80ecdd7 (New file and page. Probably needs redone.)
             <i className="bx bx-link me-2"></i>Support Links
           </a>
           <a href="/admin/email-logging" className="btn btn-outline-secondary">
