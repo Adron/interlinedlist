@@ -139,9 +139,6 @@ export async function POST(request: NextRequest) {
         }));
       } catch (emailError: any) {
         console.error('Failed to send verification email:', emailError);
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/39b03427-0fde-45ae-9ce7-7e7f4ee5aa45',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'f77af2'},body:JSON.stringify({sessionId:'f77af2',location:'register/route.ts:email-catch',message:'Resend threw exception',data:{errorMessage:emailError?.message},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
-        // #endregion
         await logEmailSend({
           emailType: 'signup_verification',
           recipient: user.email,
