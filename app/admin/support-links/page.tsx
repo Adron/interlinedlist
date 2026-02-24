@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 import ListBreadcrumbs from '@/components/lists/ListBreadcrumbs';
 import { requireAdminAndPublicOwner } from '@/lib/auth/admin-access';
 =======
@@ -6,6 +7,10 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
 import ListBreadcrumbs from '@/components/lists/ListBreadcrumbs';
 >>>>>>> 80ecdd7 (New file and page. Probably needs redone.)
+=======
+import ListBreadcrumbs from '@/components/lists/ListBreadcrumbs';
+import { requireAdminAndPublicOwner } from '@/lib/auth/admin-access';
+>>>>>>> 6dad121 (admin and related changes.)
 
 const SUPPORT_LINKS = [
   { title: 'Vercel Project Overview', url: 'https://vercel.com/ctt-a-team/interlinedlist' },
@@ -22,6 +27,7 @@ const SUPPORT_LINKS = [
 
 export default async function SupportLinksPage() {
 <<<<<<< HEAD
+<<<<<<< HEAD
   await requireAdminAndPublicOwner();
 =======
   const user = await getCurrentUser();
@@ -34,6 +40,9 @@ export default async function SupportLinksPage() {
     redirect('/dashboard');
   }
 >>>>>>> 80ecdd7 (New file and page. Probably needs redone.)
+=======
+  await requireAdminAndPublicOwner();
+>>>>>>> 6dad121 (admin and related changes.)
 
   const breadcrumbItems = [
     { label: 'Administration', href: '/admin' },

@@ -2,9 +2,13 @@ import { prisma } from '@/lib/prisma';
 import UserManagement from '@/components/admin/UserManagement';
 import ListBreadcrumbs from '@/components/lists/ListBreadcrumbs';
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { requireAdminAndPublicOwner } from '@/lib/auth/admin-access';
 =======
 >>>>>>> 02fe833 (All these things are supposedly going to fix the amil send!)
+=======
+import { requireAdminAndPublicOwner } from '@/lib/auth/admin-access';
+>>>>>>> 6dad121 (admin and related changes.)
 
 export default async function AdminPage() {
   const user = await requireAdminAndPublicOwner();
@@ -54,15 +58,18 @@ export default async function AdminPage() {
       <ListBreadcrumbs items={breadcrumbItems} />
       <div className="row mb-4">
         <div className="col-12 d-flex justify-content-end gap-2">
+<<<<<<< HEAD
           <a href="/admin/email-logging" className="btn btn-outline-primary">
 <<<<<<< HEAD
           <a href="/admin/support-links" className="btn btn-outline-primary">
 =======
+=======
+>>>>>>> 6dad121 (admin and related changes.)
           <a href="/admin/support-links" className="btn btn-outline-secondary">
 >>>>>>> 80ecdd7 (New file and page. Probably needs redone.)
             <i className="bx bx-link me-2"></i>Support Links
           </a>
-          <a href="/admin/email-logging" className="btn btn-outline-secondary">
+          <a href="/admin/email-logging" className="btn btn-outline-primary">
             <i className="bx bx-envelope me-2"></i>Email Logging
           </a>
           <a href="/admin/users/new" className="btn btn-primary">
