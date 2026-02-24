@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { resend, FROM_EMAIL } from '@/lib/email/resend';
-import { logEmailSend } from '@/lib/email/log-email';
+import { logEmailSend, getResendLogParams } from '@/lib/email/log-email';
 import { generateEmailVerificationToken, getEmailVerificationExpiration } from '@/lib/auth/tokens';
 import { getEmailVerificationEmailHtml, getEmailVerificationEmailText } from '@/lib/email/templates/email-verification';
 import { getCurrentUser } from '@/lib/auth/session';
@@ -96,13 +96,11 @@ export async function POST(request: NextRequest) {
           html: getEmailVerificationEmailHtml(verificationToken, user.displayName || user.username),
           text: getEmailVerificationEmailText(verificationToken, user.displayName || user.username),
         });
-        await logEmailSend({
+        await logEmailSend(getResendLogParams(result, {
           emailType: 'resend_verification',
           recipient: user.email,
           userId: user.id,
-          status: 'sent',
-          providerId: (result as { data?: { id?: string } })?.data?.id ?? undefined,
-        });
+        }));
       } catch (emailError: any) {
         console.error('Failed to send verification email:', emailError);
         await logEmailSend({

@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { hashPassword } from '@/lib/auth/password';
 import { generateEmailVerificationToken, getEmailVerificationExpiration } from '@/lib/auth/tokens';
 import { resend, FROM_EMAIL } from '@/lib/email/resend';
-import { logEmailSend } from '@/lib/email/log-email';
+import { logEmailSend, getResendLogParams } from '@/lib/email/log-email';
 import { getEmailVerificationEmailHtml, getEmailVerificationEmailText } from '@/lib/email/templates/email-verification';
 
 export const dynamic = 'force-dynamic';
@@ -153,6 +153,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Send verification email if email is not verified and verification fields exist
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/39b03427-0fde-45ae-9ce7-7e7f4ee5aa45',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'f77af2'},body:JSON.stringify({sessionId:'f77af2',location:'admin/users/route.ts:email-block',message:'Admin email send block entry',data:{emailVerified,hasEmailVerificationFields,hasToken:!!verificationToken,fromEmail:FROM_EMAIL,recipient:createdUser.email},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
+    // #endregion
     if (!emailVerified && hasEmailVerificationFields && verificationToken) {
       try {
         const result = await resend.emails.send({
@@ -162,15 +165,21 @@ export async function POST(request: NextRequest) {
           html: getEmailVerificationEmailHtml(verificationToken, createdUser.displayName || createdUser.username),
           text: getEmailVerificationEmailText(verificationToken, createdUser.displayName || createdUser.username),
         });
-        await logEmailSend({
+        // #region agent log
+        const resData = (result as { data?: { id?: string } })?.data;
+        const resError = (result as { error?: { message?: string; name?: string } })?.error;
+        fetch('http://127.0.0.1:7243/ingest/39b03427-0fde-45ae-9ce7-7e7f4ee5aa45',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'f77af2'},body:JSON.stringify({sessionId:'f77af2',location:'admin/users/route.ts:resend-result',message:'Resend API result',data:{hasData:!!resData,hasError:!!resError,providerId:resData?.id,errorMessage:resError?.message,errorName:resError?.name},timestamp:Date.now(),hypothesisId:'H5'})}).catch(()=>{});
+        // #endregion
+        await logEmailSend(getResendLogParams(result, {
           emailType: 'admin_user_verification',
           recipient: createdUser.email,
           userId: createdUser.id,
-          status: 'sent',
-          providerId: (result as { data?: { id?: string } })?.data?.id ?? undefined,
-        });
+        }));
       } catch (emailError: any) {
         console.error('Failed to send verification email:', emailError);
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/39b03427-0fde-45ae-9ce7-7e7f4ee5aa45',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'f77af2'},body:JSON.stringify({sessionId:'f77af2',location:'admin/users/route.ts:email-catch',message:'Resend threw exception',data:{errorMessage:emailError?.message},timestamp:Date.now(),hypothesisId:'H6'})}).catch(()=>{});
+        // #endregion
         await logEmailSend({
           emailType: 'admin_user_verification',
           recipient: createdUser.email,

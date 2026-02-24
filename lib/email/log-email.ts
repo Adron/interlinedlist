@@ -23,6 +23,19 @@ export interface LogEmailParams {
   metadata?: object | null;
 }
 
+/** Resend API returns { data } on success or { error: { message } } on failure (does not throw) */
+export function getResendLogParams(
+  result: { data?: { id?: string } | null; error?: { message?: string } | null },
+  base: Omit<LogEmailParams, 'status' | 'providerId' | 'errorMessage'>
+): LogEmailParams {
+  const err = (result as { error?: { message?: string } })?.error;
+  if (err) {
+    return { ...base, status: 'failed', errorMessage: err.message ?? 'Unknown Resend error' };
+  }
+  const id = (result as { data?: { id?: string } })?.data?.id;
+  return { ...base, status: 'sent', providerId: id ?? undefined };
+}
+
 export async function logEmailSend(params: LogEmailParams): Promise<void> {
   try {
     await prisma.emailLog.create({

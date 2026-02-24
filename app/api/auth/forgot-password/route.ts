@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { resend, FROM_EMAIL } from '@/lib/email/resend';
-import { logEmailSend } from '@/lib/email/log-email';
+import { logEmailSend, getResendLogParams } from '@/lib/email/log-email';
 import { generatePasswordResetToken, getTokenExpiration } from '@/lib/auth/tokens';
 import { getPasswordResetEmailHtml, getPasswordResetEmailText } from '@/lib/email/templates/password-reset';
 
@@ -62,13 +62,11 @@ export async function POST(request: NextRequest) {
         html: getPasswordResetEmailHtml(resetToken, user.displayName || user.username),
         text: getPasswordResetEmailText(resetToken, user.displayName || user.username),
       });
-      await logEmailSend({
+      await logEmailSend(getResendLogParams(result, {
         emailType: 'forgot_password',
         recipient: user.email,
         userId: user.id,
-        status: 'sent',
-        providerId: (result as { data?: { id?: string } })?.data?.id ?? undefined,
-      });
+      }));
     } catch (emailError: any) {
       console.error('Failed to send password reset email:', emailError);
       await logEmailSend({

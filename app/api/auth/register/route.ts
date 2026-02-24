@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { hashPassword } from '@/lib/auth/password';
 import { generateEmailVerificationToken, getEmailVerificationExpiration } from '@/lib/auth/tokens';
 import { resend, FROM_EMAIL } from '@/lib/email/resend';
-import { logEmailSend } from '@/lib/email/log-email';
+import { logEmailSend, getResendLogParams } from '@/lib/email/log-email';
 import { getEmailVerificationEmailHtml, getEmailVerificationEmailText } from '@/lib/email/templates/email-verification';
 import { SESSION_COOKIE_NAME, SESSION_MAX_AGE, APP_CONFIG } from '@/lib/config/app';
 import { ensureUserInPublicOrganization } from '@/lib/organizations/queries';
@@ -132,15 +132,16 @@ export async function POST(request: NextRequest) {
           html: getEmailVerificationEmailHtml(verificationToken, user.displayName || user.username),
           text: getEmailVerificationEmailText(verificationToken, user.displayName || user.username),
         });
-        await logEmailSend({
+        await logEmailSend(getResendLogParams(result, {
           emailType: 'signup_verification',
           recipient: user.email,
           userId: user.id,
-          status: 'sent',
-          providerId: (result as { data?: { id?: string } })?.data?.id ?? undefined,
-        });
+        }));
       } catch (emailError: any) {
         console.error('Failed to send verification email:', emailError);
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/39b03427-0fde-45ae-9ce7-7e7f4ee5aa45',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'f77af2'},body:JSON.stringify({sessionId:'f77af2',location:'register/route.ts:email-catch',message:'Resend threw exception',data:{errorMessage:emailError?.message},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
+        // #endregion
         await logEmailSend({
           emailType: 'signup_verification',
           recipient: user.email,

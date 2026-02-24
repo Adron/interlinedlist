@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { resend, FROM_EMAIL } from '@/lib/email/resend';
-import { logEmailSend } from '@/lib/email/log-email';
+import { logEmailSend, getResendLogParams } from '@/lib/email/log-email';
 import { generateEmailVerificationToken, getEmailVerificationExpiration } from '@/lib/auth/tokens';
 import {
   getEmailChangeVerificationHtml,
@@ -109,13 +109,26 @@ export async function POST(request: NextRequest) {
         html: getEmailChangeVerificationHtml(token, user.displayName || user.username),
         text: getEmailChangeVerificationText(token, user.displayName || user.username),
       });
-      await logEmailSend({
+      const logParams = getResendLogParams(result, {
         emailType: 'email_change_verification',
         recipient: newEmail,
         userId: user.id,
-        status: 'sent',
-        providerId: (result as { data?: { id?: string } })?.data?.id ?? undefined,
       });
+      await logEmailSend(logParams);
+      if (logParams.status === 'failed') {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            pendingEmail: null,
+            emailChangeToken: null,
+            emailChangeExpires: null,
+          },
+        });
+        return NextResponse.json(
+          { error: 'Failed to send verification email. Please try again later.' },
+          { status: 500 }
+        );
+      }
     } catch (emailError: any) {
       console.error('Failed to send email change verification:', emailError);
       await logEmailSend({
