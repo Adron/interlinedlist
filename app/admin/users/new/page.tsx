@@ -1,9 +1,17 @@
 import AddUserForm from './AddUserForm';
 import ListBreadcrumbs from '@/components/lists/ListBreadcrumbs';
+<<<<<<< HEAD
 import { requireAdminAndPublicOwner } from '@/lib/auth/admin-access';
+=======
+>>>>>>> 02fe833 (All these things are supposedly going to fix the amil send!)
 
 export default async function AddUserPage() {
   await requireAdminAndPublicOwner();
+
+  const breadcrumbItems = [
+    { label: 'Administration', href: '/admin' },
+    { label: 'Add User' },
+  ];
 
   const breadcrumbItems = [
     { label: 'Administration', href: '/admin' },
