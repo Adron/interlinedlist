@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/prisma';
 import UserManagement from '@/components/admin/UserManagement';
+import ListBreadcrumbs from '@/components/lists/ListBreadcrumbs';
 
 export default async function AdminPage() {
   const user = await getCurrentUser();
@@ -54,8 +55,11 @@ export default async function AdminPage() {
   // Get total count
   const total = await prisma.user.count();
 
+  const breadcrumbItems = [{ label: 'Administration' }];
+
   return (
     <div className="container-fluid container-fluid-max py-4">
+      <ListBreadcrumbs items={breadcrumbItems} />
       <div className="row mb-4">
         <div className="col-12 d-flex justify-content-end gap-2">
           <a href="/admin/support-links" className="btn btn-outline-secondary">
