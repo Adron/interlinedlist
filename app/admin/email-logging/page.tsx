@@ -1,19 +1,10 @@
-import { redirect } from 'next/navigation';
-import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/prisma';
 import EmailLogTable from '@/components/admin/EmailLogTable';
 import ListBreadcrumbs from '@/components/lists/ListBreadcrumbs';
+import { requireAdminAndPublicOwner } from '@/lib/auth/admin-access';
 
 export default async function EmailLoggingPage() {
-  const user = await getCurrentUser();
-
-  if (!user) {
-    redirect('/login');
-  }
-
-  if (!user.isAdministrator) {
-    redirect('/dashboard');
-  }
+  await requireAdminAndPublicOwner();
 
   const initialLogs = await prisma.emailLog.findMany({
     orderBy: { createdAt: 'desc' },

@@ -1,6 +1,5 @@
-import { redirect } from 'next/navigation';
-import { getCurrentUser } from '@/lib/auth/session';
 import ListBreadcrumbs from '@/components/lists/ListBreadcrumbs';
+import { requireAdminAndPublicOwner } from '@/lib/auth/admin-access';
 
 const SUPPORT_LINKS = [
   { title: 'Vercel Project Overview', url: 'https://vercel.com/ctt-a-team/interlinedlist' },
@@ -16,15 +15,7 @@ const SUPPORT_LINKS = [
 ];
 
 export default async function SupportLinksPage() {
-  const user = await getCurrentUser();
-
-  if (!user) {
-    redirect('/login');
-  }
-
-  if (!user.isAdministrator) {
-    redirect('/dashboard');
-  }
+  await requireAdminAndPublicOwner();
 
   const breadcrumbItems = [
     { label: 'Administration', href: '/admin' },

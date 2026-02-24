@@ -1,22 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth/session';
+import { checkAdminAndPublicOwner } from '@/lib/auth/admin-access';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/admin/email-logs
- * List email logs (admin only). Supports pagination and optional filters.
+ * List email logs (admin + Public owner only). Supports pagination and optional filters.
  */
 export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
-
+    const user = await checkAdminAndPublicOwner();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!user.isAdministrator) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

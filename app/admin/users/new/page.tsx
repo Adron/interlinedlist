@@ -1,20 +1,9 @@
-import { redirect } from 'next/navigation';
-import { getCurrentUser } from '@/lib/auth/session';
 import AddUserForm from './AddUserForm';
 import ListBreadcrumbs from '@/components/lists/ListBreadcrumbs';
+import { requireAdminAndPublicOwner } from '@/lib/auth/admin-access';
 
 export default async function AddUserPage() {
-  const user = await getCurrentUser();
-
-  // Redirect if not logged in
-  if (!user) {
-    redirect('/login');
-  }
-
-  // Redirect if not administrator
-  if (!user.isAdministrator) {
-    redirect('/dashboard');
-  }
+  await requireAdminAndPublicOwner();
 
   const breadcrumbItems = [
     { label: 'Administration', href: '/admin' },

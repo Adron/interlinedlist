@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth/session';
+import { checkAdminAndPublicOwner } from '@/lib/auth/admin-access';
 import { prisma } from '@/lib/prisma';
 import { hashPassword } from '@/lib/auth/password';
 import { generateEmailVerificationToken, getEmailVerificationExpiration } from '@/lib/auth/tokens';
@@ -15,13 +15,8 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
-
+    const user = await checkAdminAndPublicOwner();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!user.isAdministrator) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -221,13 +216,8 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
-
+    const user = await checkAdminAndPublicOwner();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!user.isAdministrator) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

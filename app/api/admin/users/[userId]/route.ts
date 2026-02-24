@@ -1,25 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth/session';
+import { checkAdminAndPublicOwner } from '@/lib/auth/admin-access';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * PUT /api/admin/users/[userId]
- * Update a user (admin only)
+ * Update a user (admin + Public owner only)
  */
 export async function PUT(
   request: NextRequest,
   { params }: { params: { userId: string } }
 ) {
   try {
-    const user = await getCurrentUser();
-
+    const user = await checkAdminAndPublicOwner();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!user.isAdministrator) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -166,13 +161,8 @@ export async function DELETE(
   { params }: { params: { userId: string } }
 ) {
   try {
-    const currentUser = await getCurrentUser();
-
+    const currentUser = await checkAdminAndPublicOwner();
     if (!currentUser) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!currentUser.isAdministrator) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

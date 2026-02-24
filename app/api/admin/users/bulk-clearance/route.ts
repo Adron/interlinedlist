@@ -1,22 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth/session';
+import { checkAdminAndPublicOwner } from '@/lib/auth/admin-access';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * PATCH /api/admin/users/bulk-clearance
- * Flip cleared status for each selected user (admin only)
+ * Flip cleared status for each selected user (admin + Public owner only)
  */
 export async function PATCH(request: NextRequest) {
   try {
-    const currentUser = await getCurrentUser();
-
+    const currentUser = await checkAdminAndPublicOwner();
     if (!currentUser) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!currentUser.isAdministrator) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
