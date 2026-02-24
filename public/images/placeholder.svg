@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="200" viewBox="0 0 400 200">
+  <rect width="400" height="200" fill="#e9ecef"/>
+  <g fill="#6c757d">
+    <path d="M160 70c-22 0-40 18-40 40s18 40 40 40 40-18 40-40-18-40-40-40zm0 65c-14 0-25-11-25-25s11-25 25-25 25 11 25 25-11 25-25 25z"/>
+    <circle cx="155" cy="95" r="8"/>
+    <path d="M130 135l25-30 20 25 25-35 30 40H130z"/>
+  </g>
+  <text x="200" y="175" font-family="system-ui,sans-serif" font-size="14" fill="#6c757d" text-anchor="middle">Image unavailable</text>
+</svg>
