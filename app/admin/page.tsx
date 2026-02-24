@@ -54,7 +54,7 @@ export default async function AdminPage() {
           <a href="/admin/support-links" className="btn btn-outline-secondary">
             <i className="bx bx-link me-2"></i>Support Links
           </a>
-          <a href="/admin/email-logging" className="btn btn-outline-secondary">
+          <a href="/admin/email-logging" className="btn btn-outline-primary">
             <i className="bx bx-envelope me-2"></i>Email Logging
           </a>
           <a href="/admin/users/new" className="btn btn-primary">
