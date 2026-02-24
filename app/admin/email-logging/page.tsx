@@ -1,14 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import EmailLogTable from '@/components/admin/EmailLogTable';
 import ListBreadcrumbs from '@/components/lists/ListBreadcrumbs';
-<<<<<<< HEAD
-<<<<<<< HEAD
 import { requireAdminAndPublicOwner } from '@/lib/auth/admin-access';
-=======
->>>>>>> 02fe833 (All these things are supposedly going to fix the amil send!)
-=======
-import { requireAdminAndPublicOwner } from '@/lib/auth/admin-access';
->>>>>>> 6dad121 (admin and related changes.)
 
 export default async function EmailLoggingPage() {
   await requireAdminAndPublicOwner();
