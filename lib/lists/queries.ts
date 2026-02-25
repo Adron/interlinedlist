@@ -550,6 +550,14 @@ function convertToParsedField(property: any): ParsedField {
 }
 
 /**
+ * Converts an array of list properties to ParsedField format.
+ * Use when a list already has properties loaded (e.g. from getUserListsWithProperties).
+ */
+export function listPropertiesToParsedFields(properties: any[]): ParsedField[] {
+  return (properties || []).map(convertToParsedField);
+}
+
+/**
  * Gets list properties (schema) for a list
  */
 export async function getListProperties(

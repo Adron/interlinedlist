@@ -6,6 +6,7 @@ import DeleteListButton from '@/components/lists/DeleteListButton';
 import ListConnections from '@/components/lists/ListConnections';
 import ListsTabs from '@/components/lists/ListsTabs';
 import ListsDataGrid from '@/components/lists/ListsDataGrid';
+import ListsTreePane from '@/components/lists/ListsTreePane';
 import ListsERDDiagram from '@/components/lists/ListsERDDiagram';
 import WatchedListsDataGrid from '@/components/lists/WatchedListsDataGrid';
 import ParentLink from '@/components/lists/ParentLink';
@@ -172,6 +173,7 @@ export default async function ListsPage() {
             </ListConnections>
           }
           datagridView={<ListsDataGrid lists={result.lists} />}
+          treeView={<ListsTreePane lists={resultWithProperties.lists} />}
           erdView={<ListsERDDiagram lists={resultWithProperties.lists} />}
         />
       )}
