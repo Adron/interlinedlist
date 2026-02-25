@@ -164,6 +164,7 @@ export async function POST(request: NextRequest) {
         });
         await logEmailSend(getResendLogParams(result, {
           emailType: 'admin_user_verification',
+          fromEmail: FROM_EMAIL,
           recipient: createdUser.email,
           userId: createdUser.id,
         }));
@@ -171,6 +172,7 @@ export async function POST(request: NextRequest) {
         console.error('Failed to send verification email:', emailError);
         await logEmailSend({
           emailType: 'admin_user_verification',
+          fromEmail: FROM_EMAIL,
           recipient: createdUser.email,
           userId: createdUser.id,
           status: 'failed',

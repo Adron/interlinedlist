@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 export interface EmailLogEntry {
   id: string;
   emailType: string;
+  fromEmail: string | null;
   recipient: string;
   userId: string | null;
   status: string;
@@ -112,6 +113,7 @@ export default function EmailLogTable({ initialLogs, initialTotal }: EmailLogTab
               <tr>
                 <th>Date</th>
                 <th>Type</th>
+                <th>From</th>
                 <th>Recipient</th>
                 <th>Status</th>
                 <th>Provider ID</th>
@@ -122,13 +124,13 @@ export default function EmailLogTable({ initialLogs, initialTotal }: EmailLogTab
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="text-center text-muted py-4">
+                  <td colSpan={8} className="text-center text-muted py-4">
                     Loading...
                   </td>
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center text-muted py-4">
+                  <td colSpan={8} className="text-center text-muted py-4">
                     No email logs found.
                   </td>
                 </tr>
@@ -142,6 +144,13 @@ export default function EmailLogTable({ initialLogs, initialTotal }: EmailLogTab
                       <span className="badge bg-secondary">
                         {EMAIL_TYPE_LABELS[log.emailType] ?? log.emailType}
                       </span>
+                    </td>
+                    <td>
+                      {log.fromEmail ? (
+                        <code className="small">{log.fromEmail}</code>
+                      ) : (
+                        <span className="text-muted">-</span>
+                      )}
                     </td>
                     <td>
                       <code className="small">{log.recipient}</code>

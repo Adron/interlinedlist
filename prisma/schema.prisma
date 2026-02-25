@@ -311,6 +311,7 @@ model LinkedIdentity {
 model EmailLog {
   id           String    @id @default(uuid())
   emailType    String    // "signup_verification" | "resend_verification" | "admin_user_verification" | "email_change_verification" | "forgot_password"
+  fromEmail    String?   // Sender address (e.g. noreply@domain.com)
   recipient    String
   userId       String?
   status       String    // "sent" | "failed"

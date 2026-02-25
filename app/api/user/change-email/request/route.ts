@@ -111,6 +111,7 @@ export async function POST(request: NextRequest) {
       });
       const logParams = getResendLogParams(result, {
         emailType: 'email_change_verification',
+        fromEmail: FROM_EMAIL,
         recipient: newEmail,
         userId: user.id,
       });
@@ -133,6 +134,7 @@ export async function POST(request: NextRequest) {
       console.error('Failed to send email change verification:', emailError);
       await logEmailSend({
         emailType: 'email_change_verification',
+        fromEmail: FROM_EMAIL,
         recipient: newEmail,
         userId: user.id,
         status: 'failed',

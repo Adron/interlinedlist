@@ -15,6 +15,7 @@ export type EmailLogType =
 
 export interface LogEmailParams {
   emailType: EmailLogType;
+  fromEmail?: string | null;
   recipient: string;
   userId?: string | null;
   status: 'sent' | 'failed';
@@ -41,6 +42,7 @@ export async function logEmailSend(params: LogEmailParams): Promise<void> {
     await prisma.emailLog.create({
       data: {
         emailType: params.emailType,
+        fromEmail: params.fromEmail ?? undefined,
         recipient: params.recipient,
         userId: params.userId ?? undefined,
         status: params.status,

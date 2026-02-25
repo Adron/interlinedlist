@@ -64,6 +64,7 @@ export async function POST(request: NextRequest) {
       });
       await logEmailSend(getResendLogParams(result, {
         emailType: 'forgot_password',
+        fromEmail: FROM_EMAIL,
         recipient: user.email,
         userId: user.id,
       }));
@@ -71,6 +72,7 @@ export async function POST(request: NextRequest) {
       console.error('Failed to send password reset email:', emailError);
       await logEmailSend({
         emailType: 'forgot_password',
+        fromEmail: FROM_EMAIL,
         recipient: user.email,
         userId: user.id,
         status: 'failed',
