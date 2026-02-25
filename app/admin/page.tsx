@@ -51,10 +51,10 @@ export default async function AdminPage() {
       <ListBreadcrumbs items={breadcrumbItems} />
       <div className="row mb-4">
         <div className="col-12 d-flex justify-content-end gap-2">
-          <a href="/admin/support-links" className="btn btn-outline-primary">
+          <a href="/admin/support-links" className="btn btn-outline-secondary">
             <i className="bx bx-link me-2"></i>Support Links
           </a>
-          <a href="/admin/email-logging" className="btn btn-outline-primary">
+          <a href="/admin/email-logging" className="btn btn-outline-secondary">
             <i className="bx bx-envelope me-2"></i>Email Logging
           </a>
           <a href="/admin/users/new" className="btn btn-primary">
