@@ -1,7 +1,7 @@
-import { APP_URL } from '@/lib/config/app';
+import { buildAppUrl } from '@/lib/email/build-url';
 
 export function getPasswordResetEmailHtml(token: string, username: string): string {
-  const resetUrl = `${APP_URL}/reset-password?token=${token}`;
+  const resetUrl = buildAppUrl(`/reset-password?token=${token}`);
 
   return `
 <!DOCTYPE html>
@@ -67,7 +67,7 @@ export function getPasswordResetEmailHtml(token: string, username: string): stri
 }
 
 export function getPasswordResetEmailText(token: string, username: string): string {
-  const resetUrl = `${APP_URL}/reset-password?token=${token}`;
+  const resetUrl = buildAppUrl(`/reset-password?token=${token}`);
 
   return `
 Reset Your Password

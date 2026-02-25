@@ -4,8 +4,10 @@
 export const APP_CONFIG = {
   // App metadata
   name: process.env.APP_NAME || 'InterlinedList',
-  url: process.env.NEXT_PUBLIC_APP_URL || 
-       (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'),
+  // Normalize: strip trailing slash to prevent double slashes in concatenated paths
+  url: (process.env.NEXT_PUBLIC_APP_URL ||
+        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+      ).replace(/\/+$/, ''),
   contactEmail: process.env.APP_CONTACT_EMAIL || 'contact@interlinedlist.com',
   
   // User-Agent for external API calls

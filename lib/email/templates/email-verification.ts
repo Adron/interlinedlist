@@ -1,7 +1,7 @@
-import { APP_URL } from '@/lib/config/app';
+import { buildAppUrl } from '@/lib/email/build-url';
 
 export function getEmailVerificationEmailHtml(token: string, username: string): string {
-  const verifyUrl = `${APP_URL}/verify-email?token=${token}`;
+  const verifyUrl = buildAppUrl(`/verify-email?token=${token}`);
 
   return `
 <!DOCTYPE html>
@@ -67,7 +67,7 @@ export function getEmailVerificationEmailHtml(token: string, username: string): 
 }
 
 export function getEmailVerificationEmailText(token: string, username: string): string {
-  const verifyUrl = `${APP_URL}/verify-email?token=${token}`;
+  const verifyUrl = buildAppUrl(`/verify-email?token=${token}`);
 
   return `
 Verify Your Email

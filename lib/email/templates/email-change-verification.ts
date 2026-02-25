@@ -1,7 +1,7 @@
-import { APP_URL } from '@/lib/config/app';
+import { buildAppUrl } from '@/lib/email/build-url';
 
 export function getEmailChangeVerificationHtml(token: string, username: string): string {
-  const verifyUrl = `${APP_URL}/verify-email-change?token=${token}`;
+  const verifyUrl = buildAppUrl(`/verify-email-change?token=${token}`);
 
   return `
 <!DOCTYPE html>
@@ -67,7 +67,7 @@ export function getEmailChangeVerificationHtml(token: string, username: string):
 }
 
 export function getEmailChangeVerificationText(token: string, username: string): string {
-  const verifyUrl = `${APP_URL}/verify-email-change?token=${token}`;
+  const verifyUrl = buildAppUrl(`/verify-email-change?token=${token}`);
 
   return `
 Confirm Your New Email
