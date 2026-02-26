@@ -53,6 +53,7 @@ export async function getCurrentUser() {
           longitude: true,
           isPrivateAccount: true,
           cleared: true,
+          githubDefaultRepo: true,
           createdAt: true,
         },
       });
@@ -134,6 +135,7 @@ export async function getCurrentUser() {
           ...user,
           isPrivateAccount: false,
           cleared: (user as { cleared?: boolean }).cleared ?? true,
+          githubDefaultRepo: (user as { githubDefaultRepo?: string | null }).githubDefaultRepo ?? null,
           isAdministrator,
         };
       }
@@ -187,6 +189,7 @@ export async function getCurrentUser() {
           longitude: null,
           isPrivateAccount: false,
           cleared: (user as { cleared?: boolean }).cleared ?? true,
+          githubDefaultRepo: null,
           isAdministrator,
         };
       }

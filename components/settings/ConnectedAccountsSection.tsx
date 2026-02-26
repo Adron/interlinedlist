@@ -11,10 +11,15 @@ export interface LinkedIdentity {
   avatarUrl: string | null;
   connectedAt: string;
   lastVerifiedAt: string | null;
+  hasIssuesScope?: boolean;
 }
 
 interface ConnectedAccountsSectionProps {
   initialIdentities: LinkedIdentity[];
+  githubDefaultRepo?: string;
+  onGithubDefaultRepoChange?: (repo: string) => void;
+  onGithubDefaultRepoSave?: () => Promise<void>;
+  githubRepoSaving?: boolean;
 }
 
 function getProviderLabel(provider: string): string {
@@ -46,6 +51,10 @@ function getProviderConnectUrl(provider: string, instance?: string, handle?: str
 
 export default function ConnectedAccountsSection({
   initialIdentities,
+  githubDefaultRepo = '',
+  onGithubDefaultRepoChange,
+  onGithubDefaultRepoSave,
+  githubRepoSaving = false,
 }: ConnectedAccountsSectionProps) {
   const router = useRouter();
   const [identities, setIdentities] = useState<LinkedIdentity[]>(initialIdentities);
@@ -164,9 +173,17 @@ export default function ConnectedAccountsSection({
                 <span className="text-muted">Not connected</span>
               )}
             </div>
-            <div className="d-flex gap-1">
+            <div className="d-flex gap-1 flex-wrap">
               {githubIdentity ? (
                 <>
+                  {!githubIdentity.hasIssuesScope && (
+                    <a
+                      href={getProviderConnectUrl('github')}
+                      className="btn btn-sm btn-outline-primary"
+                    >
+                      Reconnect for GitHub Issues
+                    </a>
+                  )}
                   <button
                     type="button"
                     className="btn btn-sm btn-outline-secondary"
@@ -194,6 +211,31 @@ export default function ConnectedAccountsSection({
               )}
             </div>
           </div>
+          {githubIdentity?.hasIssuesScope && (onGithubDefaultRepoChange != null || onGithubDefaultRepoSave != null) && (
+            <div className="mt-3 pt-3 border-top">
+              <label className="form-label small mb-1">Default GitHub repo (owner/repo)</label>
+              <div className="d-flex gap-2 align-items-center flex-wrap">
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  style={{ maxWidth: 220 }}
+                  placeholder="owner/repo"
+                  value={githubDefaultRepo}
+                  onChange={(e) => onGithubDefaultRepoChange?.(e.target.value)}
+                />
+                {onGithubDefaultRepoSave && (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-primary"
+                    onClick={onGithubDefaultRepoSave}
+                    disabled={githubRepoSaving}
+                  >
+                    {githubRepoSaving ? 'Saving...' : 'Save'}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

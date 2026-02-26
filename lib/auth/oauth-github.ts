@@ -34,16 +34,20 @@ export function generateState(): string {
   return randomBytes(32).toString('base64url');
 }
 
+const GITHUB_SCOPE_MINIMAL = 'user:email read:user';
+const GITHUB_SCOPE_WITH_REPO = 'user:email read:user repo';
+
 export function buildGitHubAuthUrl(
   state: string,
   codeChallenge: string,
   link: boolean
 ): string {
   const { clientId } = getGitHubConfig();
+  const scope = link ? GITHUB_SCOPE_WITH_REPO : GITHUB_SCOPE_MINIMAL;
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: `${APP_URL}/api/auth/github/callback`,
-    scope: 'user:email read:user',
+    scope,
     state,
     response_type: 'code',
     code_challenge: codeChallenge,
@@ -55,10 +59,16 @@ export function buildGitHubAuthUrl(
   return `${GITHUB_AUTH_URL}?${params.toString()}`;
 }
 
+export interface GitHubTokenResponse {
+  access_token: string;
+  scope?: string;
+  token_type?: string;
+}
+
 export async function exchangeGitHubCode(
   code: string,
   codeVerifier: string
-): Promise<{ access_token: string }> {
+): Promise<GitHubTokenResponse> {
   const { clientId, clientSecret } = getGitHubConfig();
   const response = await fetch(GITHUB_TOKEN_URL, {
     method: 'POST',
@@ -79,6 +89,12 @@ export async function exchangeGitHubCode(
     throw new Error(data.error_description || data.error);
   }
   return data;
+}
+
+export function hasIssuesScope(scopes: string | undefined): boolean {
+  if (!scopes) return false;
+  const list = scopes.split(',').map((s) => s.trim());
+  return list.includes('repo');
 }
 
 export interface GitHubUser {

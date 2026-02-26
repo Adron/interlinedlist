@@ -36,6 +36,7 @@ model User {
   longitude                 Float?
   isPrivateAccount          Boolean   @default(false)
   cleared                  Boolean   @default(false)
+  githubDefaultRepo        String?
   messages             Message[]
   lists                List[]
   organizations        UserOrganization[]

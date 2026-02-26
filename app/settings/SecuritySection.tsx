@@ -17,12 +17,14 @@ interface SecuritySectionProps {
     avatarUrl: string | null;
     connectedAt: string;
     lastVerifiedAt: string | null;
+    hasIssuesScope?: boolean;
   }>;
+  githubDefaultRepo?: string;
   initialError?: string;
   initialSuccess?: string;
 }
 
-export default function SecuritySection({ isPrivateAccount: initialIsPrivateAccount, linkedIdentities, initialError, initialSuccess }: SecuritySectionProps) {
+export default function SecuritySection({ isPrivateAccount: initialIsPrivateAccount, linkedIdentities, githubDefaultRepo: initialGithubDefaultRepo = '', initialError, initialSuccess }: SecuritySectionProps) {
   const router = useRouter();
   const [isPrivateAccount, setIsPrivateAccount] = useState(initialIsPrivateAccount ?? false);
   const [loading, setLoading] = useState(false);
@@ -33,6 +35,8 @@ export default function SecuritySection({ isPrivateAccount: initialIsPrivateAcco
   const [deleteEmail, setDeleteEmail] = useState('');
   const [deleteError, setDeleteError] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [githubDefaultRepo, setGithubDefaultRepo] = useState(initialGithubDefaultRepo);
+  const [githubRepoSaving, setGithubRepoSaving] = useState(false);
 
   const handlePrivacyToggle = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -172,7 +176,35 @@ export default function SecuritySection({ isPrivateAccount: initialIsPrivateAcco
 
         <hr className="my-4" />
 
-        <ConnectedAccountsSection initialIdentities={linkedIdentities} />
+        <ConnectedAccountsSection
+          initialIdentities={linkedIdentities}
+          githubDefaultRepo={githubDefaultRepo}
+          onGithubDefaultRepoChange={setGithubDefaultRepo}
+          onGithubDefaultRepoSave={async () => {
+            setGithubRepoSaving(true);
+            setError('');
+            setSuccess('');
+            try {
+              const res = await fetch('/api/user/update', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ githubDefaultRepo: githubDefaultRepo || null }),
+              });
+              const data = await res.json();
+              if (!res.ok) {
+                setError(data.error || 'Failed to save default repo');
+                return;
+              }
+              setSuccess('Default GitHub repo saved');
+              router.refresh();
+            } catch {
+              setError('Failed to save default repo');
+            } finally {
+              setGithubRepoSaving(false);
+            }
+          }}
+          githubRepoSaving={githubRepoSaving}
+        />
 
         <hr className="my-4" />
         
