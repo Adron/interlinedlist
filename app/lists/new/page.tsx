@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
 import ListBreadcrumbs from '@/components/lists/ListBreadcrumbs';
 import CreateListForm from './CreateListForm';
+import CreateListTabs from './CreateListTabs';
 
 export default async function NewListPage() {
   const user = await getCurrentUser();
@@ -26,7 +27,7 @@ export default async function NewListPage() {
         <div className="col-12">
           <div className="card">
             <div className="card-body">
-              <CreateListForm />
+              <CreateListTabs />
             </div>
           </div>
         </div>

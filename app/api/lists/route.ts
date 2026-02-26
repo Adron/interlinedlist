@@ -56,11 +56,29 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, messageId, metadata, schema, parentId, isPublic } = body;
+    const { title, description, messageId, metadata, schema, parentId, isPublic, source, githubRepo } = body;
 
     // Validate required fields
     if (!title || typeof title !== "string" || title.trim().length === 0) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
+    }
+
+    const isGitHubList = source === "github";
+    if (isGitHubList) {
+      if (!githubRepo || typeof githubRepo !== "string" || !/^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/.test(githubRepo.trim())) {
+        return NextResponse.json(
+          { error: "githubRepo is required for GitHub-backed lists (format: owner/repo)" },
+          { status: 400 }
+        );
+      }
+      const { getGitHubIssuesContext } = await import("@/lib/github/issues");
+      const ctx = await getGitHubIssuesContext(githubRepo.trim());
+      if ("error" in ctx) {
+        return NextResponse.json(
+          { error: ctx.error === "GitHub account not linked" ? "Connect GitHub with Issues scope in Settings first." : ctx.error },
+          { status: ctx.status }
+        );
+      }
     }
 
     // Validate parentId if provided
@@ -89,9 +107,9 @@ export async function POST(request: NextRequest) {
       // We'll validate after creation if parentId is set
     }
 
-    // Validate and parse DSL schema if provided
+    // Validate and parse DSL schema if provided (skip for GitHub lists)
     let parsedSchema = null;
-    if (schema) {
+    if (schema && !isGitHubList) {
       try {
         const validated = validateDSLSchema(schema);
         parsedSchema = parseDSLSchema(validated);
@@ -113,6 +131,8 @@ export async function POST(request: NextRequest) {
         metadata: metadata || null,
         parentId: parentId || null,
         isPublic: isPublic === true,
+        source: isGitHubList ? "github" : "local",
+        githubRepo: isGitHubList ? githubRepo.trim() : null,
       },
     });
 
@@ -129,8 +149,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create properties if schema provided
-    if (parsedSchema && parsedSchema.fields.length > 0) {
+    // Create properties if schema provided (not for GitHub lists)
+    if (parsedSchema && parsedSchema.fields.length > 0 && !isGitHubList) {
       await prisma.listProperty.createMany({
         data: parsedSchema.fields.map((field) => ({
           listId: list.id,
@@ -151,6 +171,20 @@ export async function POST(request: NextRequest) {
             : Prisma.JsonNull,
         })),
       });
+    }
+
+    // Optionally trigger initial cache fetch for GitHub lists
+    if (isGitHubList) {
+      try {
+        const { getGitHubIssuesContext } = await import("@/lib/github/issues");
+        const { syncListCacheFromGitHub } = await import("@/lib/lists/github-list-adapter");
+        const ctx = await getGitHubIssuesContext(githubRepo.trim());
+        if (!("error" in ctx)) {
+          await syncListCacheFromGitHub(list.id, ctx.context);
+        }
+      } catch {
+        // Non-fatal; user can refresh manually
+      }
     }
 
     // Fetch created list with properties

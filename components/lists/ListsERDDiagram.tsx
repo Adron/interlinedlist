@@ -31,6 +31,7 @@ interface ListForERD {
   title: string;
   parentId: string | null;
   properties: ListProperty[];
+  source?: string;
 }
 
 interface ListERDNodeData {
@@ -39,6 +40,7 @@ interface ListERDNodeData {
   listId: string;
   hasParentId?: boolean;
   hasChildren?: boolean;
+  isGitHubList?: boolean;
 }
 
 interface ListsERDDiagramProps {
@@ -47,18 +49,23 @@ interface ListsERDDiagramProps {
 
 function ListTableNode({ data }: { data: ListERDNodeData }) {
   const router = useRouter();
+  const isGitHub = data.isGitHubList ?? false;
 
   const handleClick = useCallback(() => {
     router.push(`/lists/${data.listId}`);
   }, [data.listId, router]);
+
+  const headerBg = isGitHub ? '#24292f' : '#3b82f6';
+  const borderColor = isGitHub ? '#57606a' : '#3b82f6';
+  const bodyBg = isGitHub ? '#f6f8fa' : 'white';
 
   return (
     <div
       className="erd-table-node"
       onClick={handleClick}
       style={{
-        background: 'white',
-        border: '2px solid #3b82f6',
+        background: bodyBg,
+        border: `2px solid ${borderColor}`,
         borderRadius: '8px',
         minWidth: '200px',
         cursor: 'pointer',
@@ -73,15 +80,19 @@ function ListTableNode({ data }: { data: ListERDNodeData }) {
       )}
       <div
         style={{
-          background: '#3b82f6',
+          background: headerBg,
           color: 'white',
           padding: '8px 12px',
           fontWeight: 'bold',
           borderTopLeftRadius: '6px',
           borderTopRightRadius: '6px',
           fontSize: '14px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
         }}
       >
+        {isGitHub && <i className="bx bxl-github" style={{ fontSize: '16px' }} />}
         {data.label}
       </div>
       <div style={{ padding: '8px' }}>
@@ -149,6 +160,7 @@ function buildNodesAndEdges(lists: ListForERD[]): { nodes: Node<ListERDNodeData>
         listId: list.id,
         hasParentId: !!list.parentId,
         hasChildren: parentIds.has(list.id),
+        isGitHubList: (list as { source?: string }).source === 'github',
       },
       width: 220,
       height: 150,
@@ -301,7 +313,12 @@ export default function ListsERDDiagram({ lists }: ListsERDDiagramProps) {
       >
         <Background color="#f3f4f6" gap={16} />
         <Controls />
-        <MiniMap nodeColor={() => '#3b82f6'} maskColor="rgba(0, 0, 0, 0.1)" />
+        <MiniMap
+          nodeColor={(node) =>
+            (node.data as ListERDNodeData).isGitHubList ? '#24292f' : '#3b82f6'
+          }
+          maskColor="rgba(0, 0, 0, 0.1)"
+        />
       </ReactFlow>
     </div>
   );

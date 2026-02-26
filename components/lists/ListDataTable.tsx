@@ -23,6 +23,11 @@ interface ListDataTableProps {
   dataApiUrl?: string;
   /** When true, hide inline edit, add row, delete - show read-only table */
   readOnly?: boolean;
+  /** Increment to trigger a refetch (e.g. after manual refresh from GitHub) */
+  refreshTrigger?: number;
+  /** For GitHub lists: fetch labels/assignees options from repo */
+  listSource?: 'local' | 'github';
+  githubRepo?: string;
 }
 
 export default function ListDataTable({
@@ -32,6 +37,9 @@ export default function ListDataTable({
   onAdd,
   dataApiUrl,
   readOnly = false,
+  refreshTrigger = 0,
+  listSource,
+  githubRepo,
 }: ListDataTableProps) {
   const [rows, setRows] = useState<ListDataRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,7 +66,41 @@ export default function ListDataTable({
   // Refs for focus management
   const newRowInputRefs = useRef<Record<string, HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>>({});
 
-  const sortedFields = [...fields].sort((a, b) => a.displayOrder - b.displayOrder);
+  // For GitHub lists: fetch labels/assignees options
+  const [fieldsWithOptions, setFieldsWithOptions] = useState(fields);
+  useEffect(() => {
+    if (listSource !== 'github' || !githubRepo) {
+      setFieldsWithOptions(fields);
+      return;
+    }
+    const [owner, repo] = githubRepo.split('/');
+    if (!owner || !repo) {
+      setFieldsWithOptions(fields);
+      return;
+    }
+    Promise.all([
+      fetch(`/api/github/repos/${owner}/${repo}/labels`).then((r) => r.json()),
+      fetch(`/api/github/repos/${owner}/${repo}/assignees`).then((r) => r.json()),
+    ])
+      .then(([labelsData, assigneesData]) => {
+        const labels = Array.isArray(labelsData) ? labelsData.map((l: { name?: string }) => l.name).filter(Boolean) : [];
+        const assignees = Array.isArray(assigneesData) ? assigneesData.map((a: { login?: string }) => a.login).filter(Boolean) : [];
+        setFieldsWithOptions(
+          fields.map((f) => {
+            if (f.propertyKey === 'labels' && labels.length > 0) {
+              return { ...f, validationRules: { ...f.validationRules, options: labels } };
+            }
+            if (f.propertyKey === 'assignees' && assignees.length > 0) {
+              return { ...f, validationRules: { ...f.validationRules, options: assignees } };
+            }
+            return f;
+          })
+        );
+      })
+      .catch(() => setFieldsWithOptions(fields));
+  }, [listSource, githubRepo, fields]);
+
+  const sortedFields = [...fieldsWithOptions].sort((a, b) => a.displayOrder - b.displayOrder);
 
   const fetchData = async () => {
     setLoading(true);
@@ -102,7 +144,7 @@ export default function ListDataTable({
 
   useEffect(() => {
     fetchData();
-  }, [listId, pagination.offset, filters, sortField, sortOrder]);
+  }, [listId, pagination.offset, filters, sortField, sortOrder, refreshTrigger]);
 
   const handleFilterChange = (fieldKey: string, value: string) => {
     setFilters((prev) => ({

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { List } from '@/lib/types';
-import { buildListTree, TreeNode } from '@/lib/lists/queries';
+import { buildListTree, TreeNode } from '@/lib/lists/tree-utils';
 import DeleteListButton from '@/components/lists/DeleteListButton';
 
 interface TreeNodeComponentProps {
@@ -65,15 +65,17 @@ function TreeNodeComponent({ node, level, expandedNodes, onToggle, onDelete }: T
           )}
         </div>
         <div className="d-flex align-items-center gap-1 ms-2" style={{ flexShrink: 0 }} onClick={handleActionClick}>
-          <Link
-            href={`/lists/${node.list.id}?edit=true`}
-            className="btn btn-sm btn-link text-primary p-0"
-            title="Edit list"
-            onClick={handleActionClick}
-            style={{ lineHeight: '1', flexShrink: 0 }}
-          >
-            <i className="bx bx-edit"></i>
-          </Link>
+          {(node.list as { source?: string }).source !== 'github' && (
+            <Link
+              href={`/lists/${node.list.id}?edit=true`}
+              className="btn btn-sm btn-link text-primary p-0"
+              title="Edit Schema"
+              onClick={handleActionClick}
+              style={{ lineHeight: '1', flexShrink: 0 }}
+            >
+              <i className="bx bx-edit"></i>
+            </Link>
+          )}
           <span onClick={handleActionClick} style={{ flexShrink: 0 }}>
             <DeleteListButton
               listId={node.list.id}

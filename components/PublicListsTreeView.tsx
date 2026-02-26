@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { List } from '@/lib/types';
-import { buildListTree, TreeNode } from '@/lib/lists/queries';
+import { buildListTree, TreeNode } from '@/lib/lists/tree-utils';
 
 interface PublicListsTreeViewProps {
   username: string;

@@ -6,6 +6,7 @@ import {
   GITHUB_PROVIDER,
 } from '@/lib/auth/oauth-github';
 import { setOAuthStateCookie } from '@/lib/auth/oauth-state';
+import { APP_URL } from '@/lib/config/app';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,6 +30,7 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     console.error('GitHub authorize error:', error);
     const message = error instanceof Error ? error.message : 'OAuth configuration error';
-    return NextResponse.redirect(`/login?error=${encodeURIComponent(message)}`);
+    const redirectUrl = `${APP_URL}/login?error=${encodeURIComponent(message)}`;
+    return NextResponse.redirect(redirectUrl);
   }
 }

@@ -558,39 +558,42 @@ export function listPropertiesToParsedFields(properties: any[]): ParsedField[] {
 }
 
 /**
- * Gets list properties (schema) for a list
+ * Gets list properties (schema) for a list.
+ * For GitHub-backed lists, returns fixed issue schema instead of ListProperty.
  */
 export async function getListProperties(
   listId: string,
   userId: string
 ): Promise<ParsedField[] | null> {
-  // Verify list ownership
   const list = await prisma.list.findFirst({
     where: {
       id: listId,
       userId,
       deletedAt: null,
     },
+    select: { source: true },
   });
 
   if (!list) {
     return null;
   }
 
+  if ((list as { source?: string }).source === "github") {
+    const { getGitHubListSchema } = await import("./github-list-schema");
+    return getGitHubListSchema();
+  }
+
   const properties = await prisma.listProperty.findMany({
-    where: {
-      listId,
-    },
-    orderBy: {
-      displayOrder: "asc",
-    },
+    where: { listId },
+    orderBy: { displayOrder: "asc" },
   });
 
   return properties.map(convertToParsedField);
 }
 
 /**
- * Gets list data rows with pagination, filtering, and sorting
+ * Gets list data rows with pagination, filtering, and sorting.
+ * For GitHub-backed lists, reads from ListGitHubIssueCache.
  */
 export async function getListDataRows(
   listId: string,
@@ -601,17 +604,21 @@ export async function getListDataRows(
     sort?: ListDataSort;
   } = {}
 ) {
-  // Verify list ownership
   const list = await prisma.list.findFirst({
     where: {
       id: listId,
       userId,
       deletedAt: null,
     },
+    select: { source: true, githubRepo: true },
   });
 
   if (!list) {
     throw new Error("List not found or access denied");
+  }
+
+  if ((list as { source?: string }).source === "github") {
+    return getGitHubListCacheRows(listId, options);
   }
 
   const { take, skip } = buildPagination(options.pagination ?? {});
@@ -638,6 +645,72 @@ export async function getListDataRows(
 
   return {
     rows,
+    pagination: {
+      total,
+      limit: take,
+      offset: skip,
+      hasMore: skip + take < total,
+    },
+  };
+}
+
+/**
+ * Gets cached GitHub issues for a GitHub-backed list.
+ */
+async function getGitHubListCacheRows(
+  listId: string,
+  options: {
+    pagination?: PaginationParams;
+    filter?: ListDataFilter;
+    sort?: ListDataSort;
+  }
+) {
+  const { take, skip } = buildPagination(options.pagination ?? {});
+  const stateFilter = options.filter?.state as string | undefined;
+
+  const cacheRows = await prisma.listGitHubIssueCache.findMany({
+    where: { listId },
+    orderBy: { issueNumber: "desc" },
+  });
+
+  const { issueToRow } = await import("./github-list-adapter");
+
+  let rows = cacheRows.map((c) => {
+    const issue = c.issueData as {
+      number: number;
+      title: string;
+      body: string | null;
+      state: string;
+      labels: Array<{ name: string }>;
+      assignees: Array<{ login: string }>;
+      html_url: string;
+      created_at: string;
+      updated_at: string;
+    };
+    return issueToRow(issue);
+  });
+
+  if (stateFilter && ["open", "closed"].includes(stateFilter)) {
+    rows = rows.filter((r) => (r.rowData as Record<string, unknown>).state === stateFilter);
+  }
+
+  const sortField = options.sort?.field || "updated_at";
+  const sortOrder = options.sort?.order || "desc";
+  rows.sort((a, b) => {
+    const aVal = (a.rowData as Record<string, unknown>)[sortField];
+    const bVal = (b.rowData as Record<string, unknown>)[sortField];
+    if (aVal == null && bVal == null) return 0;
+    if (aVal == null) return sortOrder === "asc" ? 1 : -1;
+    if (bVal == null) return sortOrder === "asc" ? -1 : 1;
+    const cmp = String(aVal).localeCompare(String(bVal), undefined, { numeric: true });
+    return sortOrder === "asc" ? cmp : -cmp;
+  });
+
+  const total = rows.length;
+  const paginated = rows.slice(skip, skip + take);
+
+  return {
+    rows: paginated,
     pagination: {
       total,
       limit: take,
@@ -843,32 +916,37 @@ export async function getPublicListDataRows(
 }
 
 /**
- * Gets a single list data row by ID
+ * Gets a single list data row by ID.
+ * For GitHub lists, rowId is the issue number; reads from cache.
  */
 export async function getListDataRowById(
   rowId: string,
   listId: string,
   userId: string
 ) {
-  // Verify list ownership
   const list = await prisma.list.findFirst({
-    where: {
-      id: listId,
-      userId,
-      deletedAt: null,
-    },
+    where: { id: listId, userId, deletedAt: null },
+    select: { source: true },
   });
 
   if (!list) {
     return null;
   }
 
+  if ((list as { source?: string }).source === "github") {
+    const issueNum = parseInt(rowId, 10);
+    if (isNaN(issueNum)) return null;
+    const cached = await prisma.listGitHubIssueCache.findUnique({
+      where: { listId_issueNumber: { listId, issueNumber: issueNum } },
+    });
+    if (!cached) return null;
+    const { issueToRow } = await import("./github-list-adapter");
+    const issue = cached.issueData as unknown as Parameters<typeof issueToRow>[0];
+    return issueToRow(issue);
+  }
+
   return await prisma.listDataRow.findFirst({
-    where: {
-      id: rowId,
-      listId,
-      deletedAt: null,
-    },
+    where: { id: rowId, listId, deletedAt: null },
   });
 }
 

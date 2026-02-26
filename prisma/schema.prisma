@@ -98,6 +98,8 @@ model List {
   description String?
   isPublic    Boolean  @default(false)
   metadata    Json?
+  source      String   @default("local")
+  githubRepo  String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   deletedAt   DateTime?
@@ -109,13 +111,29 @@ model List {
   properties  ListProperty[]
   dataRows    ListDataRow[]
   watchers    ListWatcher[]
+  githubIssueCache ListGitHubIssueCache[]
 
   @@index([userId, deletedAt])
   @@index([messageId])
   @@index([createdAt])
   @@index([parentId])
   @@index([isPublic])
+  @@index([source])
   @@map("lists")
+}
+
+model ListGitHubIssueCache {
+  id          String   @id @default(uuid())
+  listId      String
+  issueNumber Int
+  issueData   Json
+  fetchedAt   DateTime @default(now())
+
+  list        List     @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@unique([listId, issueNumber])
+  @@index([listId])
+  @@map("list_github_issue_cache")
 }
 
 model ListProperty {

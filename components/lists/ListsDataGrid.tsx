@@ -12,6 +12,7 @@ interface ListForGrid {
   parentId: string | null;
   parent?: { id: string; title: string } | null;
   children?: { id: string; title: string }[];
+  source?: string;
 }
 
 interface ListsDataGridProps {
@@ -166,6 +167,9 @@ export default function ListsDataGrid({ lists }: ListsDataGridProps) {
                   <td className="align-middle">
                     <Link href={`/lists/${list.id}`} className="fw-medium text-decoration-none">
                       {list.title}
+                      {list.source === 'github' && (
+                        <i className="bx bxl-github ms-1 text-muted" style={{ fontSize: '0.85rem' }} title="GitHub-backed" />
+                      )}
                     </Link>
                   </td>
                   <td className="align-middle text-break" style={{ maxWidth: '300px' }}>
@@ -194,13 +198,15 @@ export default function ListsDataGrid({ lists }: ListsDataGridProps) {
                       >
                         <i className="bx bx-show"></i>
                       </Link>
-                      <Link
-                        href={`/lists/${list.id}?edit=true`}
-                        className="btn btn-outline-secondary"
-                        title="Edit"
-                      >
-                        <i className="bx bx-edit"></i>
-                      </Link>
+                      {list.source !== 'github' && (
+                        <Link
+                          href={`/lists/${list.id}?edit=true`}
+                          className="btn btn-outline-secondary"
+                          title="Edit Schema"
+                        >
+                          <i className="bx bx-edit"></i>
+                        </Link>
+                      )}
                       <DeleteListButton listId={list.id} listTitle={list.title} />
                     </div>
                   </td>

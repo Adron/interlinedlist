@@ -99,7 +99,12 @@ export default async function ListsPage() {
                       )}
                       <div className="card-body d-flex flex-column">
                         <div className="d-flex align-items-start justify-content-between mb-2">
-                          <h5 className="card-title mb-0 flex-grow-1">{list.title}</h5>
+                          <h5 className="card-title mb-0 flex-grow-1">
+                            {list.title}
+                            {(list as { source?: string }).source === 'github' && (
+                              <i className="bx bxl-github ms-1 text-muted" style={{ fontSize: '0.9rem' }} title="GitHub-backed" />
+                            )}
+                          </h5>
                           {list.parentId && (
                             <span
                               className="badge bg-primary ms-2"
@@ -155,13 +160,15 @@ export default async function ListsPage() {
                               <i className="bx bx-show me-1"></i>
                               View
                             </Link>
-                            <Link
-                              href={`/lists/${list.id}?edit=true`}
-                              className="btn btn-sm btn-outline-secondary"
-                              title="Edit"
-                            >
-                              <i className="bx bx-edit"></i>
-                            </Link>
+                            {(list as { source?: string }).source !== 'github' && (
+                              <Link
+                                href={`/lists/${list.id}?edit=true`}
+                                className="btn btn-sm btn-outline-secondary"
+                                title="Edit Schema"
+                              >
+                                <i className="bx bx-edit"></i>
+                              </Link>
+                            )}
                             <DeleteListButton listId={list.id} listTitle={list.title} />
                           </div>
                         </div>

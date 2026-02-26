@@ -64,6 +64,9 @@ function TreeNodeItem({
           onClick={() => onSelect(node.list.id)}
         >
           <span className={isSelected ? 'text-white' : ''}>{node.list.title}</span>
+          {(node.list as { source?: string }).source === 'github' && (
+            <i className="bx bxl-github ms-1 text-muted" style={{ fontSize: '0.8rem' }} title="GitHub-backed" />
+          )}
         </button>
       </div>
       {hasChildren && isExpanded && (

@@ -20,6 +20,44 @@ export interface GitHubIssuesContext {
   repoName: string;
 }
 
+export async function getGitHubIssuesContextForUserId(
+  userId: string,
+  repo: string
+): Promise<{ context: GitHubIssuesContext } | { error: string; status: number }> {
+  if (!repo || !/^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/.test(repo)) {
+    return { error: 'Invalid repository format', status: 400 };
+  }
+
+  const identity = await prisma.linkedIdentity.findFirst({
+    where: { userId, provider: GITHUB_PROVIDER },
+    select: { providerData: true },
+  });
+
+  if (!identity?.providerData || typeof identity.providerData !== 'object') {
+    return { error: 'GitHub account not linked', status: 400 };
+  }
+
+  const data = identity.providerData as { access_token?: string; scopes?: string };
+  const token = data.access_token;
+  if (!token) {
+    return { error: 'GitHub token not found', status: 400 };
+  }
+
+  if (!hasIssuesScope(data.scopes)) {
+    return { error: 'GitHub connection does not have Issues scope', status: 403 };
+  }
+
+  const [owner, repoName] = repo.split('/');
+  return {
+    context: {
+      accessToken: token,
+      repo,
+      owner,
+      repoName,
+    },
+  };
+}
+
 export async function getGitHubIssuesContext(
   repoParam?: string | null,
   options?: { requireRepo?: boolean }
