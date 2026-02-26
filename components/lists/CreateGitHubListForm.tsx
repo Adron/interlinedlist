@@ -9,6 +9,11 @@ interface Repo {
   private: boolean;
 }
 
+interface ListOption {
+  id: string;
+  title: string;
+}
+
 export default function CreateGitHubListForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -17,6 +22,9 @@ export default function CreateGitHubListForm() {
   const [reposLoading, setReposLoading] = useState(true);
   const [selectedRepo, setSelectedRepo] = useState('');
   const [title, setTitle] = useState('');
+  const [parentId, setParentId] = useState<string | null>(null);
+  const [availableParents, setAvailableParents] = useState<ListOption[]>([]);
+  const [loadingParents, setLoadingParents] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
 
   useEffect(() => {
@@ -42,6 +50,24 @@ export default function CreateGitHubListForm() {
     }
   }, [selectedRepo, repos, title]);
 
+  useEffect(() => {
+    const fetchParents = async () => {
+      setLoadingParents(true);
+      try {
+        const res = await fetch('/api/lists?limit=100');
+        if (res.ok) {
+          const data = await res.json();
+          setAvailableParents(data.lists || []);
+        }
+      } catch {
+        setAvailableParents([]);
+      } finally {
+        setLoadingParents(false);
+      }
+    };
+    fetchParents();
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -62,6 +88,7 @@ export default function CreateGitHubListForm() {
           source: 'github',
           githubRepo: selectedRepo,
           title: title.trim(),
+          parentId: parentId || null,
           isPublic,
         }),
       });
@@ -119,6 +146,25 @@ export default function CreateGitHubListForm() {
           placeholder="e.g. My Issues"
           required
         />
+      </div>
+      <div className="mb-3">
+        <label className="form-label fw-medium">Parent list</label>
+        <select
+          className="form-select"
+          value={parentId || ''}
+          onChange={(e) => setParentId(e.target.value || null)}
+          disabled={loadingParents}
+        >
+          <option value="">None</option>
+          {availableParents.map((list) => (
+            <option key={list.id} value={list.id}>
+              {list.title}
+            </option>
+          ))}
+        </select>
+        <small className="form-text text-muted">
+          Select a parent list to organize lists hierarchically.
+        </small>
       </div>
       <div className="mb-4">
         <div className="form-check form-switch">

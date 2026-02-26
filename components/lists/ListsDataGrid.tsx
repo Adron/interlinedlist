@@ -198,15 +198,15 @@ export default function ListsDataGrid({ lists }: ListsDataGridProps) {
                       >
                         <i className="bx bx-show"></i>
                       </Link>
-                      {list.source !== 'github' && (
-                        <Link
-                          href={`/lists/${list.id}?edit=true`}
-                          className="btn btn-outline-secondary"
-                          title="Edit Schema"
-                        >
-                          <i className="bx bx-edit"></i>
-                        </Link>
-                      )}
+                      <Link
+                        href={list.source === 'github'
+                          ? `/lists/${list.id}?editParent=true`
+                          : `/lists/${list.id}?edit=true`}
+                        className="btn btn-outline-secondary"
+                        title={list.source === 'github' ? 'Edit' : 'Edit Schema'}
+                      >
+                        <i className="bx bx-edit"></i>
+                      </Link>
                       <DeleteListButton listId={list.id} listTitle={list.title} />
                     </div>
                   </td>

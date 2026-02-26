@@ -55,6 +55,14 @@ function ListTableNode({ data }: { data: ListERDNodeData }) {
     router.push(`/lists/${data.listId}`);
   }, [data.listId, router]);
 
+  const handleEditClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      router.push(`/lists/${data.listId}?${isGitHub ? 'editParent' : 'edit'}=true`);
+    },
+    [data.listId, isGitHub, router]
+  );
+
   const headerBg = isGitHub ? '#24292f' : '#3b82f6';
   const borderColor = isGitHub ? '#57606a' : '#3b82f6';
   const bodyBg = isGitHub ? '#f6f8fa' : 'white';
@@ -89,11 +97,31 @@ function ListTableNode({ data }: { data: ListERDNodeData }) {
           fontSize: '14px',
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'space-between',
           gap: '6px',
         }}
       >
-        {isGitHub && <i className="bx bxl-github" style={{ fontSize: '16px' }} />}
-        {data.label}
+        <span style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+          {isGitHub && <i className="bx bxl-github" style={{ fontSize: '16px', flexShrink: 0 }} />}
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{data.label}</span>
+        </span>
+        <button
+          type="button"
+          onClick={handleEditClick}
+          title={isGitHub ? 'Edit' : 'Edit Schema'}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: 'white',
+            cursor: 'pointer',
+            padding: '2px',
+            display: 'flex',
+            alignItems: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <i className="bx bx-edit" style={{ fontSize: '14px' }} />
+        </button>
       </div>
       <div style={{ padding: '8px' }}>
         {data.fields.slice(0, 12).map((field, index) => (

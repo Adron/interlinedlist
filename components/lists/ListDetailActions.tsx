@@ -9,6 +9,7 @@ interface ListDetailActionsProps {
   listTitle: string;
   isEditMode: boolean;
   isAddMode: boolean;
+  isEditParentMode?: boolean;
   isGitHubList?: boolean;
   githubRepo?: string;
   onRefresh?: () => void;
@@ -20,6 +21,7 @@ export default function ListDetailActions({
   listTitle,
   isEditMode,
   isAddMode,
+  isEditParentMode = false,
   isGitHubList = false,
   githubRepo,
   onRefresh,
@@ -42,7 +44,7 @@ export default function ListDetailActions({
           GitHub
         </a>
       )}
-      {!isEditMode && !isAddMode && (
+      {!isEditMode && !isAddMode && !isEditParentMode && (
         <>
           {!isGitHubList && (
             <Link
@@ -51,6 +53,15 @@ export default function ListDetailActions({
             >
               <i className="bx bx-edit me-1"></i>
               Edit Schema
+            </Link>
+          )}
+          {isGitHubList && (
+            <Link
+              href={`/lists/${listId}?editParent=true`}
+              className="btn btn-outline-secondary"
+            >
+              <i className="bx bx-edit me-1"></i>
+              Edit
             </Link>
           )}
           {isGitHubList && onRefresh && (
@@ -89,6 +100,15 @@ export default function ListDetailActions({
         </Link>
       )}
       {isAddMode && (
+        <Link
+          href={`/lists/${listId}`}
+          className="btn btn-outline-secondary"
+        >
+          <i className="bx bx-x me-1"></i>
+          Cancel
+        </Link>
+      )}
+      {isEditParentMode && (
         <Link
           href={`/lists/${listId}`}
           className="btn btn-outline-secondary"

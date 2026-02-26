@@ -6,11 +6,12 @@ import ListChildLinks from '@/components/lists/ListChildLinks';
 import ListDetailActions from '@/components/lists/ListDetailActions';
 import ListDetailViewModel from '@/components/lists/ListDetailViewModel';
 import EditSchemaForm from './EditSchemaForm';
+import EditParentForm from '@/components/lists/EditParentForm';
 import AddRowForm from './AddRowForm';
 
 interface ListDetailPageProps {
   params: Promise<{ id: string }> | { id: string };
-  searchParams: Promise<{ edit?: string; add?: string }> | { edit?: string; add?: string };
+  searchParams: Promise<{ edit?: string; add?: string; editParent?: string }> | { edit?: string; add?: string; editParent?: string };
 }
 
 export default async function ListDetailPage({ params, searchParams }: ListDetailPageProps) {
@@ -38,17 +39,19 @@ export default async function ListDetailPage({ params, searchParams }: ListDetai
 
   const isEditMode = resolvedSearchParams.edit === 'true';
   const isAddMode = resolvedSearchParams.add === 'true';
+  const isEditParentMode = resolvedSearchParams.editParent === 'true';
   const isGitHubList = (list as { source?: string }).source === 'github';
   const githubRepo = (list as { githubRepo?: string }).githubRepo;
 
   const breadcrumbItems = [
     { label: 'Lists', href: '/lists' },
     ...ancestors.map((a) => ({ label: a.title, href: `/lists/${a.id}` })),
-    ...(isEditMode || isAddMode
+    ...(isEditMode || isAddMode || isEditParentMode
       ? [{ label: list.title, href: `/lists/${resolvedParams.id}` }]
       : [{ label: list.title }]),
     ...(isEditMode ? [{ label: 'Edit Schema' }] : []),
     ...(isAddMode ? [{ label: 'Add Row' }] : []),
+    ...(isEditParentMode ? [{ label: 'Edit parent' }] : []),
   ];
 
   return (
@@ -66,6 +69,7 @@ export default async function ListDetailPage({ params, searchParams }: ListDetai
                 listTitle={list.title}
                 isEditMode
                 isAddMode={false}
+                isEditParentMode={false}
                 isGitHubList={isGitHubList}
                 githubRepo={githubRepo ?? undefined}
               />
@@ -81,6 +85,34 @@ export default async function ListDetailPage({ params, searchParams }: ListDetai
             </div>
           </div>
         </>
+      ) : isEditParentMode && isGitHubList ? (
+        <>
+          <div className="row mb-4">
+            <div className="col-12 d-flex justify-content-end">
+              <ListDetailActions
+                listId={resolvedParams.id}
+                listTitle={list.title}
+                isEditMode={false}
+                isAddMode={false}
+                isEditParentMode
+                isGitHubList={isGitHubList}
+                githubRepo={githubRepo ?? undefined}
+              />
+            </div>
+          </div>
+          <div className="row">
+            <div className="col-12">
+              <div className="card">
+                <div className="card-body">
+                  <EditParentForm
+                    listId={resolvedParams.id}
+                    initialParentId={(list as { parentId?: string | null }).parentId ?? null}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
       ) : isAddMode ? (
         <>
           <div className="row mb-4">
@@ -90,6 +122,7 @@ export default async function ListDetailPage({ params, searchParams }: ListDetai
                 listTitle={list.title}
                 isEditMode={false}
                 isAddMode
+                isEditParentMode={false}
                 isGitHubList={isGitHubList}
                 githubRepo={githubRepo ?? undefined}
               />

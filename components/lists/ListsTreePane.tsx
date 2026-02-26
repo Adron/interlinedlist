@@ -68,6 +68,16 @@ function TreeNodeItem({
             <i className="bx bxl-github ms-1 text-muted" style={{ fontSize: '0.8rem' }} title="GitHub-backed" />
           )}
         </button>
+        <a
+          href={(node.list as { source?: string }).source === 'github'
+            ? `/lists/${node.list.id}?editParent=true`
+            : `/lists/${node.list.id}?edit=true`}
+          className={`btn btn-link btn-sm p-0 ${isSelected ? 'text-white' : 'text-muted'}`}
+          title={(node.list as { source?: string }).source === 'github' ? 'Edit' : 'Edit Schema'}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <i className="bx bx-edit" style={{ fontSize: '0.9rem' }} />
+        </a>
       </div>
       {hasChildren && isExpanded && (
         <ul className="list-unstyled mb-0">
@@ -167,10 +177,22 @@ export default function ListsTreePane({ lists }: ListsTreePaneProps) {
           <div className="card">
             <div className="card-header py-2 d-flex justify-content-between align-items-center">
               <h6 className="mb-0">{selectedList.title}</h6>
-              <a href={`/lists/${selectedList.id}`} className="btn btn-sm btn-outline-primary">
-                <i className="bx bx-show me-1" />
-                View full page
-              </a>
+              <div className="d-flex gap-1">
+                <a
+                  href={(selectedList as { source?: string }).source === 'github'
+                    ? `/lists/${selectedList.id}?editParent=true`
+                    : `/lists/${selectedList.id}?edit=true`}
+                  className="btn btn-sm btn-outline-secondary"
+                  title={(selectedList as { source?: string }).source === 'github' ? 'Edit' : 'Edit Schema'}
+                >
+                  <i className="bx bx-edit me-1" />
+                  Edit
+                </a>
+                <a href={`/lists/${selectedList.id}`} className="btn btn-sm btn-outline-primary">
+                  <i className="bx bx-show me-1" />
+                  View full page
+                </a>
+              </div>
             </div>
             <div className="card-body p-0">
               <ListDataTable listId={selectedList.id} fields={fields} />

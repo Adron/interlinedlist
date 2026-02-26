@@ -65,17 +65,17 @@ function TreeNodeComponent({ node, level, expandedNodes, onToggle, onDelete }: T
           )}
         </div>
         <div className="d-flex align-items-center gap-1 ms-2" style={{ flexShrink: 0 }} onClick={handleActionClick}>
-          {(node.list as { source?: string }).source !== 'github' && (
-            <Link
-              href={`/lists/${node.list.id}?edit=true`}
-              className="btn btn-sm btn-link text-primary p-0"
-              title="Edit Schema"
-              onClick={handleActionClick}
-              style={{ lineHeight: '1', flexShrink: 0 }}
-            >
-              <i className="bx bx-edit"></i>
-            </Link>
-          )}
+          <Link
+            href={(node.list as { source?: string }).source === 'github'
+              ? `/lists/${node.list.id}?editParent=true`
+              : `/lists/${node.list.id}?edit=true`}
+            className="btn btn-sm btn-link text-primary p-0"
+            title={(node.list as { source?: string }).source === 'github' ? 'Edit' : 'Edit Schema'}
+            onClick={handleActionClick}
+            style={{ lineHeight: '1', flexShrink: 0 }}
+          >
+            <i className="bx bx-edit"></i>
+          </Link>
           <span onClick={handleActionClick} style={{ flexShrink: 0 }}>
             <DeleteListButton
               listId={node.list.id}

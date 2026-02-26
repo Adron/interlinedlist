@@ -160,15 +160,15 @@ export default async function ListsPage() {
                               <i className="bx bx-show me-1"></i>
                               View
                             </Link>
-                            {(list as { source?: string }).source !== 'github' && (
-                              <Link
-                                href={`/lists/${list.id}?edit=true`}
-                                className="btn btn-sm btn-outline-secondary"
-                                title="Edit Schema"
-                              >
-                                <i className="bx bx-edit"></i>
-                              </Link>
-                            )}
+                            <Link
+                              href={(list as { source?: string }).source === 'github'
+                                ? `/lists/${list.id}?editParent=true`
+                                : `/lists/${list.id}?edit=true`}
+                              className="btn btn-sm btn-outline-secondary"
+                              title={(list as { source?: string }).source === 'github' ? 'Edit' : 'Edit Schema'}
+                            >
+                              <i className="bx bx-edit"></i>
+                            </Link>
                             <DeleteListButton listId={list.id} listTitle={list.title} />
                           </div>
                         </div>
