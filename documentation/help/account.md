@@ -22,7 +22,7 @@ Your email must be verified before you can post messages:
 
 Connect accounts for sign-in and cross-posting:
 
-- **GitHub**: Sign in with your GitHub account
+- **GitHub**: Sign in with your GitHub account. For **GitHub-backed lists** (lists that sync with GitHub Issues), you must connect with the Issues scope. If you linked GitHub for sign-in only, go to Settings → Security and click **Reconnect for GitHub Issues**.
 - **Mastodon**: Connect to your Mastodon instance (also used to cross-post messages)
 - **Bluesky**: Connect to your Bluesky account (also used to cross-post messages)
 

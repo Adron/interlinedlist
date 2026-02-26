@@ -24,14 +24,22 @@ Prisma schema defines the following models.
 ### List
 
 - `title`, `description`, `isPublic`, `metadata` (JSONB)
+- `source`: `"local"` | `"github"` (default: local)
+- `githubRepo`: `owner/repo` for GitHub-backed lists (syncs with GitHub Issues)
 - `parentId` → parent List (tree structure)
 - `children` → List[]
 - `user` → User
 - `message` → Message (optional)
-- `properties` → ListProperty[]
+- `properties` → ListProperty[] (local lists only)
 - `dataRows` → ListDataRow[]
+- `githubIssueCache` → ListGitHubIssueCache[] (GitHub-backed lists)
 - `watchers` → ListWatcher[]
 - Soft delete: `deletedAt`
+
+### ListGitHubIssueCache
+
+- Caches GitHub issues for GitHub-backed lists
+- `listId` → List, `issueNumber`, `issueData` (JSONB), `fetchedAt`
 
 ### ListWatcher
 

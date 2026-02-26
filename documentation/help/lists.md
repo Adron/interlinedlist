@@ -10,8 +10,25 @@ Lists let you organize and manage structured data with custom fields.
 
 1. Go to **Lists** from the top navigation
 2. Click **New List**
-3. Enter a title and optional description
-4. Define your schema (fields) using the form builder
+3. Choose **Local List** or **GitHub-backed List** (see tabs)
+
+### Local List
+
+1. Enter a title and optional description
+2. Define your schema (fields) using the form builder
+3. Optionally set a parent list and visibility (public/private)
+
+### GitHub-backed List
+
+Lists that sync with GitHub Issues from a repository:
+
+1. **Prerequisite**: Connect GitHub with the **Issues** scope in Settings → Security (Connected Accounts). If you already linked GitHub for sign-in, you may need to click **Reconnect for GitHub Issues** to grant access.
+2. On the **GitHub-backed List** tab, select a repository you have access to
+3. Enter a list title (defaults to the repo name)
+4. Optionally set a parent list to organize it in your list hierarchy
+5. Toggle **Public list** if you want others to see it
+
+GitHub-backed lists display a GitHub icon and sync issues from the selected repo. Rows map to GitHub issues (title, body, labels, assignees, state). You can add rows (creates issues), edit rows (updates issues), and delete rows (closes issues).
 
 ## Create List from Message
 
@@ -30,8 +47,9 @@ Each list has a **schema** that defines what data you can store:
 Lists can have a parent-child relationship, forming a tree:
 
 - Create a parent list first (e.g., "Projects")
-- When creating a new list, optionally set a parent
+- When creating a new list (local or GitHub-backed), optionally set a parent
 - Use breadcrumbs to navigate up and down the hierarchy
+- For GitHub-backed lists, use **Edit** to change the parent after creation
 
 ## Adding Rows
 
@@ -45,7 +63,12 @@ You can edit rows by clicking the edit icon in the table, or delete rows if need
 
 ## Editing the Schema
 
-Click **Edit Schema** on a list to change its fields. You can add, remove, or modify fields. Existing data will be preserved where possible.
+- **Local lists**: Click **Edit** (or **Edit Schema**) to change fields, parent list, and visibility. You can add, remove, or modify fields. Existing data will be preserved where possible.
+- **GitHub-backed lists**: The schema is fixed (GitHub issues). Click **Edit** to change the **parent list** only. You cannot modify the issue fields (title, body, labels, assignees) through the schema—they are defined by GitHub.
+
+## Refresh from GitHub (GitHub-backed lists)
+
+On a GitHub-backed list, use **Refresh from GitHub** to sync the latest issues from the repository. The list caches issues locally; refresh when you want to pull new or updated issues.
 
 ## Public vs Private
 

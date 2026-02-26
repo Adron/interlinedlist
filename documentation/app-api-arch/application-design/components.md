@@ -43,6 +43,8 @@
 | `ListsTabs` | Tabbed navigation for list views |
 | `DynamicListForm` | Form generated from schema |
 | `ListSchemaForm` | Edit list schema (fields) |
+| `CreateGitHubListForm` | Create GitHub-backed list (repo, title, parent) |
+| `EditParentForm` | Edit parent list (for GitHub-backed lists) |
 | `ListBreadcrumbs` | Breadcrumb nav |
 | `ListChildLinks` | Links to child lists |
 | `ChildLink` | Individual child list link |
