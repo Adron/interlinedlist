@@ -90,3 +90,34 @@ Prisma schema defines the following models.
 ### Administrator
 
 - `userId` → User (admin flag)
+
+## Documents
+
+### Folder
+
+- `name`, `parentId` → Folder (nested folders)
+- `user` → User
+
+### Document
+
+- `title`, `content` (markdown text)
+- `blobUrls` (JSONB): uploaded image blob URLs
+- `folder` → Folder (optional)
+- `user` → User
+- `updatedAt`: used to track sync state
+
+## Auth Tokens
+
+### SyncToken
+
+- `token` (hashed): used by the `il-sync` CLI daemon for authentication
+- `user` → User
+- `createdAt`, `lastUsedAt`
+
+## Email
+
+### EmailLog
+
+- `to`, `subject`, `templateType`
+- `fromEmail`, `status`
+- `createdAt`

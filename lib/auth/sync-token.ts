@@ -64,6 +64,7 @@ export async function getCurrentUserOrSyncToken(
             longitude: (u as { longitude?: number | null }).longitude ?? null,
             isPrivateAccount: (u as { isPrivateAccount?: boolean }).isPrivateAccount ?? false,
             cleared: (u as { cleared?: boolean }).cleared ?? false,
+            githubDefaultRepo: (u as { githubDefaultRepo?: string | null }).githubDefaultRepo ?? null,
             createdAt: u.createdAt,
             isAdministrator,
           };

@@ -66,15 +66,18 @@ export async function GET(request: NextRequest) {
       if (existingLink && existingLink.userId !== user.id) {
         return redirectToSettings('This GitHub account is already linked to another user');
       }
+      const providerData = {
+        access_token: tokens.access_token,
+        scopes: tokens.scope ?? '',
+      } as object;
+
       if (existingLink && existingLink.userId === user.id) {
         // Already linked, just update
         await prisma.linkedIdentity.update({
           where: { id: existingLink.id },
           data: {
             providerUsername: ghUser.login,
-            providerData: {
-              access_token: tokens.access_token,
-            } as object,
+            providerData,
             profileUrl: ghUser.html_url,
             avatarUrl: ghUser.avatar_url,
           },
@@ -86,9 +89,7 @@ export async function GET(request: NextRequest) {
             provider,
             providerUserId,
             providerUsername: ghUser.login,
-            providerData: {
-              access_token: tokens.access_token,
-            } as object,
+            providerData,
             profileUrl: ghUser.html_url,
             avatarUrl: ghUser.avatar_url,
           },
@@ -97,12 +98,12 @@ export async function GET(request: NextRequest) {
       return redirectToSettings('GitHub account linked successfully');
     }
 
-    // Sign-in flow
+    // Sign-in flow - only update lastVerifiedAt; preserve existing token/scopes
+    // (sign-in uses minimal scope; overwriting would downgrade repo access)
     if (existingLink) {
       await prisma.linkedIdentity.update({
         where: { id: existingLink.id },
         data: {
-          providerData: { access_token: tokens.access_token } as object,
           lastVerifiedAt: new Date(),
         },
       });
@@ -154,7 +155,10 @@ export async function GET(request: NextRequest) {
         provider,
         providerUserId,
         providerUsername: ghUser.login,
-        providerData: { access_token: tokens.access_token } as object,
+        providerData: {
+          access_token: tokens.access_token,
+          scopes: tokens.scope ?? '',
+        } as object,
         profileUrl: ghUser.html_url,
         avatarUrl: ghUser.avatar_url,
       },

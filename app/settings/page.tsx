@@ -73,6 +73,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
           <SecuritySection
             isPrivateAccount={user.isPrivateAccount ?? false}
             linkedIdentities={serializedIdentities}
+            githubDefaultRepo={user.githubDefaultRepo ?? ''}
             initialError={params.error}
             initialSuccess={params.success}
           />

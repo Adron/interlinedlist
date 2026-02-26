@@ -30,6 +30,7 @@ export async function PATCH(request: NextRequest) {
       latitude,
       longitude,
       isPrivateAccount,
+      githubDefaultRepo,
     } = body;
 
     // Validate maxMessageLength if provided
@@ -60,6 +61,17 @@ export async function PATCH(request: NextRequest) {
       if (!validPreferences.includes(viewingPreference)) {
         return NextResponse.json(
           { error: 'viewingPreference must be one of: my_messages, all_messages, followers_only, following_only' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate githubDefaultRepo if provided (owner/repo format)
+    if (githubDefaultRepo !== undefined) {
+      const val = githubDefaultRepo === null || githubDefaultRepo === '' ? null : String(githubDefaultRepo).trim();
+      if (val !== null && !/^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/.test(val)) {
+        return NextResponse.json(
+          { error: 'githubDefaultRepo must be in owner/repo format (e.g. octocat/Hello-World)' },
           { status: 400 }
         );
       }
@@ -103,6 +115,9 @@ export async function PATCH(request: NextRequest) {
       ...(latitude !== undefined && { latitude: latitude === null ? null : (typeof latitude === 'number' ? latitude : parseFloat(latitude)) }),
       ...(longitude !== undefined && { longitude: longitude === null ? null : (typeof longitude === 'number' ? longitude : parseFloat(longitude)) }),
       ...(isPrivateAccount !== undefined && { isPrivateAccount: Boolean(isPrivateAccount) }),
+      ...(githubDefaultRepo !== undefined && {
+        githubDefaultRepo: githubDefaultRepo === null || githubDefaultRepo === '' ? null : String(githubDefaultRepo).trim(),
+      }),
     };
     
     try {
@@ -127,6 +142,7 @@ export async function PATCH(request: NextRequest) {
           latitude: true,
           longitude: true,
           isPrivateAccount: true,
+          githubDefaultRepo: true,
           createdAt: true,
         },
       });

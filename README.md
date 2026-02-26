@@ -216,6 +216,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - `node scripts/seed-initial-data.js` - Seed initial data ("The Public" organization and seed user)
 - `npm run cli:build` - Build the Document Sync CLI for all platforms and copy to `public/downloads/`
 - `npm run cli:test` - Run CLI unit tests
+- `npm run cli:test-local` - Run CLI integration tests against a local dev server
 
 ## CLI (Document Sync)
 
@@ -227,86 +228,205 @@ The project includes a Document Sync CLI (`il-sync`) for syncing local markdown 
 interlinedlist/
 ├── app/                          # Next.js app directory (App Router)
 │   ├── api/                      # API routes
+│   │   ├── admin/                # Admin endpoints
+│   │   │   ├── email-logs/       # Email log retrieval
+│   │   │   └── users/            # Admin user management (list, create, bulk operations)
+│   │   │       ├── [userId]/     # Individual user admin operations
+│   │   │       ├── bulk-clearance/
+│   │   │       ├── bulk-delete/
+│   │   │       └── bulk-status/
+│   │   ├── architecture-aggregates/ # DB schema and aggregate data endpoints
+│   │   │   ├── [table]/          # Per-table data
+│   │   │   └── schema/           # Schema introspection
 │   │   ├── auth/                 # Authentication endpoints
+│   │   │   ├── bluesky/          # Bluesky OAuth (authorize, callback)
 │   │   │   ├── forgot-password/  # Password reset request
+│   │   │   ├── github/           # GitHub OAuth (authorize, callback)
 │   │   │   ├── login/            # User login
 │   │   │   ├── logout/           # User logout
+│   │   │   ├── mastodon/         # Mastodon OAuth (authorize, callback)
 │   │   │   ├── register/         # User registration
 │   │   │   ├── reset-password/   # Password reset confirmation
 │   │   │   ├── send-verification-email/  # Resend verification email
-│   │   │   └── verify-email/     # Email verification
+│   │   │   ├── sync-token/       # CLI sync token issuance
+│   │   │   ├── verify-email/     # Email verification
+│   │   │   └── verify-email-change/  # Email change verification
+│   │   ├── documents/            # Document sync endpoints
+│   │   │   ├── [id]/             # Individual document operations
+│   │   │   │   └── images/upload/ # Image upload for documents
+│   │   │   ├── folders/          # Folder management
+│   │   │   │   └── [id]/         # Individual folder operations
+│   │   │   │       └── documents/ # Documents within a folder
+│   │   │   └── sync/             # CLI sync endpoint
+│   │   ├── exports/              # Data export endpoints
+│   │   │   ├── follows/          # Export follow relationships
+│   │   │   ├── list-data-rows/   # Export list data rows
+│   │   │   ├── lists/            # Export lists
+│   │   │   └── messages/         # Export messages
+│   │   ├── follow/               # Follow system endpoints
+│   │   │   ├── [userId]/         # Follow operations for a user
+│   │   │   │   ├── approve/      # Approve follow request
+│   │   │   │   ├── counts/       # Follower/following counts
+│   │   │   │   ├── followers/    # List followers
+│   │   │   │   ├── following/    # List following
+│   │   │   │   ├── mutual/       # Mutual follows
+│   │   │   │   ├── reject/       # Reject follow request
+│   │   │   │   ├── remove/       # Remove follower
+│   │   │   │   └── status/       # Follow status
+│   │   │   └── requests/         # Pending follow requests
 │   │   ├── images/               # Image proxy endpoints
-│   │   │   └── proxy/           # Image proxy for external images (CORS bypass)
+│   │   │   └── proxy/            # Image proxy for external images (CORS bypass)
 │   │   ├── lists/                # List endpoints
-│   │   │   ├── [id]/            # Individual list operations
-│   │   │   │   ├── data/       # List data row operations
-│   │   │   │   │   ├── [rowId]/ # Individual row operations
-│   │   │   │   │   └── route.ts
-│   │   │   │   ├── schema/     # List schema operations
-│   │   │   │   └── route.ts
-│   │   │   │   └── route.ts
-│   │   │   └── route.ts         # GET/POST lists
+│   │   │   ├── [id]/             # Individual list operations
+│   │   │   │   ├── data/         # List data row operations
+│   │   │   │   │   └── [rowId]/  # Individual row operations
+│   │   │   │   ├── schema/       # List schema operations
+│   │   │   │   └── watchers/     # List watcher/access management
+│   │   │   │       ├── [userId]/ # Individual watcher operations
+│   │   │   │       ├── me/       # Current user's watcher status
+│   │   │   │       └── users/    # List all watchers
+│   │   │   └── route.ts          # GET/POST lists
 │   │   ├── location/             # Location widget endpoint
 │   │   ├── messages/             # Message endpoints
+│   │   │   ├── [id]/             # Individual message operations
+│   │   │   │   ├── metadata/     # Link metadata fetching
+│   │   │   │   └── replies/      # Message replies
+│   │   │   ├── images/upload/    # Image upload for messages
+│   │   │   └── videos/upload/    # Video upload for messages
+│   │   ├── oauth/                # OAuth client metadata
+│   │   │   └── client-metadata/  # Bluesky OAuth client metadata endpoint
 │   │   ├── organizations/        # Organization endpoints
-│   │   │   ├── [id]/            # Individual organization operations
-│   │   │   │   ├── members/     # Organization member management
-│   │   │   │   │   ├── [userId]/ # Individual member operations
-│   │   │   │   │   └── route.ts
-│   │   │   │   └── route.ts
-│   │   │   └── route.ts         # GET/POST organizations
-│   │   │   ├── [id]/            # Individual message operations
-│   │   │   │   ├── metadata/   # Link metadata fetching
-│   │   │   │   └── route.ts
-│   │   │   └── route.ts         # GET/POST messages
-│   │   ├── test-db/             # Database connection test endpoint
-│   │   ├── user/                 # User management endpoints
+│   │   │   ├── [id]/             # Individual organization operations
+│   │   │   │   ├── members/      # Organization member management
+│   │   │   │   │   └── [userId]/ # Individual member operations
+│   │   │   │   └── users/        # Users in an organization
+│   │   │   └── route.ts          # GET/POST organizations
+│   │   ├── test-db/              # Database connection test endpoint
+│   │   ├── user/                 # Current user management endpoints
+│   │   │   ├── [username]/       # Public user profile and messages
+│   │   │   ├── avatar/           # Avatar upload and URL import
+│   │   │   ├── change-email/     # Email change request workflow
+│   │   │   ├── delete/           # Account deletion
+│   │   │   ├── identities/       # Linked social identities
 │   │   │   ├── organizations/    # User's organizations
 │   │   │   └── update/           # Update user profile/settings
+│   │   ├── users/                # Public user lookup endpoints
+│   │   │   └── [username]/       # User profile by username
+│   │   │       └── lists/        # Public lists for a user
 │   │   └── weather/              # Weather widget endpoint
+│   ├── admin/                    # Admin pages
+│   │   ├── email-logging/        # Email log viewer
+│   │   ├── support-links/        # Support links management
+│   │   └── users/                # User management (list, create)
+│   ├── architecture-aggregates/  # DB schema visualizer page
 │   ├── dashboard/                # Dashboard page
+│   ├── documents/                # Document pages (view, edit, create)
+│   │   ├── [id]/                 # Individual document view/edit
+│   │   ├── folders/              # Folder pages
+│   │   │   ├── [id]/             # Folder view (with new subfolder/doc)
+│   │   │   └── new/              # Create new root folder
+│   │   └── new/                  # Create new document
+│   ├── exports/                  # Data export page
 │   ├── forgot-password/          # Password reset page
+│   ├── help/                     # In-app help pages
+│   │   └── [slug]/               # Dynamic help page by slug
+│   ├── lists/                    # List pages
+│   │   ├── [id]/                 # List detail / data view
+│   │   │   └── edit/             # Edit list (including row edit)
+│   │   └── new/                  # Create new list
 │   ├── login/                    # Login page and form
+│   ├── message/                  # Individual message pages
+│   │   └── [id]/                 # Message detail
+│   │       └── thread/           # Message thread view
 │   ├── organizations/            # Organization pages
-│   │   ├── [slug]/              # Organization detail page
-│   │   ├── new/                 # Create organization page
-│   │   └── page.tsx             # Organizations list page
+│   │   ├── [slug]/               # Organization detail page
+│   │   │   └── edit/             # Edit organization
+│   │   ├── new/                  # Create organization page
+│   │   └── page.tsx              # Organizations list page
+│   ├── people/                   # People/user directory page
 │   ├── register/                 # Registration page and form
 │   ├── reset-password/           # Password reset page
 │   ├── settings/                 # User settings page
 │   ├── user/                     # User pages
+│   │   ├── [username]/           # Public user profile wall
+│   │   │   ├── followers/        # User's followers page
+│   │   │   ├── following/        # User's following page
+│   │   │   └── lists/            # User's public lists
 │   │   └── organizations/        # User's organizations page
-│   │   ├── EmailVerificationResend.tsx
-│   │   ├── EmailVerificationSection.tsx
-│   │   ├── PermissionsSection.tsx # Permissions settings
-│   │   ├── ProfileSettings.tsx  # Profile and preferences
-│   │   ├── SecuritySection.tsx   # Security settings
-│   │   ├── SettingsForm.tsx
-│   │   └── ViewPreferencesSection.tsx # View preferences (pagination, previews)
 │   ├── verify-email/             # Email verification page
+│   ├── verify-email-change/      # Email change confirmation page
 │   ├── globals.css               # Global styles
-│   ├── layout.tsx               # Root layout component
-│   └── page.tsx                 # Home page
+│   ├── layout.tsx                # Root layout component
+│   └── page.tsx                  # Home page
+├── cli/                          # Document Sync CLI (Go)
+│   ├── main.go                   # CLI entry point
+│   ├── sync/                     # Sync daemon logic
+│   ├── Makefile                  # Build targets for all platforms
+│   └── README.md                 # CLI build and integration docs
 ├── components/                   # React components
-│   ├── Avatar.tsx                # User avatar component
-│   ├── AvatarPlaceholder.tsx    # Avatar placeholder component
-│   ├── DashboardMessageFeed.tsx  # Dashboard message feed
-│   ├── EmailVerificationBanner.tsx  # Email verification banner
-│   ├── Footer.tsx                # Footer component
+│   ├── admin/                    # Admin components
+│   │   ├── EmailLogTable.tsx     # Email log display
+│   │   └── UserManagement.tsx    # Admin user management
+│   ├── architecture-aggregates/ # DB visualizer components
+│   │   ├── ArchitectureTabs.tsx
+│   │   ├── ERDDiagram.tsx
+│   │   └── TableDataGrid.tsx
+│   ├── documents/                # Document components
+│   │   ├── DocumentEditor.tsx    # Markdown document editor
+│   │   ├── DocumentList.tsx      # Document list view
+│   │   └── FolderTree.tsx        # Folder tree navigation
+│   ├── follows/                  # Follow system components
+│   │   ├── FollowNavigation.tsx
+│   │   ├── FollowRequests.tsx
+│   │   ├── FollowersList.tsx
+│   │   └── FollowingList.tsx
+│   ├── help/                     # Help system components
+│   │   ├── HelpNavWrapper.tsx
+│   │   └── HelpSidebar.tsx
 │   ├── lists/                    # List-related components
+│   │   ├── ChildLink.tsx
 │   │   ├── DeleteListButton.tsx
 │   │   ├── DynamicListForm.tsx
+│   │   ├── ListAccessSection.tsx # List access/watcher management
+│   │   ├── ListBreadcrumbs.tsx
+│   │   ├── ListChildLinks.tsx
+│   │   ├── ListConnections.tsx
 │   │   ├── ListDataTable.tsx
-│   │   └── ListSchemaForm.tsx
-│   ├── ListsTreeView.tsx         # Lists tree navigation
-│   ├── organizations/             # Organization-related components
+│   │   ├── ListDetailActions.tsx
+│   │   ├── ListSchemaForm.tsx
+│   │   ├── ListsDataGrid.tsx
+│   │   ├── ListsERDDiagram.tsx
+│   │   ├── ListsTabs.tsx
+│   │   ├── ListsTreePane.tsx
+│   │   ├── ParentLink.tsx
+│   │   └── WatchedListsDataGrid.tsx
+│   ├── messages/                 # Message-related components
+│   │   └── LinkMetadataCard.tsx  # Link preview card component
+│   ├── organizations/            # Organization-related components
 │   │   ├── CreateOrganizationForm.tsx
+│   │   ├── EditOrganizationForm.tsx
 │   │   ├── OrganizationCard.tsx
 │   │   ├── OrganizationList.tsx
 │   │   ├── OrganizationMembers.tsx
-│   │   └── UserOrganizations.tsx
-│   ├── LocationWidget.tsx        # Location widget component
+│   │   ├── OrganizationMembersDatagrid.tsx
+│   │   ├── OrganizationMembersManagement.tsx
+│   │   ├── UserOrganizations.tsx
+│   │   └── UserSelectionDatagrid.tsx
+│   ├── settings/                 # Settings components
+│   │   └── ConnectedAccountsSection.tsx # Linked social account management
+│   ├── AddListWatcherButton.tsx  # Add watcher to a list
+│   ├── Avatar.tsx                # User avatar component
+│   ├── AvatarPlaceholder.tsx     # Avatar placeholder component
+│   ├── ClearedStatusBanner.tsx   # Account cleared status banner
+│   ├── CrossPostErrorToast.tsx   # Cross-post error notification
+│   ├── DashboardMessageFeed.tsx  # Dashboard message feed
+│   ├── EmailVerificationBanner.tsx  # Email verification banner
+│   ├── FollowButton.tsx          # Follow/unfollow button
+│   ├── Footer.tsx                # Footer component
 │   ├── LeftSidebar.tsx           # Left sidebar with message input
+│   ├── ListPreview.tsx           # List preview widget
+│   ├── ListsTreeView.tsx         # Lists tree navigation
+│   ├── LocationWidget.tsx        # Location widget component
 │   ├── Logo.tsx                  # Logo component
 │   ├── LogoutButton.tsx          # Logout button component
 │   ├── MessageCard.tsx           # Individual message card
@@ -314,16 +434,27 @@ interlinedlist/
 │   ├── MessageGrid.tsx           # Grid layout for messages
 │   ├── MessageInput.tsx          # Message input form
 │   ├── MessageList.tsx           # List of messages
+│   ├── MessageReplies.tsx        # Message replies display
 │   ├── MessageTable.tsx          # Table layout for messages (dashboard)
-│   ├── messages/                 # Message-related components
-│   │   └── LinkMetadataCard.tsx  # Link preview card component
 │   ├── Navigation.tsx            # Navigation bar
+│   ├── NavigationTitle.tsx       # Navigation title component
+│   ├── ProfileHeader.tsx         # User profile header
+│   ├── PublicListsTreeView.tsx   # Public lists tree navigation
+│   ├── ReplyInput.tsx            # Reply input form
 │   ├── RightSidebar.tsx          # Right sidebar component
-│   ├── SidebarToggle.tsx         # Sidebar toggle component
 │   ├── ThemeBridgeInit.tsx       # Theme bridge initialization
 │   ├── ThemeProvider.tsx         # Theme context provider
 │   ├── UserDropdown.tsx          # User dropdown menu
+│   ├── UserWallSidebar.tsx       # User profile wall sidebar
 │   └── WeatherWidget.tsx         # Weather widget component
+├── documentation/                # Project documentation
+│   ├── app-api-arch/             # Architecture, API, and app design docs
+│   │   ├── api/                  # API reference docs
+│   │   ├── application-design/   # App structure and component docs
+│   │   └── architecture/         # Tech stack and data model docs
+│   ├── help/                     # In-app help content (markdown)
+│   ├── tooling/                  # CLI and local testing docs
+│   └── admin/                    # Admin feature docs
 ├── DSL/                          # Domain Specific Language for Lists
 │   ├── docs/                     # DSL documentation
 │   │   ├── conditional-logic.md
@@ -337,45 +468,86 @@ interlinedlist/
 │   │   ├── product-inventory.js
 │   │   └── task-tracker.js
 │   ├── utilities/                # DSL utilities
-│   │   ├── builder.ts           # DSL builder API
-│   │   ├── transformers.ts      # Schema transformers
+│   │   ├── builder.ts            # DSL builder API
+│   │   ├── transformers.ts       # Schema transformers
 │   │   └── validators.ts         # Schema validators
 │   ├── index.ts                  # DSL main exports
 │   └── README.md                 # DSL documentation
 ├── lib/                          # Utility functions and configurations
+│   ├── architecture-aggregates/  # DB schema introspection utilities
+│   │   └── schema-parser.ts
 │   ├── auth/                     # Authentication utilities
+│   │   ├── admin-access.ts       # Admin role checks
+│   │   ├── linked-identities.ts  # Linked social identity helpers
+│   │   ├── oauth-bluesky.ts      # Bluesky OAuth integration
+│   │   ├── oauth-bluesky-stores.ts # Bluesky OAuth state/session stores
+│   │   ├── oauth-github.ts       # GitHub OAuth integration
+│   │   ├── oauth-mastodon.ts     # Mastodon OAuth integration
+│   │   ├── oauth-state.ts        # OAuth state management
 │   │   ├── password.ts           # Password hashing/verification
 │   │   ├── session.ts            # Session management
+│   │   ├── sync-token.ts         # CLI sync token utilities
 │   │   └── tokens.ts             # Token generation/verification
+│   ├── avatar/                   # Avatar utilities
+│   │   └── resize.ts             # Avatar image resizing
+│   ├── bluesky/                  # Bluesky integration utilities
+│   │   ├── post-status.ts        # Post to Bluesky
+│   │   └── session-from-provider-data.ts
 │   ├── config/                   # Application configuration
-│   │   └── app.ts                # App config and constants
+│   │   ├── app.ts                # App config and constants
+│   │   └── weather.ts            # Weather widget config
+│   ├── crosspost/                # Cross-posting utilities
+│   │   ├── check-platform-follow.ts
+│   │   ├── media-distributor.ts
+│   │   ├── reply-to-external.ts
+│   │   └── text-splitter.ts
+│   ├── documents/                # Document utilities
+│   │   ├── extract-blob-urls.ts  # Blob URL extraction for sync
+│   │   └── queries.ts            # Document database queries
 │   ├── email/                    # Email utilities
+│   │   ├── build-url.ts          # Email link URL builder
+│   │   ├── log-email.ts          # Email logging utility
 │   │   ├── resend.ts             # Resend email client
 │   │   └── templates/            # Email templates
+│   │       ├── email-change-verification.ts
 │   │       ├── email-verification.ts
 │   │       └── password-reset.ts
+│   ├── follows/                  # Follow system utilities
+│   │   └── queries.ts            # Follow database queries
 │   ├── lists/                    # List utilities
-│   │   ├── dsl-parser.ts        # DSL parser
-│   │   ├── dsl-types.ts         # DSL type definitions
-│   │   ├── dsl-validator.ts     # DSL validation
-│   │   ├── form-generator.ts    # Form generation from schema
-│   │   └── queries.ts           # List database queries
+│   │   ├── date-utils.ts         # Date handling for list fields
+│   │   ├── dsl-parser.ts         # DSL parser
+│   │   ├── dsl-types.ts          # DSL type definitions
+│   │   ├── dsl-validator.ts      # DSL validation
+│   │   ├── form-generator.ts     # Form generation from schema
+│   │   ├── queries.ts            # List database queries
+│   │   └── tree-utils.ts         # List tree structure utilities
+│   ├── mastodon/                 # Mastodon integration utilities
+│   │   └── post-status.ts        # Post to Mastodon
 │   ├── messages/                 # Message utilities
-│   │   ├── link-detector.ts     # URL detection and platform identification
-│   │   ├── linkify.tsx          # Link rendering component
-│   │   ├── metadata-fetcher.ts  # Link metadata fetching (Open Graph, oEmbed)
-│   │   └── queries.ts           # Message database queries
+│   │   ├── link-detector.ts      # URL detection and platform identification
+│   │   ├── linkify.tsx           # Link rendering component
+│   │   ├── metadata-fetcher.ts   # Link metadata fetching (Open Graph, oEmbed)
+│   │   └── queries.ts            # Message database queries
+│   ├── organizations/            # Organization utilities
+│   │   ├── queries.ts            # Organization database queries
+│   │   └── utils.ts              # Slug generation, permissions
 │   ├── theme/                    # Theme utilities
-│   │   └── darkone-bridge.ts     # DarkOne theme bridge
+│   │   ├── darkone-bridge.ts     # DarkOne theme bridge
+│   │   └── theme-sync.ts         # Theme sync across tabs
 │   ├── types/                    # TypeScript type definitions
 │   │   └── index.ts              # Shared types
 │   ├── utils/                    # General utilities
-│   │   ├── errors.tsx           # Error handling components
-│   │   └── relativeTime.ts      # Relative time formatting
+│   │   ├── errors.tsx            # Error handling components
+│   │   ├── message-extractor.ts  # Message content extraction
+│   │   └── relativeTime.ts       # Relative time formatting
+│   ├── help-config.ts            # Help system configuration
+│   ├── help.ts                   # Help content loader
 │   └── prisma.ts                 # Prisma Client singleton
 ├── prisma/                       # Prisma schema and migrations
 │   ├── schema.prisma             # Database schema definition
 │   └── migrations/               # Database migration files
+│       ├── 20250210120000_add_linked_identities/
 │       ├── 20251223015038_init_user/
 │       ├── 20260104005203_add_theme_to_user/
 │       ├── 20260104035743_add_password_reset_fields/
@@ -386,8 +558,35 @@ interlinedlist/
 │       ├── 20260125002814_add_link_metadata_to_messages/
 │       ├── 20260125040011_new_feautres/
 │       ├── 20260125170624_add_view_preferences/
+│       ├── 20260128161140_add_parent_list_relationship/
+│       ├── 20260131110554_add_administrators/
+│       ├── 20260202000000_add_follow_system/
+│       ├── 20260203000000_add_user_location/
+│       ├── 20260205143613_add_is_public_to_lists/
+│       ├── 20260207015750_add_organizations/
+│       ├── 20260207121021_add_active_to_user_organization/
+│       ├── 20260207135000_add_show_advanced_post_settings/
+│       ├── 20260208000000_add_message_image_urls/
+│       ├── 20260211201345_add_message_video_urls/
+│       ├── 20260212000000_add_cross_post_urls/
+│       ├── 20260215000000_add_message_replies/
+│       ├── 20260216000000_add_cleared/
+│       ├── 20260217000000_add_email_change_fields/
+│       ├── 20260218000000_add_list_watchers/
+│       ├── 20260219000000_add_role_to_list_watcher/
+│       ├── 20260220000000_add_documents_and_folders/
+│       ├── 20260220000001_add_sync_tokens/
+│       ├── 20260221000000_add_adron_as_public_owner/
+│       ├── 20260222000000_add_email_logs/
+│       ├── 20260223000000_add_from_email_to_email_log/
 │       └── migration_lock.toml
 ├── public/                       # Static assets
+│   ├── downloads/                # Pre-built CLI binaries (served statically)
+│   │   ├── darwin-arm64/il-sync
+│   │   ├── darwin-amd64/il-sync
+│   │   ├── linux-amd64/il-sync
+│   │   ├── linux-arm64/il-sync
+│   │   └── windows/il-sync.exe
 │   ├── fonts/                    # Custom fonts (Boxicons)
 │   ├── images/                   # Image assets
 │   │   ├── brands/               # Brand logos
@@ -399,7 +598,11 @@ interlinedlist/
 │   └── manifest.json             # Web app manifest
 ├── scripts/                      # Utility scripts
 │   ├── backup-database.js        # Database backup script
+│   ├── cli-test-local.js         # CLI integration test runner (local dev)
 │   ├── restore-database.js       # Database restore script
+│   ├── safe-migrate.js           # Safe migration wrapper script
+│   ├── seed-initial-data.js      # Seed "The Public" org and initial user
+│   ├── seed-public-organization.js # Legacy script for seeding "The Public"
 │   └── setup-database.sh         # Database setup automation
 ├── styles/                       # Global styles
 │   └── darkone/                  # DarkOne theme styles
@@ -409,7 +612,10 @@ interlinedlist/
 │           ├── icons/            # Icon styles
 │           ├── pages/            # Page-specific styles
 │           ├── plugins/          # Plugin styles
-│           └── structure/       # Layout structure styles
+│           └── structure/        # Layout structure styles
+├── test-data/                    # Test data and seed scripts
+│   ├── seed-test-accounts.js     # Seed 71 test user accounts and messages
+│   └── README.md                 # Test data documentation
 ├── middleware.ts                 # Next.js middleware (auth, routing)
 ├── next.config.js                # Next.js configuration
 ├── package.json                  # Project dependencies and scripts
@@ -422,23 +628,36 @@ interlinedlist/
 - **`app/`**: Next.js 13+ App Router directory containing pages, API routes, and layouts. Uses file-based routing where each folder represents a route segment.
 
 - **`app/api/`**: RESTful API endpoints organized by feature:
-  - `auth/`: Authentication endpoints (login, register, password reset, email verification)
+  - `admin/`: Admin-only endpoints for user management and email log access
+  - `architecture-aggregates/`: Database schema introspection and aggregate data
+  - `auth/`: Authentication endpoints (login, register, password reset, email verification, OAuth for Bluesky/GitHub/Mastodon, CLI sync tokens)
+  - `documents/`: Document and folder CRUD operations, image upload, CLI sync endpoint
+  - `exports/`: Data export endpoints (messages, lists, list data rows, follows)
+  - `follow/`: Follow system (follow/unfollow, approve/reject requests, followers/following lists)
   - `images/`: Image proxy endpoints for external images (CORS bypass)
   - `lists/`: List CRUD operations, schema management, data row operations, watchers (access & permissions)
   - `location/`: Location widget API endpoint
-  - `messages/`: Message CRUD operations and link metadata fetching
+  - `messages/`: Message CRUD operations, link metadata fetching, image/video upload, replies
+  - `oauth/`: OAuth client metadata (Bluesky)
   - `organizations/`: Organization CRUD operations and member management
-  - `user/`: User profile and settings management (including user organizations)
+  - `user/`: Current user profile and settings management (avatar, email change, account deletion, linked identities)
+  - `users/`: Public user lookup and public list access
   - `weather/`: Weather widget API endpoint
   - `test-db/`: Database connection testing utility
 
 - **`components/`**: Reusable React components organized by feature:
-  - Message-related: `MessageInput`, `MessageCard`, `MessageFeed`, `MessageList`, `MessageGrid`, `MessageTable`, `LinkMetadataCard`
-  - List-related: `ListsTreeView`, `DynamicListForm`, `ListDataTable`, `ListSchemaForm`, `DeleteListButton`, `ListAccessSection`, `WatchedListsDataGrid`, `PublicListsTreeView`
-  - Organization-related: `OrganizationCard`, `OrganizationList`, `OrganizationMembers`, `CreateOrganizationForm`, `UserOrganizations`
-  - UI components: `Avatar`, `Navigation`, `Footer`, `Logo`, `UserDropdown`, `SidebarToggle`
+  - Message-related: `MessageInput`, `MessageCard`, `MessageFeed`, `MessageList`, `MessageGrid`, `MessageTable`, `MessageReplies`, `ReplyInput`, `LinkMetadataCard`
+  - List-related: `ListsTreeView`, `PublicListsTreeView`, `ListPreview`, `DynamicListForm`, `ListDataTable`, `ListSchemaForm`, `DeleteListButton`, `ListAccessSection`, `WatchedListsDataGrid`, `AddListWatcherButton`, and additional list detail/tree components
+  - Organization-related: `OrganizationCard`, `OrganizationList`, `OrganizationMembers`, `OrganizationMembersDatagrid`, `OrganizationMembersManagement`, `CreateOrganizationForm`, `EditOrganizationForm`, `UserOrganizations`, `UserSelectionDatagrid`
+  - Follow-related: `FollowButton`, `FollowersList`, `FollowingList`, `FollowRequests`, `FollowNavigation`
+  - Document-related: `DocumentEditor`, `DocumentList`, `FolderTree`
+  - Admin: `UserManagement`, `EmailLogTable`
+  - Help: `HelpSidebar`, `HelpNavWrapper`
+  - Architecture: `ArchitectureTabs`, `ERDDiagram`, `TableDataGrid`
+  - Settings: `ConnectedAccountsSection`
+  - UI components: `Avatar`, `AvatarPlaceholder`, `Navigation`, `NavigationTitle`, `Footer`, `Logo`, `UserDropdown`, `ProfileHeader`, `UserWallSidebar`, `ClearedStatusBanner`, `CrossPostErrorToast`
   - Widgets: `LocationWidget`, `WeatherWidget`
-  - Feature-specific: `LeftSidebar`, `RightSidebar`, `EmailVerificationBanner`, `ThemeProvider`, `AppSidebar`, `AppSidebarUserMenu`
+  - Feature-specific: `LeftSidebar`, `RightSidebar`, `EmailVerificationBanner`, `ThemeProvider`, `ThemeBridgeInit`
 
 - **`DSL/`**: Domain Specific Language for defining dynamic list schemas:
   - `docs/`: Complete DSL documentation (syntax, field types, validation, conditional logic)
@@ -446,15 +665,24 @@ interlinedlist/
   - `utilities/`: DSL builder API, transformers, and validators
 
 - **`lib/`**: Shared utility functions and configurations:
-  - `auth/`: Authentication helpers (password hashing, session management, token generation)
-  - `config/`: Application configuration and constants
-  - `email/`: Email sending utilities using Resend API
-  - `lists/`: List utilities (DSL parsing, validation, form generation, queries)
-  - `messages/`: Message utilities (link detection, metadata fetching, link rendering)
+  - `architecture-aggregates/`: Database schema introspection utilities
+  - `auth/`: Authentication helpers (password hashing, session management, token generation, OAuth integrations for Bluesky/GitHub/Mastodon, admin access, sync tokens)
+  - `avatar/`: Avatar image processing (resizing)
+  - `bluesky/`: Bluesky cross-posting and session utilities
+  - `config/`: Application configuration and constants (app settings, weather config)
+  - `crosspost/`: Cross-posting utilities (text splitting, media distribution, platform follow checks)
+  - `documents/`: Document utilities (queries, blob URL extraction for sync)
+  - `email/`: Email sending utilities using Resend API, email logging, email link builder
+  - `follows/`: Follow system database queries
+  - `lists/`: List utilities (DSL parsing, validation, form generation, queries, tree structure, date handling)
+  - `mastodon/`: Mastodon cross-posting utilities
+  - `messages/`: Message utilities (link detection, metadata fetching, link rendering, queries)
   - `organizations/`: Organization utilities (queries, permissions, slug generation)
-  - `theme/`: Theme management and DarkOne theme integration
+  - `theme/`: Theme management and DarkOne theme integration, cross-tab theme sync
   - `types/`: Shared TypeScript type definitions
-  - `utils/`: General utility functions (time formatting, error handling)
+  - `utils/`: General utility functions (time formatting, error handling, message extraction)
+  - `help-config.ts`: Help system navigation configuration
+  - `help.ts`: Help content loader (reads markdown from `documentation/help/`)
   - `prisma.ts`: Prisma Client singleton instance
 
 - **`prisma/`**: Database schema and migrations:
@@ -471,6 +699,18 @@ interlinedlist/
   - `seed-public-organization.js`: Legacy script for seeding "The Public" organization
   - `backup-database.js`: Database backup automation
   - `restore-database.js`: Database restore automation
+  - `safe-migrate.js`: Safe migration wrapper (used by `npm run db:migrate`)
+  - `cli-test-local.js`: CLI integration test runner against a local dev server
+
+- **`test-data/`**: Test seed scripts and documentation for local development
+  - `seed-test-accounts.js`: Seeds 71 test user accounts and thousands of test messages
+  - `README.md`: Test data documentation
+
+- **`documentation/`**: Project documentation (markdown)
+  - `app-api-arch/`: Architecture, API reference, and application design docs
+  - `help/`: In-app help content rendered by the `/help/` pages
+  - `tooling/`: CLI download, installation, and local testing guides
+  - `admin/`: Admin feature documentation
 
 ## Database
 
@@ -517,6 +757,24 @@ The application includes the following models:
   - Roles: owner, admin, member (with hierarchical permissions)
   - Tracks when users joined organizations
   - Unique constraint prevents duplicate memberships
+- **Follow**: Follower/following relationships between users
+  - Status: pending (requires approval) or active
+  - Unique on [followerId, followingId]
+- **Administrator**: Marks users as platform administrators
+  - Linked to a User record
+- **SyncToken**: CLI sync tokens for authenticating the `il-sync` daemon
+  - Linked to a User record; used instead of session cookies for CLI access
+- **LinkedIdentity**: Linked social/OAuth provider identities
+  - Stores provider type (bluesky, github, mastodon), provider user ID, and provider-specific data
+- **Folder**: Document folders for organizing documents
+  - Supports nested folders via self-referential parent/child relationships
+  - Linked to a User record
+- **Document**: Markdown documents with folder organization
+  - Content stored as markdown text with optional blob image URLs
+  - Linked to a User and optionally to a Folder
+  - Supports sync via the CLI daemon
+- **EmailLog**: Log of all emails sent by the application
+  - Stores recipient, subject, template type, timestamp, and status
 
 ### Database Migrations
 
@@ -715,8 +973,61 @@ A test API endpoint is available at `/api/test-db` to verify your database conne
 - **Organizations Pages**: Organization browsing and management
   - Organizations list page (`/organizations`)
   - Organization detail pages (`/organizations/[slug]`)
+  - Organization edit page (`/organizations/[slug]/edit`)
   - User's organizations page (`/user/organizations`)
   - Create organization page (`/organizations/new`)
+- **Follow System**: Social follow relationships between users
+  - Follow/unfollow users
+  - Pending follow requests with approve/reject workflow
+  - Followers and following lists per user
+  - Mutual follow detection
+  - Follow-based message filtering (Followers Only / Following Only views)
+- **User Profiles**: Public user profile walls
+  - Profile pages at `/user/[username]`
+  - Follower and following pages
+  - User's public lists
+- **People Directory**: Browse all users at `/people`
+- **Message Replies**: Threaded replies to messages
+  - Reply to any message
+  - Thread view at `/message/[id]/thread`
+- **Image and Video Uploads**: Attach media to messages
+  - Image upload via Vercel Blob storage
+  - Video upload via Vercel Blob storage
+  - Image proxy for external images (CORS bypass)
+- **Cross-posting**: Post to external social platforms
+  - Cross-post to Bluesky
+  - Cross-post to Mastodon
+  - Platform follow detection
+  - Text splitting for platform character limits
+- **OAuth Account Linking**: Link external social accounts
+  - Bluesky OAuth 2.0 (PKCE)
+  - GitHub OAuth
+  - Mastodon OAuth
+  - Linked identities management in Settings
+- **Documents**: Markdown document management
+  - Create, view, and edit markdown documents
+  - Organize documents into nested folders
+  - Document editor with markdown preview
+  - Sync documents to/from local filesystem via `il-sync` CLI
+- **Exports**: Data export feature
+  - Export messages, lists, list data rows, and follows
+  - Accessible at `/exports`
+- **Admin Panel**: Admin-only management features
+  - User management (list, create, edit, bulk operations)
+  - Email log viewer
+  - Support links management
+  - Accessible at `/admin`
+- **Help System**: In-app help pages
+  - Markdown-driven help content from `documentation/help/`
+  - Help sidebar with navigation
+  - Accessible at `/help/[slug]`
+- **Architecture Visualizer**: Database schema and aggregate visualization
+  - ERD diagram of the database schema
+  - Per-table data grid views
+  - Accessible at `/architecture-aggregates`
+- **Email Change Workflow**: Users can change their email address
+  - Change email request with verification link
+  - Confirmation page at `/verify-email-change`
 
 ### Security Features
 
@@ -725,6 +1036,9 @@ A test API endpoint is available at `/api/test-db` to verify your database conne
 - Rate limiting on email resend (10 minutes)
 - Secure token generation for password resets and email verification
 - Session-based authentication with httpOnly cookies
+- OAuth 2.0 (PKCE) for Bluesky account linking
+- Admin access control with Administrator model
+- CLI sync token authentication (separate from session cookies)
 
 ## Environment Variables
 
@@ -744,6 +1058,12 @@ A test API endpoint is available at `/api/test-db` to verify your database conne
 - `SESSION_COOKIE_NAME` - Session cookie name (defaults to `session`)
 - `SESSION_MAX_AGE` - Session max age in seconds (defaults to `604800` = 7 days)
 - `BLUESKY_CLIENT_ID` - Bluesky OAuth client metadata URL (optional; defaults to `{NEXT_PUBLIC_APP_URL}/api/oauth/client-metadata`)
+- `GITHUB_CLIENT_ID` - GitHub OAuth app client ID (for GitHub account linking)
+- `GITHUB_CLIENT_SECRET` - GitHub OAuth app client secret
+- `MASTODON_CLIENT_ID` - Mastodon OAuth app client ID
+- `MASTODON_CLIENT_SECRET` - Mastodon OAuth app client secret
+- `MASTODON_INSTANCE_URL` - Mastodon instance URL (e.g. `https://mastodon.social`)
+- `BLOB_READ_WRITE_TOKEN` - Vercel Blob storage token (for image and video uploads)
 
 **Note**: See `.env.example` for a complete template. Environment variables should be set in `.env` or `.env.local` (both are gitignored).
 
@@ -1022,7 +1342,43 @@ If you need to run migrations manually:
 - Organization pages: list, detail, user's organizations, create
 - Automatic membership in "The Public" organization for new users
 
+### Follow System
+- Follow/unfollow users
+- Pending follow requests with approve/reject workflow
+- Followers and following pages per user
+- Mutual follow detection
+- Follow-based message filtering in viewing preferences
+
+### Admin Panel
+- User management (list, view, create, bulk operations: status, clearance, delete)
+- Email log viewer for sent emails
+- Admin access controlled via Administrator model
+
+### Documents Feature
+- Create, view, and edit markdown documents
+- Nested folder organization
+- Image upload and embedding (stored in Vercel Blob)
+- CLI sync daemon (`il-sync`) for local filesystem sync
+
+### OAuth and Cross-posting
+- Bluesky OAuth 2.0 (PKCE) account linking
+- GitHub OAuth account linking
+- Mastodon OAuth account linking
+- Cross-post messages to Bluesky and Mastodon
+- Platform follow detection and media distribution
+
+### Message Enhancements
+- Image and video attachments (uploaded to Vercel Blob)
+- Threaded replies with thread view page
+- Cross-post status URLs stored with messages
+
+### Email Change Workflow
+- Users can request an email address change
+- Verification link sent to new email address
+- Confirmation page to complete the change
+
 ### Database Migrations
+- `20250210120000_add_linked_identities` - LinkedIdentity table for OAuth provider accounts
 - `20251223015038_init_user` - Initial user schema
 - `20260104005203_add_theme_to_user` - Theme preferences
 - `20260104035743_add_password_reset_fields` - Password reset functionality
@@ -1033,4 +1389,24 @@ If you need to run migrations manually:
 - `20260125002814_add_link_metadata_to_messages` - Link metadata JSONB field for messages
 - `20260125040011_new_feautres` - Index optimizations
 - `20260125170624_add_view_preferences` - User view preferences (messagesPerPage, viewingPreference, showPreviews)
+- `20260128161140_add_parent_list_relationship` - Parent/child list hierarchy
+- `20260131110554_add_administrators` - Administrator model for admin access control
+- `20260202000000_add_follow_system` - Follow and follow request tables
+- `20260203000000_add_user_location` - User location fields
+- `20260205143613_add_is_public_to_lists` - Public/private flag on lists
 - `20260207015750_add_organizations` - Organizations and UserOrganization tables with "The Public" seed data
+- `20260207121021_add_active_to_user_organization` - Active flag on user organization membership
+- `20260207135000_add_show_advanced_post_settings` - Advanced post settings preference
+- `20260208000000_add_message_image_urls` - Image URL array on messages
+- `20260211201345_add_message_video_urls` - Video URL array on messages
+- `20260212000000_add_cross_post_urls` - Cross-post status URL fields on messages
+- `20260215000000_add_message_replies` - Message reply relationships
+- `20260216000000_add_cleared` - Cleared/suspended status for users
+- `20260217000000_add_email_change_fields` - Email change token fields on users
+- `20260218000000_add_list_watchers` - ListWatcher table for list access and permissions
+- `20260219000000_add_role_to_list_watcher` - Role field on ListWatcher
+- `20260220000000_add_documents_and_folders` - Document and Folder tables
+- `20260220000001_add_sync_tokens` - SyncToken table for CLI authentication
+- `20260221000000_add_adron_as_public_owner` - Seed migration for initial owner assignment
+- `20260222000000_add_email_logs` - EmailLog table for sent email tracking
+- `20260223000000_add_from_email_to_email_log` - From email field on EmailLog
