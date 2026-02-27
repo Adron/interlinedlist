@@ -325,21 +325,24 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                     {mastodonIdentities.map((m) => {
                       const instanceName = getMastodonInstanceName(m.provider);
                       const isSelected = selectedMastodonIds.has(m.id);
+                      const hoverText = m.providerUsername
+                        ? `Cross-post to Mastodon (${instanceName}) - @${m.providerUsername}`
+                        : `Cross-post to Mastodon (${instanceName})`;
                       return (
                         <button
                           key={m.id}
                           type="button"
                           className={`btn btn-sm btn-link p-1 ${isSelected ? 'text-primary' : 'text-muted'}`}
-                          aria-label={`Cross-post to ${instanceName}`}
+                          aria-label={hoverText}
                           style={{ 
                             border: 'none',
                             lineHeight: 1,
                             minWidth: 'auto',
                           }}
-                          title={m.providerUsername ? `${instanceName} (@${m.providerUsername})` : instanceName}
+                          title={hoverText}
                           onClick={() => toggleMastodon(m.id)}
                         >
-                          <i className="bx bx-broadcast" style={{ fontSize: '1.1rem' }}></i>
+                          <i className="bx bxl-mastodon" style={{ fontSize: '1.1rem' }}></i>
                         </button>
                       );
                     })}
@@ -347,13 +350,13 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                       <button
                         type="button"
                         className={`btn btn-sm btn-link p-1 ${crossPostToBluesky ? 'text-primary' : 'text-muted'}`}
-                        aria-label="Cross-post to Bluesky"
+                        aria-label={`Cross-post to Bluesky${blueskyIdentity.providerUsername ? ` - @${blueskyIdentity.providerUsername}` : 'Cross-post to Bluesky'}`}
                         style={{ 
                           border: 'none',
                           lineHeight: 1,
                           minWidth: 'auto',
                         }}
-                        title={blueskyIdentity.providerUsername ? `Bluesky (@${blueskyIdentity.providerUsername})` : 'Bluesky'}
+                        title={`Cross-post to Bluesky${blueskyIdentity.providerUsername ? ` - @${blueskyIdentity.providerUsername}` : ''}`}
                         onClick={toggleBluesky}
                       >
                         <i className="bx bxl-bluesky" style={{ fontSize: '1.1rem' }}></i>
