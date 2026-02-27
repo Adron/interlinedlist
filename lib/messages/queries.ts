@@ -12,10 +12,16 @@ export async function buildMessageWhereClause(
   userId: string | null,
   viewingPreference: string | null = 'all_messages'
 ): Promise<Prisma.MessageWhereInput> {
+  // Exclude scheduled messages that haven't been published yet
+  const scheduledFilter = {
+    OR: [{ scheduledAt: null }, { scheduledAt: { lte: new Date() } }],
+  };
+
   // Unauthenticated users see only public messages
   if (!userId) {
     return {
       publiclyVisible: true,
+      ...scheduledFilter,
     };
   }
 
@@ -25,6 +31,7 @@ export async function buildMessageWhereClause(
       // Show only the user's own messages
       return {
         userId,
+        ...scheduledFilter,
       };
 
     case 'following_only': {
@@ -50,6 +57,7 @@ export async function buildMessageWhereClause(
         // User follows no one, show only their own messages
         return {
           userId,
+          ...scheduledFilter,
         };
       }
 
@@ -63,19 +71,24 @@ export async function buildMessageWhereClause(
       // - If the followed user has a public account: show all messages (public and private)
       // - Also include user's own messages
       return {
-        OR: [
-          { userId }, // User's own messages
+        AND: [
+          scheduledFilter,
           {
-            userId: { in: followingIds },
             OR: [
-              // Public messages from private accounts
+              { userId }, // User's own messages
               {
-                userId: { in: privateAccountIds },
-                publiclyVisible: true,
-              },
-              // All messages from public accounts
-              {
-                userId: { in: followingIds.filter((id) => !privateAccountIds.includes(id)) },
+                userId: { in: followingIds },
+                OR: [
+                  // Public messages from private accounts
+                  {
+                    userId: { in: privateAccountIds },
+                    publiclyVisible: true,
+                  },
+                  // All messages from public accounts
+                  {
+                    userId: { in: followingIds.filter((id) => !privateAccountIds.includes(id)) },
+                  },
+                ],
               },
             ],
           },
@@ -106,6 +119,7 @@ export async function buildMessageWhereClause(
         // No followers, show only user's own messages
         return {
           userId,
+          ...scheduledFilter,
         };
       }
 
@@ -119,19 +133,24 @@ export async function buildMessageWhereClause(
       // - If the follower has a public account: show all messages (public and private)
       // - Also include user's own messages
       return {
-        OR: [
-          { userId }, // User's own messages
+        AND: [
+          scheduledFilter,
           {
-            userId: { in: followerIds },
             OR: [
-              // Public messages from private accounts
+              { userId }, // User's own messages
               {
-                userId: { in: privateAccountIds },
-                publiclyVisible: true,
-              },
-              // All messages from public accounts
-              {
-                userId: { in: followerIds.filter((id) => !privateAccountIds.includes(id)) },
+                userId: { in: followerIds },
+                OR: [
+                  // Public messages from private accounts
+                  {
+                    userId: { in: privateAccountIds },
+                    publiclyVisible: true,
+                  },
+                  // All messages from public accounts
+                  {
+                    userId: { in: followerIds.filter((id) => !privateAccountIds.includes(id)) },
+                  },
+                ],
               },
             ],
           },
@@ -143,9 +162,14 @@ export async function buildMessageWhereClause(
     default:
       // Authenticated users see: their own messages (public or private) + all public messages
       return {
-        OR: [
-          { userId }, // User's own messages
-          { publiclyVisible: true }, // All public messages
+        AND: [
+          scheduledFilter,
+          {
+            OR: [
+              { userId }, // User's own messages
+              { publiclyVisible: true }, // All public messages
+            ],
+          },
         ],
       };
   }
@@ -162,9 +186,13 @@ export function buildWallMessageWhereClause(
   viewerUserId: string | null
 ): Prisma.MessageWhereInput {
   const isOwner = viewerUserId === profileUserId;
+  const scheduledFilter = {
+    OR: [{ scheduledAt: null }, { scheduledAt: { lte: new Date() } }],
+  };
   return {
     userId: profileUserId,
     ...(isOwner ? {} : { publiclyVisible: true }),
+    ...scheduledFilter,
   };
 }
 

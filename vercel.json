@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/sync-github-lists",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/publish-scheduled-messages",
+      "schedule": "* * * * *"
     }
   ]
 }

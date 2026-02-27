@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { content, publiclyVisible, imageUrls, videoUrls, mastodonProviderIds, crossPostToBluesky, parentId } = body;
+    const { content, publiclyVisible, imageUrls, videoUrls, mastodonProviderIds, crossPostToBluesky, parentId, scheduledAt: scheduledAtRaw } = body;
 
     // Validate content
     if (!content || typeof content !== 'string' || content.trim().length === 0) {
@@ -98,6 +98,19 @@ export async function POST(request: NextRequest) {
       finalVideoUrls = urls.length > 0 ? urls : undefined;
     }
 
+    // Parse and validate scheduledAt if provided
+    let scheduledAt: Date | undefined;
+    if (scheduledAtRaw !== undefined && scheduledAtRaw !== null && typeof scheduledAtRaw === 'string') {
+      const parsed = new Date(scheduledAtRaw);
+      if (isNaN(parsed.getTime())) {
+        return NextResponse.json({ error: 'Invalid scheduledAt date' }, { status: 400 });
+      }
+      if (parsed <= new Date()) {
+        return NextResponse.json({ error: 'scheduledAt must be in the future' }, { status: 400 });
+      }
+      scheduledAt = parsed;
+    }
+
     // Reply: validate parent and visibility
     let parentMessage: { id: string; userId: string; publiclyVisible: boolean; crossPostUrls: unknown } | null = null;
     if (parentId && typeof parentId === 'string' && parentId.trim()) {
@@ -115,6 +128,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create message (or reply)
+    const isScheduled = !!scheduledAt && !parentMessage;
     const message = await prisma.message.create({
       data: {
         content: content.trim(),
@@ -123,6 +137,13 @@ export async function POST(request: NextRequest) {
         ...(parentMessage && { parentId: parentMessage.id }),
         ...(finalImageUrls !== undefined && { imageUrls: finalImageUrls }),
         ...(finalVideoUrls !== undefined && { videoUrls: finalVideoUrls }),
+        ...(scheduledAt && { scheduledAt }),
+        ...(isScheduled && {
+          scheduledCrossPostConfig: {
+            mastodonProviderIds: Array.isArray(mastodonProviderIds) ? mastodonProviderIds : [],
+            crossPostToBluesky: crossPostToBluesky === true,
+          } as object,
+        }),
       },
       include: {
         user: {
@@ -156,10 +177,10 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Cross-post to selected Mastodon accounts (skip for replies - reply cross-post handled below)
+    // Cross-post to selected Mastodon accounts (skip for replies, skip for scheduled - cron will handle)
     const crossPostResults: Array<{ providerId: string; instanceName: string; success: boolean; url?: string; error?: string }> = [];
     const crossPostUrls: Array<{ platform: string; url: string; instanceName: string; statusId?: string; instanceUrl?: string; uri?: string; cid?: string }> = [];
-    const providerIds = !parentMessage && Array.isArray(mastodonProviderIds)
+    const providerIds = !parentMessage && !isScheduled && Array.isArray(mastodonProviderIds)
       ? mastodonProviderIds.filter((id: unknown) => typeof id === 'string')
       : [];
 
@@ -201,8 +222,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Cross-post to Bluesky if enabled (skip for replies)
-    if (!parentMessage && crossPostToBluesky === true) {
+    // Cross-post to Bluesky if enabled (skip for replies, skip for scheduled)
+    if (!parentMessage && !isScheduled && crossPostToBluesky === true) {
       const blueskyIdentity = await prisma.linkedIdentity.findFirst({
         where: {
           userId: user.id,
@@ -331,8 +352,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
-        message: 'Message created successfully',
+        message: isScheduled ? 'Message scheduled successfully' : 'Message created successfully',
         data: message,
+        ...(isScheduled && { scheduledAt: scheduledAt?.toISOString() }),
         ...(crossPostResults.length > 0 && { crossPostResults }),
       },
       { status: 201 }
