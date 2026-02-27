@@ -21,6 +21,11 @@ function getMastodonInstanceName(provider: string): string {
   return provider.startsWith('mastodon:') ? provider.replace('mastodon:', '') : provider;
 }
 
+function toDatetimeLocal(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 export default function MessageInput({ maxLength, defaultPubliclyVisible = false, showAdvancedPostSettings = false, onSubmit }: MessageInputProps) {
   const [content, setContent] = useState('');
   const [publiclyVisible, setPubliclyVisible] = useState(defaultPubliclyVisible);
@@ -41,6 +46,9 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
   const [selectedMastodonIds, setSelectedMastodonIds] = useState<Set<string>>(new Set());
   const [crossPostToBluesky, setCrossPostToBluesky] = useState(false);
   const [crossPostResults, setCrossPostResults] = useState<Array<{ providerId: string; instanceName: string; success: boolean; error?: string }> | null>(null);
+  const [scheduledAt, setScheduledAt] = useState<Date | null>(null);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [scheduleDraft, setScheduleDraft] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -64,6 +72,14 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
   useEffect(() => {
     setShowSettingsMenu(showAdvancedPostSettings);
   }, [showAdvancedPostSettings]);
+
+  // When opening schedule modal, initialize draft from existing scheduledAt or default to 1 hour from now
+  useEffect(() => {
+    if (showScheduleModal) {
+      const defaultDate = new Date(Date.now() + 60 * 60 * 1000);
+      setScheduleDraft(scheduledAt ? toDatetimeLocal(scheduledAt) : toDatetimeLocal(defaultDate));
+    }
+  }, [showScheduleModal, scheduledAt]);
 
   // Fetch identities (Mastodon, Bluesky) on mount
   useEffect(() => {
@@ -126,6 +142,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
           ...(videoUrls.length > 0 && { videoUrls }),
           ...(selectedMastodonIds.size > 0 && { mastodonProviderIds: Array.from(selectedMastodonIds) }),
           ...(crossPostToBluesky && { crossPostToBluesky: true }),
+          ...(scheduledAt && scheduledAt > new Date() && { scheduledAt: scheduledAt.toISOString() }),
         }),
       });
 
@@ -150,6 +167,8 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
       setVideoUrls([]);
       setPendingVideoFile(null);
       setCrossPostToBluesky(false);
+      setScheduledAt(null);
+      setShowScheduleModal(false);
       setError('');
       setLoading(false); // Reset loading state so button is enabled for next post
       
@@ -378,15 +397,15 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                     </button>
                     <button
                       type="button"
-                      className="btn btn-sm btn-link p-1 text-muted"
-                      disabled
-                      aria-label="Scheduled"
+                      className={`btn btn-sm btn-link p-1 ${scheduledAt ? 'text-primary' : 'text-muted'}`}
+                      aria-label="Schedule post"
                       style={{ 
                         border: 'none',
                         lineHeight: 1,
                         minWidth: 'auto',
                       }}
-                      title="Scheduled"
+                      title="Schedule post"
+                      onClick={() => setShowScheduleModal(true)}
                     >
                       <i className="bx bx-calendar-alt" style={{ fontSize: '1.1rem' }}></i>
                     </button>
@@ -665,13 +684,80 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
             </div>
           )}
 
-          <div className="d-flex gap-2 justify-content-end">
+          {/* Schedule post modal */}
+          {showScheduleModal && (
+            <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} role="dialog">
+              <div className="modal-dialog modal-dialog-centered">
+                <div className="modal-content">
+                  <div className="modal-header">
+                    <h5 className="modal-title">Schedule post</h5>
+                    <button type="button" className="btn-close" aria-label="Close" onClick={() => setShowScheduleModal(false)} />
+                  </div>
+                  <div className="modal-body">
+                    <p className="small text-muted mb-2">Choose a date and time in the future. The message will be posted when the scheduled time arrives.</p>
+                    <label className="form-label small">Date and time</label>
+                    <input
+                      type="datetime-local"
+                      className="form-control"
+                      min={toDatetimeLocal(new Date(Date.now() + 60000))}
+                      value={scheduleDraft}
+                      onChange={(e) => setScheduleDraft(e.target.value)}
+                    />
+                  </div>
+                  <div className="modal-footer">
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => setShowScheduleModal(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={() => {
+                        const parsed = new Date(scheduleDraft);
+                        if (isNaN(parsed.getTime()) || parsed <= new Date()) {
+                          setError('Please select a future date and time');
+                          return;
+                        }
+                        setScheduledAt(parsed);
+                        setShowScheduleModal(false);
+                        setError('');
+                      }}
+                    >
+                      Confirm
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="d-flex flex-column align-items-end gap-1">
+            {scheduledAt && scheduledAt > new Date() && (
+              <div
+                className="small text-muted text-end"
+                role="button"
+                tabIndex={0}
+                onClick={() => { setScheduledAt(null); setShowScheduleModal(false); }}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setScheduledAt(null); setShowScheduleModal(false); } }}
+                style={{ cursor: 'pointer' }}
+              >
+                <span className="d-block">Scheduled for {scheduledAt.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                <span className="d-block">(Click date &amp; time to cancel)</span>
+              </div>
+            )}
             <button
               type="submit"
               className="btn btn-primary btn-sm"
               disabled={loading || !content.trim() || isOverLimit}
             >
-              {loading ? 'Posting...' : 'Post Message'}
+              {loading
+                ? (scheduledAt ? 'Scheduling...' : 'Posting...')
+                : scheduledAt && scheduledAt > new Date()
+                  ? 'Schedule Message'
+                  : 'Post Message'}
             </button>
           </div>
         </form>
