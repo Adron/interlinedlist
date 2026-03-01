@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { postToMastodon } from "@/lib/mastodon/post-status";
 import { postToBluesky } from "@/lib/bluesky/post-status";
@@ -137,7 +138,7 @@ export async function GET(request: NextRequest) {
         where: { id: message.id },
         data: {
           scheduledAt: null,
-          scheduledCrossPostConfig: null,
+          scheduledCrossPostConfig: Prisma.DbNull,
           ...(crossPostUrls.length > 0 && { crossPostUrls: crossPostUrls as object }),
         },
       });
