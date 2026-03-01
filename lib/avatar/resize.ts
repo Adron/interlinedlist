@@ -13,10 +13,13 @@ export interface ResizeResult {
  * and output size is at most MAX_BYTES. Prefer JPEG for smaller size.
  */
 export async function resizeAvatarToLimit(input: Buffer, mimeType?: string): Promise<ResizeResult> {
-  let image = sharp(input);
+  const image = sharp(input);
   const meta = await image.metadata();
-  const w = meta.width ?? 0;
-  const h = meta.height ?? 0;
+  const rawW = meta.width ?? 0;
+  const rawH = meta.height ?? 0;
+  // Orientation 5–8 swap dimensions after rotate(); use rotated dimensions for resize
+  const orientation = meta.orientation ?? 1;
+  const [w, h] = orientation >= 5 ? [rawH, rawW] : [rawW, rawH];
 
   let width = w;
   let height = h;
@@ -36,6 +39,7 @@ export async function resizeAvatarToLimit(input: Buffer, mimeType?: string): Pro
 
   const tryEncode = async (q: number): Promise<Buffer> => {
     const pipeline = sharp(input)
+      .rotate() // Apply EXIF orientation so images don't appear upside down
       .resize(width, height, { fit: 'inside', withoutEnlargement: true });
     if (isPng) {
       return pipeline.png({ compressionLevel: 9 }).toBuffer();

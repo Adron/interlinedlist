@@ -4,6 +4,80 @@ import { useState, FormEvent, useRef, useEffect } from 'react';
 
 const MAX_IMAGES = 6;
 
+const RASTER_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+function isRasterImage(file: File): boolean {
+  return RASTER_TYPES.includes(file.type);
+}
+
+/** Rotate image (File or URL) by degrees (90, 180, or 270). Returns blob. */
+async function rotateImageBlob(source: File | string, degrees: number): Promise<Blob> {
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+
+  if (source instanceof File) {
+    const url = URL.createObjectURL(source);
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        resolve();
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('Failed to load image'));
+      };
+      img.src = url;
+    });
+  } else {
+    const res = await fetch(source);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        resolve();
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('Failed to load image'));
+      };
+      img.src = url;
+    });
+  }
+
+  const w = img.naturalWidth;
+  const h = img.naturalHeight;
+  const swap = degrees === 90 || degrees === 270;
+  const cw = swap ? h : w;
+  const ch = swap ? w : h;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = cw;
+  canvas.height = ch;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas 2d not available');
+
+  const rad = (degrees * Math.PI) / 180;
+  ctx.translate(cw / 2, ch / 2);
+  ctx.rotate(rad);
+  ctx.translate(-w / 2, -h / 2);
+  ctx.drawImage(img, 0, 0);
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (b) => (b ? resolve(b) : reject(new Error('toBlob failed'))),
+      'image/jpeg',
+      0.9
+    );
+  });
+}
+
+/** Convert rotated blob to File for upload. */
+function blobToFile(blob: Blob, name: string): File {
+  const base = name.replace(/\.[^.]+$/, '') || name;
+  return new File([blob], `${base}.jpg`, { type: 'image/jpeg' });
+}
+
 interface Identity {
   id: string;
   provider: string;
@@ -36,7 +110,10 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
   const [showImageModal, setShowImageModal] = useState(false);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [pendingRotations, setPendingRotations] = useState<number[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [rotatingUrlIndex, setRotatingUrlIndex] = useState<number | null>(null);
+  const [pendingPreviewUrls, setPendingPreviewUrls] = useState<string[]>([]);
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const [pendingVideoFile, setPendingVideoFile] = useState<File | null>(null);
@@ -54,6 +131,15 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const imageUrlsWhenModalOpenedRef = useRef<string[]>([]);
   const videoUrlsWhenModalOpenedRef = useRef<string[]>([]);
+
+  // Create/revoke object URLs for pending file previews
+  useEffect(() => {
+    const urls = pendingFiles.map((f) => URL.createObjectURL(f));
+    setPendingPreviewUrls(urls);
+    return () => {
+      urls.forEach((u) => URL.revokeObjectURL(u));
+    };
+  }, [pendingFiles]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -495,45 +581,152 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                           if (pendingFiles.length + imageUrls.length + valid.length >= MAX_IMAGES) break;
                           valid.push(f);
                         }
-                        setPendingFiles((prev) => [...prev, ...valid].slice(0, MAX_IMAGES - imageUrls.length));
+                        const next = [...pendingFiles, ...valid].slice(0, MAX_IMAGES - imageUrls.length);
+                        setPendingFiles(next);
+                        setPendingRotations((prev) => {
+                          const need = next.length;
+                          if (need <= prev.length) return prev.slice(0, need);
+                          return [...prev, ...Array(need - prev.length).fill(0)];
+                        });
                         e.target.value = '';
                       }}
                     />
                     {pendingFiles.length > 0 && (
                       <div className="mb-2">
                         <small className="text-muted d-block mb-1">Selected: {pendingFiles.length}</small>
-                        <div className="d-flex flex-wrap gap-1">
-                          {pendingFiles.map((f, i) => (
-                            <span key={i} className="badge bg-secondary d-inline-flex align-items-center gap-1">
-                              {f.name}
-                              <button
-                                type="button"
-                                className="btn-close btn-close-white"
-                                style={{ fontSize: '0.6rem' }}
-                                aria-label="Remove"
-                                onClick={() => setPendingFiles((prev) => prev.filter((_, j) => j !== i))}
-                              />
-                            </span>
-                          ))}
+                        <div className="d-flex flex-wrap gap-2 align-items-center">
+                          {pendingFiles.map((f, i) => {
+                            const previewUrl = pendingPreviewUrls[i];
+                            const isRaster = isRasterImage(f);
+                            const rot = pendingRotations[i] ?? 0;
+                            return (
+                              <div key={i} className="d-flex align-items-center gap-1 border rounded p-1">
+                                {previewUrl && (
+                                  <img
+                                    src={previewUrl}
+                                    alt=""
+                                    style={{
+                                      width: 48,
+                                      height: 48,
+                                      objectFit: 'cover',
+                                      borderRadius: 4,
+                                      transform: `rotate(${rot}deg)`,
+                                    }}
+                                  />
+                                )}
+                                {isRaster && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      className="btn btn-sm btn-outline-secondary p-1"
+                                      aria-label="Rotate 90° clockwise"
+                                      title="Rotate 90° CW"
+                                      onClick={() =>
+                                        setPendingRotations((prev) => {
+                                          const next = [...prev];
+                                          next[i] = ((next[i] ?? 0) + 90) % 360;
+                                          return next;
+                                        })
+                                      }
+                                    >
+                                      <i className="bx bx-rotate-right" style={{ fontSize: '1rem' }} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="btn btn-sm btn-outline-secondary p-1"
+                                      aria-label="Rotate 90° counter-clockwise"
+                                      title="Rotate 90° CCW"
+                                      onClick={() =>
+                                        setPendingRotations((prev) => {
+                                          const next = [...prev];
+                                          next[i] = ((next[i] ?? 0) + 270) % 360;
+                                          return next;
+                                        })
+                                      }
+                                    >
+                                      <i className="bx bx-rotate-left" style={{ fontSize: '1rem' }} />
+                                    </button>
+                                  </>
+                                )}
+                                <button
+                                  type="button"
+                                  className="btn-close btn-sm"
+                                  aria-label="Remove"
+                                  onClick={() => {
+                                    setPendingFiles((prev) => prev.filter((_, j) => j !== i));
+                                    setPendingRotations((prev) => prev.filter((_, j) => j !== i));
+                                  }}
+                                />
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
                     {imageUrls.length > 0 && (
                       <div className="mb-2">
                         <small className="text-muted d-block mb-1">Uploaded: {imageUrls.length}</small>
-                        <div className="d-flex flex-wrap gap-1">
-                          {imageUrls.map((url, i) => (
-                            <div key={i} className="position-relative">
-                              <img src={url} alt="" style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 4 }} />
-                              <button
-                                type="button"
-                                className="btn-close position-absolute top-0 start-0"
-                                style={{ fontSize: '0.5rem' }}
-                                aria-label="Remove"
-                                onClick={() => setImageUrls((prev) => prev.filter((_, j) => j !== i))}
-                              />
-                            </div>
-                          ))}
+                        <div className="d-flex flex-wrap gap-2 align-items-center">
+                          {imageUrls.map((url, i) => {
+                            const isRotating = rotatingUrlIndex === i;
+                            return (
+                              <div key={i} className="d-flex align-items-center gap-1 border rounded p-1 position-relative">
+                                <div className="position-relative">
+                                  <img
+                                    src={url}
+                                    alt=""
+                                    style={{
+                                      width: 48,
+                                      height: 48,
+                                      objectFit: 'cover',
+                                      borderRadius: 4,
+                                      opacity: isRotating ? 0.6 : 1,
+                                    }}
+                                  />
+                                  {isRotating && (
+                                    <span
+                                      className="position-absolute top-50 start-50 translate-middle spinner-border spinner-border-sm"
+                                      role="status"
+                                      aria-hidden="true"
+                                    />
+                                  )}
+                                </div>
+                                <button
+                                    type="button"
+                                    className="btn btn-sm btn-outline-secondary p-1"
+                                    aria-label="Rotate 90° clockwise"
+                                    title="Rotate 90°"
+                                    disabled={isRotating}
+                                    onClick={async () => {
+                                      setRotatingUrlIndex(i);
+                                      try {
+                                        const blob = await rotateImageBlob(url, 90);
+                                        const file = blobToFile(blob, 'image.jpg');
+                                        const fd = new FormData();
+                                        fd.append('file', file);
+                                        const res = await fetch('/api/messages/images/upload', { method: 'POST', body: fd });
+                                        const data = await res.json();
+                                        if (res.ok && data.url) {
+                                          setImageUrls((prev) => prev.map((u, j) => (j === i ? data.url : u)));
+                                        }
+                                      } catch {
+                                        // ignore rotate/re-upload errors
+                                      } finally {
+                                        setRotatingUrlIndex(null);
+                                      }
+                                    }}
+                                  >
+                                    <i className="bx bx-rotate-right" style={{ fontSize: '1rem' }} />
+                                  </button>
+                                <button
+                                  type="button"
+                                  className="btn-close btn-sm"
+                                  aria-label="Remove"
+                                  onClick={() => setImageUrls((prev) => prev.filter((_, j) => j !== i))}
+                                />
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
@@ -548,6 +741,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                       onClick={() => {
                         setImageUrls([...imageUrlsWhenModalOpenedRef.current]);
                         setPendingFiles([]);
+                        setPendingRotations([]);
                         setShowImageModal(false);
                       }}
                     >
@@ -561,7 +755,17 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                         if (pendingFiles.length === 0) return;
                         setUploadingImages(true);
                         const urls: string[] = [];
-                        for (const file of pendingFiles) {
+                        for (let i = 0; i < pendingFiles.length; i++) {
+                          let file = pendingFiles[i];
+                          const rot = pendingRotations[i] ?? 0;
+                          if (rot !== 0 && isRasterImage(file)) {
+                            try {
+                              const blob = await rotateImageBlob(file, rot);
+                              file = blobToFile(blob, file.name);
+                            } catch {
+                              // fallback to original on rotate failure
+                            }
+                          }
                           const fd = new FormData();
                           fd.append('file', file);
                           try {
@@ -574,6 +778,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                         }
                         setImageUrls((prev) => [...prev, ...urls].slice(0, MAX_IMAGES));
                         setPendingFiles([]);
+                        setPendingRotations([]);
                         setUploadingImages(false);
                       }}
                     >
