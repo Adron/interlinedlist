@@ -1,6 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+
+type TabId = 'cards' | 'datagrid' | 'tree' | 'erd';
+
+const VALID_VIEWS: TabId[] = ['cards', 'datagrid', 'tree', 'erd'];
+
+function parseViewParam(value: string | null): TabId {
+  if (value && VALID_VIEWS.includes(value as TabId)) {
+    return value as TabId;
+  }
+  return 'cards';
+}
 
 interface ListsTabsProps {
   cardsView: React.ReactNode;
@@ -10,7 +22,25 @@ interface ListsTabsProps {
 }
 
 export default function ListsTabs({ cardsView, datagridView, treeView, erdView }: ListsTabsProps) {
-  const [activeTab, setActiveTab] = useState<'cards' | 'datagrid' | 'tree' | 'erd'>('cards');
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const [activeTab, setActiveTab] = useState<TabId>(() =>
+    parseViewParam(searchParams.get('view'))
+  );
+
+  useEffect(() => {
+    const view = parseViewParam(searchParams.get('view'));
+    setActiveTab(view);
+  }, [searchParams]);
+
+  const handleTabClick = (tab: TabId) => {
+    setActiveTab(tab);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('view', tab);
+    router.replace(`${pathname}?${params.toString()}`);
+  };
 
   return (
     <>
@@ -18,9 +48,10 @@ export default function ListsTabs({ cardsView, datagridView, treeView, erdView }
         <li className="nav-item" role="presentation">
           <button
             className={`nav-link ${activeTab === 'cards' ? 'active' : ''}`}
-            onClick={() => setActiveTab('cards')}
+            onClick={() => handleTabClick('cards')}
             type="button"
             role="tab"
+            aria-selected={activeTab === 'cards'}
           >
             <i className="bx bx-grid-alt me-1"></i>
             Cards
@@ -29,9 +60,10 @@ export default function ListsTabs({ cardsView, datagridView, treeView, erdView }
         <li className="nav-item" role="presentation">
           <button
             className={`nav-link ${activeTab === 'datagrid' ? 'active' : ''}`}
-            onClick={() => setActiveTab('datagrid')}
+            onClick={() => handleTabClick('datagrid')}
             type="button"
             role="tab"
+            aria-selected={activeTab === 'datagrid'}
           >
             <i className="bx bx-table me-1"></i>
             Data Grid
@@ -40,9 +72,10 @@ export default function ListsTabs({ cardsView, datagridView, treeView, erdView }
         <li className="nav-item" role="presentation">
           <button
             className={`nav-link ${activeTab === 'tree' ? 'active' : ''}`}
-            onClick={() => setActiveTab('tree')}
+            onClick={() => handleTabClick('tree')}
             type="button"
             role="tab"
+            aria-selected={activeTab === 'tree'}
           >
             <i className="bx bx-git-branch me-1"></i>
             Tree View
@@ -51,9 +84,10 @@ export default function ListsTabs({ cardsView, datagridView, treeView, erdView }
         <li className="nav-item" role="presentation">
           <button
             className={`nav-link ${activeTab === 'erd' ? 'active' : ''}`}
-            onClick={() => setActiveTab('erd')}
+            onClick={() => handleTabClick('erd')}
             type="button"
             role="tab"
+            aria-selected={activeTab === 'erd'}
           >
             <i className="bx bx-network-chart me-1"></i>
             Entity Diagram

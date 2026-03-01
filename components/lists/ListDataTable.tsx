@@ -102,6 +102,9 @@ export default function ListDataTable({
 
   const sortedFields = [...fieldsWithOptions].sort((a, b) => a.displayOrder - b.displayOrder);
 
+  // When 4+ field columns, use form-only mode: no inline new row, no inline editing
+  const useFormOnlyMode = sortedFields.length >= 4;
+
   const fetchData = async () => {
     setLoading(true);
     setError("");
@@ -414,7 +417,7 @@ export default function ListDataTable({
   };
 
   const renderEditableCell = (row: ListDataRow, field: ParsedField) => {
-    if (readOnly) {
+    if (readOnly || useFormOnlyMode) {
       const value = row.rowData[field.propertyKey];
       return (
         <td key={field.propertyKey}>
@@ -532,8 +535,8 @@ export default function ListDataTable({
     return (
       <td
         key={field.propertyKey}
-        onClick={() => !readOnly && startEditing(row.id, field.propertyKey)}
-        style={{ cursor: readOnly ? "default" : "pointer" }}
+        onClick={() => startEditing(row.id, field.propertyKey)}
+        style={{ cursor: "pointer" }}
         className={isEditing ? "table-active" : ""}
       >
         {formatValue(field, value)}
@@ -747,35 +750,64 @@ export default function ListDataTable({
                       {!readOnly && (
                         <td>
                           <div className="btn-group btn-group-sm">
-                            <button
-                              className="btn btn-outline-secondary"
-                              onClick={() => sortedFields[0] && startEditing(row.id, sortedFields[0].propertyKey)}
-                              title="Edit row"
-                            >
-                              <i className="bx bx-edit"></i>
-                            </button>
-                            <Link
-                              href={`/lists/${listId}/edit/${row.id}`}
-                              className="btn btn-outline-secondary btn-sm"
-                              title="Edit in form"
-                            >
-                              <i className="bx bx-window-open"></i>
-                            </Link>
-                            <button
-                              className="btn btn-outline-danger"
-                              onClick={() => handleDelete(row.id)}
-                              title="Delete row"
-                            >
-                              <i className="bx bx-trash"></i>
-                            </button>
+                            {useFormOnlyMode ? (
+                              <>
+                                <Link
+                                  href={`/lists/${listId}/edit/${row.id}`}
+                                  className="btn btn-outline-secondary btn-sm"
+                                  title="Edit in form"
+                                >
+                                  <i className="bx bx-window-open"></i>
+                                </Link>
+                                <button
+                                  className="btn btn-outline-danger"
+                                  onClick={() => handleDelete(row.id)}
+                                  title="Delete row"
+                                >
+                                  <i className="bx bx-trash"></i>
+                                </button>
+                              </>
+                            ) : editingCell?.rowId === row.id ? (
+                              <Link
+                                href={`/lists/${listId}/edit/${row.id}`}
+                                className="btn btn-outline-secondary btn-sm"
+                                title="Edit in form"
+                              >
+                                <i className="bx bx-window-open"></i>
+                              </Link>
+                            ) : (
+                              <>
+                                <button
+                                  className="btn btn-outline-secondary"
+                                  onClick={() => sortedFields[0] && startEditing(row.id, sortedFields[0].propertyKey)}
+                                  title="Edit row"
+                                >
+                                  <i className="bx bx-edit"></i>
+                                </button>
+                                <Link
+                                  href={`/lists/${listId}/edit/${row.id}`}
+                                  className="btn btn-outline-secondary btn-sm"
+                                  title="Edit in form"
+                                >
+                                  <i className="bx bx-window-open"></i>
+                                </Link>
+                                <button
+                                  className="btn btn-outline-danger"
+                                  onClick={() => handleDelete(row.id)}
+                                  title="Delete row"
+                                >
+                                  <i className="bx bx-trash"></i>
+                                </button>
+                              </>
+                            )}
                           </div>
                         </td>
                       )}
                     </tr>
                   ))}
                   
-                  {/* Empty row - only when not readOnly */}
-                  {!readOnly && (
+                  {/* Empty row - only when not readOnly and not form-only mode (4+ columns) */}
+                  {!readOnly && !useFormOnlyMode && (
                     <tr className="table-light">
                       {sortedFields.map((field) => renderEmptyRowCell(field))}
                       <td>

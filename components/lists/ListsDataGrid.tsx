@@ -19,7 +19,7 @@ interface ListsDataGridProps {
   lists: ListForGrid[];
 }
 
-const ROWS_PER_PAGE = 10;
+const ROWS_PER_PAGE_OPTIONS = [10, 25, 50] as const;
 type SortField = 'title' | 'description' | 'parent' | 'created';
 type SortOrder = 'asc' | 'desc';
 
@@ -29,6 +29,7 @@ export default function ListsDataGrid({ lists }: ListsDataGridProps) {
   const [sortField, setSortField] = useState<SortField>('title');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const filtered = useMemo(() => {
     const title = titleFilter.trim().toLowerCase();
@@ -65,12 +66,12 @@ export default function ListsDataGrid({ lists }: ListsDataGridProps) {
     return copy;
   }, [filtered, sortField, sortOrder]);
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / ROWS_PER_PAGE));
+  const totalPages = Math.max(1, Math.ceil(sorted.length / rowsPerPage));
   const currentPage = Math.min(page, totalPages);
   const paginated = useMemo(() => {
-    const start = (currentPage - 1) * ROWS_PER_PAGE;
-    return sorted.slice(start, start + ROWS_PER_PAGE);
-  }, [sorted, currentPage]);
+    const start = (currentPage - 1) * rowsPerPage;
+    return sorted.slice(start, start + rowsPerPage);
+  }, [sorted, currentPage, rowsPerPage]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -82,12 +83,46 @@ export default function ListsDataGrid({ lists }: ListsDataGridProps) {
     setPage(1);
   };
 
+  const handleClearFilters = () => {
+    setTitleFilter('');
+    setDescFilter('');
+    setPage(1);
+  };
+
+  const hasActiveFilters = titleFilter.trim() !== '' || descFilter.trim() !== '';
+
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return <i className="bx bx-sort-alt-2 ms-1 opacity-50" style={{ fontSize: '0.75rem' }} />;
     return sortOrder === 'asc' ? (
       <i className="bx bx-sort-up ms-1" style={{ fontSize: '0.75rem' }} />
     ) : (
       <i className="bx bx-sort-down ms-1" style={{ fontSize: '0.75rem' }} />
+    );
+  };
+
+  const SortableTh = ({ field, label }: { field: SortField; label: string }) => {
+    const ariaSort = sortField === field ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none';
+    const ariaLabel = sortField === field
+      ? `Sort by ${label}, ${sortOrder === 'asc' ? 'ascending' : 'descending'}. Click to change sort.`
+      : `Sort by ${label}. Click to sort.`;
+    return (
+      <th
+        className="text-nowrap"
+        style={{ cursor: 'pointer', minWidth: field === 'description' ? 120 : undefined }}
+        onClick={() => handleSort(field)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleSort(field);
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        aria-sort={ariaSort}
+        aria-label={ariaLabel}
+      >
+        {label} <SortIcon field={field} />
+      </th>
     );
   };
 
@@ -105,7 +140,7 @@ export default function ListsDataGrid({ lists }: ListsDataGridProps) {
   return (
     <div className="card">
       <div className="card-body">
-        <div className="row g-2 mb-3">
+        <div className="row g-2 mb-3 align-items-end">
           <div className="col-md-4">
             <label className="form-label small mb-0">Filter by Title</label>
             <input
@@ -132,26 +167,33 @@ export default function ListsDataGrid({ lists }: ListsDataGridProps) {
               }}
             />
           </div>
+          <div className="col-md-4 d-flex justify-content-md-end">
+            <button
+              type="button"
+              className="btn btn-outline-secondary btn-sm"
+              onClick={handleClearFilters}
+              disabled={!hasActiveFilters}
+            >
+              Clear filters
+            </button>
+          </div>
         </div>
-      </div>
-      <div className="card-body p-0 pt-0">
-        <div className="table-responsive">
-          <table className="table table-hover table-sm mb-0">
+        <div className="table-responsive border-top">
+          <table className="table table-hover table-sm mb-0" style={{ tableLayout: 'fixed', width: '100%' }}>
+            <colgroup>
+              <col style={{ width: '25%' }} />
+              <col style={{ width: '35%' }} />
+              <col style={{ width: '15%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '15%', minWidth: 140 }} />
+            </colgroup>
             <thead>
               <tr>
-                <th className="text-nowrap" style={{ cursor: 'pointer' }} onClick={() => handleSort('title')}>
-                  Title <SortIcon field="title" />
-                </th>
-                <th className="text-nowrap" style={{ cursor: 'pointer' }} onClick={() => handleSort('description')}>
-                  Description <SortIcon field="description" />
-                </th>
-                <th className="text-nowrap" style={{ cursor: 'pointer' }} onClick={() => handleSort('parent')}>
-                  Parent <SortIcon field="parent" />
-                </th>
-                <th className="text-nowrap" style={{ cursor: 'pointer' }} onClick={() => handleSort('created')}>
-                  Created <SortIcon field="created" />
-                </th>
-                <th className="text-nowrap text-end">Actions</th>
+                <SortableTh field="title" label="Title" />
+                <SortableTh field="description" label="Description" />
+                <SortableTh field="parent" label="Parent" />
+                <SortableTh field="created" label="Created" />
+                <th className="text-nowrap text-end" style={{ minWidth: 140 }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -164,22 +206,22 @@ export default function ListsDataGrid({ lists }: ListsDataGridProps) {
               ) : (
               paginated.map((list) => (
                 <tr key={list.id}>
-                  <td className="align-middle">
-                    <Link href={`/lists/${list.id}`} className="fw-medium text-decoration-none">
+                  <td className="align-middle overflow-hidden">
+                    <Link href={`/lists/${list.id}`} className="fw-medium text-decoration-none text-truncate d-block" style={{ maxWidth: '100%' }}>
                       {list.title}
                       {list.source === 'github' && (
                         <i className="bx bxl-github ms-1 text-muted" style={{ fontSize: '0.85rem' }} title="GitHub-backed" />
                       )}
                     </Link>
                   </td>
-                  <td className="align-middle text-break" style={{ maxWidth: '300px' }}>
-                    <span className="text-muted text-truncate d-inline-block" style={{ maxWidth: '280px' }} title={list.description || ''}>
+                  <td className="align-middle overflow-hidden" style={{ maxWidth: 0 }}>
+                    <span className="text-muted text-truncate d-block" style={{ maxWidth: '100%' }} title={list.description || ''}>
                       {list.description || '—'}
                     </span>
                   </td>
-                  <td className="align-middle">
+                  <td className="align-middle overflow-hidden">
                     {list.parent ? (
-                      <Link href={`/lists/${list.parent.id}`} className="text-decoration-none">
+                      <Link href={`/lists/${list.parent.id}`} className="text-decoration-none text-truncate d-block" style={{ maxWidth: '100%' }}>
                         {list.parent.title}
                       </Link>
                     ) : (
@@ -189,7 +231,7 @@ export default function ListsDataGrid({ lists }: ListsDataGridProps) {
                   <td className="align-middle text-nowrap text-muted small">
                     {new Date(list.createdAt).toLocaleDateString()}
                   </td>
-                  <td className="align-middle text-end">
+                  <td className="align-middle text-end" style={{ whiteSpace: 'nowrap' }}>
                     <div className="btn-group btn-group-sm">
                       <Link
                         href={`/lists/${list.id}`}
@@ -218,10 +260,28 @@ export default function ListsDataGrid({ lists }: ListsDataGridProps) {
         </div>
 
         {sorted.length > 0 && (
-          <div className="d-flex justify-content-between align-items-center px-3 py-2 border-top">
-            <div className="text-muted small">
-              Showing {(currentPage - 1) * ROWS_PER_PAGE + 1} to{' '}
-              {Math.min(currentPage * ROWS_PER_PAGE, sorted.length)} of {sorted.length}
+          <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 px-0 py-2 border-top">
+            <div className="d-flex align-items-center gap-2 flex-wrap">
+              <span className="text-muted small">
+                Showing {(currentPage - 1) * rowsPerPage + 1} to{' '}
+                {Math.min(currentPage * rowsPerPage, sorted.length)} of {sorted.length}
+              </span>
+              <label className="d-flex align-items-center gap-1 small">
+                <span className="text-muted">Rows per page</span>
+                <select
+                  className="form-select form-select-sm"
+                  style={{ width: 'auto' }}
+                  value={rowsPerPage}
+                  onChange={(e) => {
+                    setRowsPerPage(Number(e.target.value));
+                    setPage(1);
+                  }}
+                >
+                  {ROWS_PER_PAGE_OPTIONS.map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
+              </label>
             </div>
             {totalPages > 1 && (
             <nav>
