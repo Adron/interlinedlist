@@ -188,18 +188,18 @@ export async function postToBluesky(
         };
       }
 
+      if (parentUri && parentCid && rootUri && rootCid) {
+        record.reply = {
+          parent: { uri: parentUri, cid: parentCid },
+          root: { uri: rootUri, cid: rootCid },
+        };
+      }
+
       const bodyObj: Record<string, unknown> = {
         repo: did,
         collection: 'app.bsky.feed.post',
         record,
       };
-
-      if (parentUri && parentCid && rootUri && rootCid) {
-        bodyObj.reply = {
-          parent: { uri: parentUri, cid: parentCid },
-          root: { uri: rootUri, cid: rootCid },
-        };
-      }
 
       const response = await session.fetchHandler('/xrpc/com.atproto.repo.createRecord', {
         method: 'POST',
