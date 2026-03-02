@@ -757,7 +757,7 @@ export default function ListDataTable({
                                   className="btn btn-outline-secondary btn-sm"
                                   title="Edit in form"
                                 >
-                                  <i className="bx bx-window-open"></i>
+                                  <i className="bx bx-edit"></i>
                                 </Link>
                                 <button
                                   className="btn btn-outline-danger"
@@ -773,7 +773,7 @@ export default function ListDataTable({
                                 className="btn btn-outline-secondary btn-sm"
                                 title="Edit in form"
                               >
-                                <i className="bx bx-window-open"></i>
+                                <i className="bx bx-edit"></i>
                               </Link>
                             ) : (
                               <>
@@ -789,7 +789,7 @@ export default function ListDataTable({
                                   className="btn btn-outline-secondary btn-sm"
                                   title="Edit in form"
                                 >
-                                  <i className="bx bx-window-open"></i>
+                                  <i className="bx bx-edit"></i>
                                 </Link>
                                 <button
                                   className="btn btn-outline-danger"
