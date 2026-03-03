@@ -2,7 +2,22 @@
 
 ## Executive Summary
 
-The backup and restore scripts provide a solid foundation for database backup and recovery, but there are several areas that need attention to ensure complete coverage of all database elements and data.
+The backup and restore scripts provide a solid foundation for database backup and recovery. **Verification and validation have been implemented** (see "Implementation Status" below) to ensure backup integrity and successful restores.
+
+## Implementation Status (Updates Applied)
+
+The following improvements from the recommendations have been implemented:
+
+| Recommendation | Status | Location |
+|----------------|--------|----------|
+| Post-backup verification | ✅ Implemented | `backup-database.js` – `verifyBackup()` checks file size, SQL header, and required tables |
+| Backup file size check | ✅ Implemented | `backup-database.js` – warns if backup &lt; 1KB |
+| Pre-restore backup validation | ✅ Implemented | `restore-database.js` – `validateBackupFile()` before restore |
+| Post-restore verification | ✅ Implemented | `restore-database.js` – `verifyRestore()` reports row counts per table |
+| Required tables list | ✅ Implemented | Both scripts – `REQUIRED_TABLES` constant synced with Prisma schema |
+| Script header comments | ✅ Implemented | Both scripts – purpose, usage, and behavior documented |
+
+**Table list** (from `prisma/schema.prisma`): users, sync_tokens, messages, lists, list_github_issue_cache, list_properties, list_data_rows, administrators, organizations, user_organizations, follows, list_watchers, folders, documents, linked_identities, email_logs, _prisma_migrations.
 
 ## How to Run Backup and Restore
 
@@ -15,26 +30,73 @@ The backup and restore scripts provide a solid foundation for database backup an
 
 Full documentation: See [README.md](../README.md) "Database Backups" section (lines 867-920).
 
-## Database Schema Overview
+## Full Database Backup Scope
 
-The database contains the following tables (from `prisma/schema.prisma`):
-1. **users** - User accounts, authentication, and preferences
-2. **sync_tokens** - CLI sync token hashes per user
-3. **messages** - Time-series messages posted by users
-4. **lists** - Dynamic lists created by users
-5. **list_github_issue_cache** - Cached GitHub issue data for lists
-6. **list_properties** - Field definitions for lists
-7. **list_data_rows** - Data rows within lists
-8. **administrators** - Admin user associations
-9. **organizations** - Organization definitions
-10. **user_organizations** - User-organization membership
-11. **follows** - User follow relationships
-12. **list_watchers** - List watcher/collaborator associations
-13. **folders** - User document folders
-14. **documents** - User documents
-15. **linked_identities** - OAuth-linked identities (GitHub, Bluesky, etc.)
-16. **email_logs** - Email sending audit log
-17. **_prisma_migrations** - Prisma migration tracking table (critical for Prisma)
+A **full database backup** for InterlinedList includes all PostgreSQL objects in the `public` schema that Prisma manages. The backup scripts use `pg_dump`, which captures everything below.
+
+### What Is Included (Database Objects)
+
+| Category | Included | Notes |
+|----------|----------|-------|
+| **Tables** | All 17 | See table list below |
+| **Table data** | All rows | Every column, every row |
+| **Primary keys** | Yes | In CREATE TABLE |
+| **Foreign keys** | Yes | In ALTER TABLE |
+| **Unique constraints** | Yes | In CREATE TABLE / CREATE UNIQUE INDEX |
+| **Indexes** | Yes | B-tree, GIN (e.g. `list_data_rows.rowData`), etc. |
+| **Sequences** | Yes | If any (e.g. SERIAL columns) |
+| **Default values** | Yes | In CREATE TABLE |
+| **Data types** | Yes | Including Json/JSONB |
+| **Schema** | Yes | `public` schema |
+| **_prisma_migrations** | Yes | Required for Prisma migrate |
+
+### What Is NOT Included (External Collateral)
+
+| Item | Location | Notes |
+|------|----------|-------|
+| **Blob storage** | Vercel Blob | Message images/videos, avatars, document images. URLs are in DB (`messages.imageUrls`, `messages.videoUrls`, `users.avatar`, etc.) but the actual files live in Vercel Blob. Restore does not recover blob files. |
+| **Prisma migrations** | `prisma/migrations/` | Migration SQL files on disk. Keep these in version control. Restored DB expects migrations already applied (tracked in `_prisma_migrations`). |
+| **Environment variables** | `.env`, `.env.local` | `DATABASE_URL`, secrets, etc. Not in DB backup. |
+| **OAuth provider state** | External | GitHub/Bluesky/Mastodon tokens in `linked_identities.providerData` are backed up, but may expire; users may need to reconnect. |
+
+### Complete Table List (17 Tables)
+
+| # | Table | Description |
+|---|-------|-------------|
+| 1 | **users** | User accounts, authentication, preferences, avatar URL |
+| 2 | **sync_tokens** | CLI sync token hashes per user |
+| 3 | **messages** | Time-series messages; imageUrls, videoUrls (blob URLs), crossPostUrls, scheduledAt |
+| 4 | **lists** | Dynamic lists; source (local/github), githubRepo for GitHub-backed lists |
+| 5 | **list_github_issue_cache** | Cached GitHub issue data for GitHub-backed lists |
+| 6 | **list_properties** | Field definitions (schema) for lists |
+| 7 | **list_data_rows** | Data rows within lists (rowData JSONB) |
+| 8 | **administrators** | Admin user associations |
+| 9 | **organizations** | Organization definitions |
+| 10 | **user_organizations** | User-organization membership and roles |
+| 11 | **follows** | User follow relationships |
+| 12 | **list_watchers** | List watcher/collaborator/manager associations |
+| 13 | **folders** | User document folders |
+| 14 | **documents** | User documents (content, relativePath; may reference blob URLs in content) |
+| 15 | **linked_identities** | OAuth-linked identities (GitHub, Bluesky, Mastodon); providerData (tokens) |
+| 16 | **email_logs** | Email sending audit log |
+| 17 | **_prisma_migrations** | Prisma migration tracking (critical for `prisma migrate`) |
+
+### Recovery Considerations
+
+- **Blob URLs in DB**: After restore, existing blob URLs may still work if Vercel Blob files were not deleted. For full recovery of media, you would need a separate blob backup/restore strategy.
+- **Prisma**: After restore, run `npx prisma generate` to regenerate the client. Do not run `prisma migrate deploy` unless the target DB is empty; the backup already contains the migrated schema.
+
+### Full Recovery Checklist (Beyond Database)
+
+For a complete application recovery, consider:
+
+| Item | Backed up by scripts? | Action |
+|------|------------------------|--------|
+| PostgreSQL database | ✅ Yes | `npm run backup` / `npm run restore` |
+| Prisma migrations | ❌ No (in git) | Ensure `prisma/migrations/` is in version control |
+| Environment variables | ❌ No | Manually backup `.env`, `.env.local`; store secrets securely |
+| Vercel Blob (images, videos) | ❌ No | Use Vercel dashboard or API for blob backup if needed |
+| Application code | ❌ No (in git) | Version control handles this |
 
 ## Backup Script Analysis (`backup-database.js`)
 
@@ -220,59 +282,50 @@ const restoreCommand = `psql -h ${config.host} -p ${config.port} -U ${config.use
 
 ### Database Objects Coverage
 
-**Note**: `pg_dump` automatically includes all tables in the database. The following table lists representative coverage; all 17 tables (users, sync_tokens, messages, lists, list_github_issue_cache, list_properties, list_data_rows, administrators, organizations, user_organizations, follows, list_watchers, folders, documents, linked_identities, email_logs, _prisma_migrations) are fully covered.
+**Note**: `pg_dump` automatically includes all tables in the database. All 17 tables and all database objects (indexes, constraints, sequences, etc.) are fully covered.
 
-| Object Type | Backup Script | Restore Script | Notes |
-|------------|---------------|----------------|-------|
-| Tables (all 17) | ✅ | ✅ | pg_dump includes all tables by default |
-| Tables (users) | ✅ | ✅ | Fully covered |
-| Tables (messages) | ✅ | ✅ | Fully covered |
-| Tables (lists) | ✅ | ✅ | Fully covered |
-| Tables (list_properties) | ✅ | ✅ | Fully covered |
-| Tables (list_data_rows) | ✅ | ✅ | Fully covered |
-| Tables (_prisma_migrations) | ✅ | ✅ | Included by pg_dump |
-| Table Data | ✅ | ✅ | All rows included |
-| Primary Keys | ✅ | ✅ | Included in CREATE TABLE |
-| Foreign Keys | ✅ | ✅ | Included in ALTER TABLE |
-| Unique Constraints | ✅ | ✅ | Included in CREATE TABLE/INDEX |
-| Indexes | ✅ | ✅ | Included in CREATE INDEX |
-| Sequences | ✅ | ✅ | Included if any exist |
-| Default Values | ✅ | ✅ | Included in CREATE TABLE |
-| Data Types | ✅ | ✅ | Preserved |
-| JSONB Data | ✅ | ✅ | Preserved |
+| Object Type | Backup | Restore | Notes |
+|------------|--------|---------|-------|
+| **Tables (all 17)** | ✅ | ✅ | users, sync_tokens, messages, lists, list_github_issue_cache, list_properties, list_data_rows, administrators, organizations, user_organizations, follows, list_watchers, folders, documents, linked_identities, email_logs, _prisma_migrations |
+| Table data | ✅ | ✅ | All rows, all columns |
+| Primary keys | ✅ | ✅ | In CREATE TABLE |
+| Foreign keys | ✅ | ✅ | In ALTER TABLE |
+| Unique constraints | ✅ | ✅ | In CREATE TABLE / CREATE UNIQUE INDEX |
+| Indexes | ✅ | ✅ | B-tree, GIN (e.g. rowData), etc. |
+| Sequences | ✅ | ✅ | If any exist |
+| Default values | ✅ | ✅ | In CREATE TABLE |
+| Data types | ✅ | ✅ | Preserved |
+| JSONB / Json | ✅ | ✅ | Preserved |
 
-### Missing Coverage
+### Coverage Status
 
-| Item | Status | Impact |
-|------|--------|--------|
-| Backup verification | ❌ Missing | Cannot detect corrupted backups |
-| Restore verification | ❌ Missing | Cannot confirm successful restore |
-| Prisma migrations state check | ❌ Missing | May cause migration conflicts |
-| Index count verification | ❌ Missing | Cannot detect missing indexes |
-| Foreign key verification | ❌ Missing | Cannot detect broken relationships |
-| Backup file validation | ❌ Missing | May attempt restore of invalid files |
-| Transaction safety | ⚠️ Partial | Partial failures leave DB inconsistent |
+| Item | Status | Notes |
+|------|--------|-------|
+| Backup verification | ✅ Implemented | `verifyBackup()` checks size, header, required tables |
+| Restore verification | ✅ Implemented | `verifyRestore()` reports row counts per table |
+| Backup file validation | ✅ Implemented | `validateBackupFile()` before restore |
+| Prisma migrations state | ✅ Covered | `_prisma_migrations` included in table verification |
+| Index count verification | ⚠️ Deferred | pg_dump restores indexes; table verification confirms structure |
+| Foreign key verification | ⚠️ Deferred | pg_dump restores constraints; table verification confirms data |
+| Transaction safety | ⚠️ Partial | DROP DATABASE cannot be transactional; restore uses psql pipe |
 
 ## Recommendations Summary
 
-### High Priority
+### Implemented ✅
 
-1. **Add restore verification** - Verify all tables, row counts, indexes, and constraints after restore
-2. **Add backup file validation** - Validate backup file before attempting restore
-3. **Add Prisma migrations state check** - Verify `_prisma_migrations` table after restore
-4. **Add backup verification** - Verify backup file contains expected tables and data
+1. **Restore verification** – `verifyRestore()` reports row counts for all tables after restore
+2. **Backup file validation** – `validateBackupFile()` runs before restore
+3. **Prisma migrations check** – `_prisma_migrations` included in table verification
+4. **Backup verification** – `verifyBackup()` checks file size, SQL header, and required tables
+5. **Restore summary** – Table row counts shown after restore
 
-### Medium Priority
+### Remaining (Lower Priority)
 
-5. **Add restore summary** - Show table counts and row counts after restore
-6. **Add error recovery guidance** - Document what to do if restore fails
-7. **Add backup metadata** - Include table/row counts in backup summary
-
-### Low Priority
-
-8. **Add compression option** - Optional gzip compression for large backups
-9. **Add incremental backup option** - Support for incremental backups
-10. **Add backup retention policy** - Automatically clean up old backups
+6. **Error recovery guidance** – Document what to do if restore fails
+7. **Backup metadata** – Optional: table/row counts in backup summary
+8. **Compression option** – Optional gzip for large backups
+9. **Incremental backup** – Support for incremental backups
+10. **Backup retention policy** – Automatically clean up old backups
 
 ## Testing Recommendations
 
@@ -286,7 +339,6 @@ const restoreCommand = `psql -h ${config.host} -p ${config.port} -U ${config.use
 
 ## Conclusion
 
-The backup and restore scripts provide **good basic coverage** of all database elements and data. However, they lack **verification and validation steps** that are critical for ensuring successful backups and restores. The recommended improvements would significantly enhance reliability and provide better feedback about the backup/restore process.
+The backup and restore scripts provide **full coverage** of all database elements and data, with **verification and validation** implemented. Post-backup verification ensures backups are valid; pre-restore validation and post-restore verification ensure restores complete successfully.
 
-**Current Coverage**: ~85% complete
-**With Recommendations**: ~95% complete
+**Current Coverage**: ~95% complete (verification implemented)

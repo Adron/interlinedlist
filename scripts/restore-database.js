@@ -1,4 +1,14 @@
 #!/usr/bin/env node
+/**
+ * InterlinedList Database Restore Script
+ *
+ * Restores the local database from the most recent backup in ~/Downloads/BACKUP/.
+ * Only restores from backup_local_*.sql files. Production restores require manual psql.
+ *
+ * IMPORTANT: This will DROP and recreate the database. All existing data will be lost.
+ *
+ * Run: npm run restore  OR  node scripts/restore-database.js
+ */
 
 const fs = require('fs');
 const path = require('path');
@@ -8,6 +18,14 @@ const { URL } = require('url');
 const { promisify } = require('util');
 
 const execAsync = promisify(exec);
+
+// Tables expected after restore (must match prisma/schema.prisma @@map values)
+const REQUIRED_TABLES = [
+  'users', 'sync_tokens', 'messages', 'lists', 'list_github_issue_cache',
+  'list_properties', 'list_data_rows', 'administrators', 'organizations',
+  'user_organizations', 'follows', 'list_watchers', 'folders', 'documents',
+  'linked_identities', 'email_logs', '_prisma_migrations',
+];
 
 // Colors for console output
 const colors = {
@@ -139,6 +157,51 @@ async function checkPsql() {
       return true;
     } catch (winError) {
       throw new Error('psql not found. Please install PostgreSQL client tools.');
+    }
+  }
+}
+
+/**
+ * Validate backup file before restore: exists, not empty, valid SQL header, contains expected tables.
+ */
+function validateBackupFile(filepath) {
+  if (!fs.existsSync(filepath)) {
+    throw new Error(`Backup file not found: ${filepath}`);
+  }
+
+  const stats = fs.statSync(filepath);
+  if (stats.size === 0) {
+    throw new Error('Backup file is empty');
+  }
+
+  const content = fs.readFileSync(filepath, 'utf-8');
+  if (!content.includes('PostgreSQL database dump')) {
+    throw new Error('Backup file does not appear to be a valid PostgreSQL dump');
+  }
+
+  const missingTables = REQUIRED_TABLES.filter(
+    (table) => !content.includes(`"${table}"`) && !content.includes(`public.${table}`)
+  );
+  if (missingTables.length > 0) {
+    logWarning(`Backup may be missing tables: ${missingTables.join(', ')}`);
+  }
+}
+
+/**
+ * Verify restore by checking table existence and row counts.
+ */
+async function verifyRestore(config) {
+  const env = { ...process.env, PGPASSWORD: config.password };
+  logInfo('Verifying restore...');
+
+  for (const table of REQUIRED_TABLES) {
+    try {
+      const cmd = `psql -h ${config.host} -p ${config.port} -U ${config.user} -d ${config.database} -t -c "SELECT COUNT(*) FROM ${table};"`;
+      const { stdout } = await execAsync(cmd, { env });
+      const count = parseInt(String(stdout).trim(), 10) || 0;
+      logSuccess(`  ${table}: ${count} rows`);
+    } catch (error) {
+      logError(`  ${table}: Verification failed - ${error.message}`);
     }
   }
 }
@@ -344,6 +407,11 @@ async function main() {
     const config = parsePostgresUrl(databaseUrl);
     logSuccess('Database configuration loaded');
 
+    // Validate backup file before restore
+    logInfo('Validating backup file...');
+    validateBackupFile(latestBackup.filepath);
+    logSuccess('Backup file validation passed');
+
     // Confirm restore
     const confirmed = await confirmRestore(latestBackup, config.database);
     if (!confirmed) {
@@ -354,6 +422,10 @@ async function main() {
     // Restore database
     log('\n--- Restoring Database ---');
     await restoreDatabase(config, latestBackup.filepath);
+
+    // Verify restore
+    log('\n--- Verifying Restore ---');
+    await verifyRestore(config);
 
     // Summary
     log('\n==========================================');

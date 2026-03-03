@@ -1,10 +1,33 @@
 #!/usr/bin/env node
+/**
+ * InterlinedList Database Backup Script
+ *
+ * Creates full PostgreSQL dumps of the database(s) configured in .env and .env.local.
+ * Output: ~/Downloads/BACKUP/backup_{production|local}_YYYY-MM-DD_HH-MM-SS.sql
+ *
+ * Uses pg_dump with plain format (-Fp) which includes:
+ * - All tables, data, indexes, constraints, sequences
+ * - _prisma_migrations (required for Prisma)
+ *
+ * Run: npm run backup  OR  node scripts/backup-database.js
+ */
 
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { exec } = require('child_process');
 const { URL } = require('url');
+
+// Tables expected in backup (must match prisma/schema.prisma @@map values)
+const REQUIRED_TABLES = [
+  'users', 'sync_tokens', 'messages', 'lists', 'list_github_issue_cache',
+  'list_properties', 'list_data_rows', 'administrators', 'organizations',
+  'user_organizations', 'follows', 'list_watchers', 'folders', 'documents',
+  'linked_identities', 'email_logs', '_prisma_migrations',
+];
+
+// Minimum backup file size (bytes) - 1KB; smaller suggests empty or corrupted
+const MIN_BACKUP_SIZE = 1024;
 
 // Colors for console output
 const colors = {
@@ -174,6 +197,36 @@ function getTimestamp() {
 }
 
 /**
+ * Verify backup file contains expected tables and meets minimum size.
+ * Throws on failure; logs warning for small files.
+ */
+function verifyBackup(filepath) {
+  if (!fs.existsSync(filepath)) {
+    throw new Error(`Backup file not found: ${filepath}`);
+  }
+
+  const stats = fs.statSync(filepath);
+  if (stats.size === 0) {
+    throw new Error('Backup file is empty');
+  }
+  if (stats.size < MIN_BACKUP_SIZE) {
+    logWarning(`Backup file is unusually small (${stats.size} bytes). Verify it contains data.`);
+  }
+
+  const content = fs.readFileSync(filepath, 'utf-8');
+  if (!content.includes('PostgreSQL database dump')) {
+    throw new Error('Backup file does not appear to be a valid PostgreSQL dump');
+  }
+
+  const missingTables = REQUIRED_TABLES.filter(
+    (table) => !content.includes(`"${table}"`) && !content.includes(`public.${table}`)
+  );
+  if (missingTables.length > 0) {
+    logWarning(`Backup may be missing tables: ${missingTables.join(', ')}`);
+  }
+}
+
+/**
  * Execute pg_dump backup
  */
 function backupDatabase(config, backupType, backupDir) {
@@ -202,6 +255,13 @@ function backupDatabase(config, backupType, backupDir) {
         // Check if file was created successfully
         if (fs.existsSync(filepath) && fs.statSync(filepath).size > 0) {
           logWarning(`pg_dump completed with warnings: ${stderr}`);
+          try {
+            verifyBackup(filepath);
+            logSuccess('Backup verification passed');
+          } catch (verifyError) {
+            reject(verifyError);
+            return;
+          }
           resolve({ filepath, filename });
         } else {
           reject(new Error(`pg_dump failed: ${error.message}\n${stderr}`));
@@ -211,6 +271,13 @@ function backupDatabase(config, backupType, backupDir) {
         if (fs.existsSync(filepath)) {
           const stats = fs.statSync(filepath);
           logSuccess(`Backup completed: ${filename} (${(stats.size / 1024).toFixed(2)} KB)`);
+          try {
+            verifyBackup(filepath);
+            logSuccess('Backup verification passed');
+          } catch (verifyError) {
+            reject(verifyError);
+            return;
+          }
           resolve({ filepath, filename });
         } else {
           reject(new Error('Backup file was not created'));
