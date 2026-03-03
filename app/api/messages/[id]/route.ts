@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth/session';
-import { del } from '@vercel/blob';
+import { deleteBlobsFromMessages } from '@/lib/blob';
 import { LinkMetadata } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -100,7 +100,7 @@ export async function DELETE(
     // Find the message and verify ownership
     const message = await prisma.message.findUnique({
       where: { id: messageId },
-      select: { userId: true, imageUrls: true, videoUrls: true },
+      select: { userId: true },
     });
 
     if (!message) {
@@ -117,21 +117,26 @@ export async function DELETE(
       );
     }
 
-    // Delete blob assets if present
-    const imageUrls = message.imageUrls as string[] | null;
-    if (Array.isArray(imageUrls) && imageUrls.length > 0) {
-      await Promise.all(
-        imageUrls.map((url) => del(url).catch(() => {}))
-      );
-    }
-    const videoUrls = message.videoUrls as string[] | null;
-    if (Array.isArray(videoUrls) && videoUrls.length > 0) {
-      await Promise.all(
-        videoUrls.map((url) => del(url).catch(() => {}))
-      );
+    // Fetch message and all descendants (replies at any depth) for blob cleanup
+    const allMessages: Array<{ imageUrls: unknown; videoUrls: unknown }> = [];
+    let idsToProcess = [messageId];
+    while (idsToProcess.length > 0) {
+      const batch = await prisma.message.findMany({
+        where: { id: { in: idsToProcess } },
+        select: { id: true, imageUrls: true, videoUrls: true },
+      });
+      allMessages.push(...batch);
+      const childIds = await prisma.message.findMany({
+        where: { parentId: { in: idsToProcess } },
+        select: { id: true },
+      });
+      idsToProcess = childIds.map((c) => c.id);
     }
 
-    // Delete the message
+    // Delete blob assets for message and all descendants
+    await deleteBlobsFromMessages(allMessages);
+
+    // Delete the message (cascade will delete descendants)
     await prisma.message.delete({
       where: { id: messageId },
     });
