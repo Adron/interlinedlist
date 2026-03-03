@@ -210,8 +210,8 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - `npm run db:migrate:force` - Force migration with `prisma migrate dev` (may prompt for reset - use with caution)
 - `npm run db:generate` - Generate Prisma Client
 - `npm run db:studio` - Open Prisma Studio (database GUI)
-- `npm run backup` - Create database backups (production and local)
-- `npm run restore` - Restore database from backup file
+- `npm run backup` - Create database backups (production and local) with verification
+- `npm run restore` - Restore local database from latest backup in ~/Downloads/BACKUP/
 - `npm run test-data:seed` - Seed test accounts and messages into the database
 - `node scripts/seed-initial-data.js` - Seed initial data ("The Public" organization and seed user)
 - `npm run cli:build` - Build the Document Sync CLI for all platforms and copy to `public/downloads/`
@@ -597,9 +597,9 @@ interlinedlist/
 │   ├── logo-*.svg                # Logo variants
 │   └── manifest.json             # Web app manifest
 ├── scripts/                      # Utility scripts
-│   ├── backup-database.js        # Database backup script
+│   ├── backup-database.js        # Database backup (production + local, with verification)
 │   ├── cli-test-local.js         # CLI integration test runner (local dev)
-│   ├── restore-database.js       # Database restore script
+│   ├── restore-database.js       # Database restore (local only, from latest backup)
 │   ├── safe-migrate.js           # Safe migration wrapper script
 │   ├── seed-initial-data.js      # Seed "The Public" org and initial user
 │   ├── seed-public-organization.js # Legacy script for seeding "The Public"
@@ -697,8 +697,8 @@ interlinedlist/
   - `setup-database.sh`: Automated database setup (user, database, migrations, initial seed)
   - `seed-initial-data.js`: Seed initial data ("The Public" organization and seed user)
   - `seed-public-organization.js`: Legacy script for seeding "The Public" organization
-  - `backup-database.js`: Database backup automation
-  - `restore-database.js`: Database restore automation
+  - `backup-database.js`: Database backup automation (production + local, with verification)
+  - `restore-database.js`: Database restore automation (local only, from latest backup)
   - `safe-migrate.js`: Safe migration wrapper (used by `npm run db:migrate`)
   - `cli-test-local.js`: CLI integration test runner against a local dev server
 
@@ -865,7 +865,7 @@ This will open a web interface at `http://localhost:5555` where you can view and
 
 ### Database Backups
 
-The project includes an automated backup script that creates SQL dumps of both production and local development databases.
+The project includes an automated backup script that creates SQL dumps of both production and local development databases. Each backup is verified after creation (expected tables, minimum size, valid PostgreSQL dump format).
 
 #### Running Backups
 
@@ -883,10 +883,28 @@ node scripts/backup-database.js
 
 #### What Gets Backed Up
 
-The script automatically backs up:
+The script automatically backs up all tables from the database schema:
 
 1. **Production Database** - Reads `DATABASE_URL` from `.env` file
 2. **Local Development Database** - Reads `DATABASE_URL` from `.env.local` file
+
+Backups include all 17 tables (users, sync_tokens, messages, lists, list_github_issue_cache, list_properties, list_data_rows, administrators, organizations, user_organizations, follows, list_watchers, folders, documents, linked_identities, email_logs, _prisma_migrations) via `pg_dump`.
+
+#### Restoring from Backup
+
+To restore your **local** database from the most recent backup:
+
+```bash
+npm run restore
+```
+
+Or run the script directly:
+
+```bash
+node scripts/restore-database.js
+```
+
+**Important**: The restore script only restores from `backup_local_*.sql` files in the BACKUP directory and uses `.env.local` for the target database. It will DROP and recreate the database. Production restores require manual `psql` commands.
 
 #### Backup Location
 
@@ -907,7 +925,7 @@ Example: `backup_production_2024-01-15_14-30-00.sql`
 
 #### Prerequisites
 
-- **PostgreSQL client tools** must be installed (includes `pg_dump`)
+- **PostgreSQL client tools** must be installed (includes `pg_dump` and `psql` for restore)
   - macOS: `brew install postgresql`
   - Linux: `sudo apt-get install postgresql-client` (Debian/Ubuntu) or `sudo yum install postgresql` (RHEL/CentOS)
   - Windows: Install PostgreSQL from https://www.postgresql.org/download/windows/
@@ -916,8 +934,11 @@ Example: `backup_production_2024-01-15_14-30-00.sql`
 
 - The script will skip backups if `.env` or `.env.local` files are missing
 - If `DATABASE_URL` is not found in a file, that backup will be skipped with a warning
-- Backups are created in plain SQL format and can be restored using `psql` or Prisma migrations
+- Backups are verified after creation; the script checks for expected tables, minimum file size, and valid PostgreSQL dump format
+- Backups are created in plain SQL format and can be restored using `psql` or the restore script
 - The script provides colored output indicating success, warnings, and errors
+
+For a detailed analysis of backup and restore coverage, see [scripts/BACKUP_RESTORE_REVIEW.md](scripts/BACKUP_RESTORE_REVIEW.md).
 
 ### Testing Database Connection
 
