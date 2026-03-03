@@ -55,9 +55,11 @@ export async function GET(request: NextRequest) {
       url: string;
       instanceName: string;
       statusId?: string;
+      statusIds?: string[];
       instanceUrl?: string;
       uri?: string;
       cid?: string;
+      uris?: string[];
     }> = [];
 
     try {
@@ -92,6 +94,7 @@ export async function GET(request: NextRequest) {
               url: result.url,
               instanceName: result.instanceName,
               ...(result.statusId && { statusId: result.statusId }),
+              ...(result.statusIds && { statusIds: result.statusIds }),
               ...(result.instanceUrl && { instanceUrl: result.instanceUrl }),
             });
           }
@@ -129,6 +132,7 @@ export async function GET(request: NextRequest) {
               instanceName: "Bluesky",
               ...(result.uri && { uri: result.uri }),
               ...(result.cid && { cid: result.cid }),
+              ...(result.uris && { uris: result.uris }),
             });
           }
         }

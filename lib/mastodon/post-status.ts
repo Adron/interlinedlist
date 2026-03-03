@@ -32,6 +32,8 @@ export interface CrossPostResult {
   url?: string;
   statusId?: string;
   instanceUrl?: string;
+  /** All status IDs in the thread (for delete); single post = [statusId] */
+  statusIds?: string[];
   error?: string;
 }
 
@@ -119,6 +121,7 @@ export async function postToMastodon(
     let lastStatusId: string | null = null;
     let firstPostUrl: string | undefined;
     let firstStatusId: string | undefined;
+    const allStatusIds: string[] = [];
 
     for (let i = 0; i < numPosts; i++) {
       const baseText = (textChunks[i] ?? '').trim() || (mediaPayloads[i] ? '.' : '');
@@ -177,6 +180,7 @@ export async function postToMastodon(
 
       const statusData = (await statusRes.json()) as { id?: string; url?: string };
       lastStatusId = statusData.id ?? null;
+      if (statusData.id) allStatusIds.push(String(statusData.id));
       if (!firstPostUrl && statusData.url) {
         firstPostUrl = statusData.url;
       }
@@ -192,6 +196,7 @@ export async function postToMastodon(
       url: firstPostUrl,
       statusId: firstStatusId,
       instanceUrl: instanceUrl,
+      statusIds: allStatusIds.length > 0 ? allStatusIds : (firstStatusId ? [firstStatusId] : undefined),
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';

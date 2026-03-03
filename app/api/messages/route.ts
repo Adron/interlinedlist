@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
 
     // Cross-post to selected Mastodon accounts (skip for replies, skip for scheduled - cron will handle)
     const crossPostResults: Array<{ providerId: string; instanceName: string; success: boolean; url?: string; error?: string }> = [];
-    const crossPostUrls: Array<{ platform: string; url: string; instanceName: string; statusId?: string; instanceUrl?: string; uri?: string; cid?: string }> = [];
+    const crossPostUrls: Array<{ platform: string; url: string; instanceName: string; statusId?: string; statusIds?: string[]; instanceUrl?: string; uri?: string; cid?: string; uris?: string[] }> = [];
     const providerIds = !parentMessage && !isScheduled && Array.isArray(mastodonProviderIds)
       ? mastodonProviderIds.filter((id: unknown) => typeof id === 'string')
       : [];
@@ -216,6 +216,7 @@ export async function POST(request: NextRequest) {
             url: result.url,
             instanceName: result.instanceName,
             ...(result.statusId && { statusId: result.statusId }),
+            ...(result.statusIds && { statusIds: result.statusIds }),
             ...(result.instanceUrl && { instanceUrl: result.instanceUrl }),
           });
         }
@@ -252,6 +253,7 @@ export async function POST(request: NextRequest) {
             instanceName: 'Bluesky',
             ...(result.uri && { uri: result.uri }),
             ...(result.cid && { cid: result.cid }),
+            ...(result.uris && { uris: result.uris }),
           });
         }
       } else {
