@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth/session';
 import { deleteSession } from '@/lib/auth/session';
 import { prisma } from '@/lib/prisma';
+import { deleteBlobsFromMessages } from '@/lib/blob';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,6 +59,13 @@ export async function POST(request: NextRequest) {
         );
       }
     }
+
+    // Delete message blobs before cascade (DB cascade does not delete blobs)
+    const messages = await prisma.message.findMany({
+      where: { userId: user.id },
+      select: { imageUrls: true, videoUrls: true },
+    });
+    await deleteBlobsFromMessages(messages);
 
     // Delete user (cascades to messages, lists, memberships, follows, linked identities, etc.)
     await prisma.user.delete({

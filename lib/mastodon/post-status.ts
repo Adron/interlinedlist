@@ -32,6 +32,8 @@ export interface CrossPostResult {
   url?: string;
   statusId?: string;
   instanceUrl?: string;
+  /** All status IDs in the thread (for delete); single post = [statusId] */
+  statusIds?: string[];
   error?: string;
 }
 
@@ -106,6 +108,7 @@ export async function postToMastodon(
   try {
     const { splitTextForPlatform } = await import('@/lib/crosspost/text-splitter');
     const { distributeMedia } = await import('@/lib/crosspost/media-distributor');
+    const { getThreadPostText } = await import('@/lib/crosspost/thread-text');
 
     const textChunks = splitTextForPlatform(options.content, MASTODON_CHAR_LIMIT);
     const mediaPayloads = distributeMedia(
@@ -118,9 +121,11 @@ export async function postToMastodon(
     let lastStatusId: string | null = null;
     let firstPostUrl: string | undefined;
     let firstStatusId: string | undefined;
+    const allStatusIds: string[] = [];
 
     for (let i = 0; i < numPosts; i++) {
-      const text = (textChunks[i] ?? '').trim() || (mediaPayloads[i] ? '.' : '');
+      const baseText = (textChunks[i] ?? '').trim() || (mediaPayloads[i] ? '.' : '');
+      const text = getThreadPostText(baseText, i, numPosts, MASTODON_CHAR_LIMIT);
       const mediaPayload = mediaPayloads[i];
 
       const mediaIds: string[] = [];
@@ -175,6 +180,7 @@ export async function postToMastodon(
 
       const statusData = (await statusRes.json()) as { id?: string; url?: string };
       lastStatusId = statusData.id ?? null;
+      if (statusData.id) allStatusIds.push(String(statusData.id));
       if (!firstPostUrl && statusData.url) {
         firstPostUrl = statusData.url;
       }
@@ -190,6 +196,7 @@ export async function postToMastodon(
       url: firstPostUrl,
       statusId: firstStatusId,
       instanceUrl: instanceUrl,
+      statusIds: allStatusIds.length > 0 ? allStatusIds : (firstStatusId ? [firstStatusId] : undefined),
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';

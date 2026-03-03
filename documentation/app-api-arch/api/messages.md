@@ -16,7 +16,7 @@ Create a new message. Requires email verification.
 
 - `content`: Required, trimmed; max length from user's `maxMessageLength`
 - `publiclyVisible`: Defaults to user's `defaultPubliclyVisible`
-- `imageUrls`: Up to 6 URLs
+- `imageUrls`: Up to 8 URLs
 - `videoUrls`: Up to 1 URL
 
 **Response:** `{ message, data }` with created message (includes `linkMetadata` if URLs detected)

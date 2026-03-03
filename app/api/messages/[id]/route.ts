@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth/session';
-import { del } from '@vercel/blob';
+import { deleteBlobsFromMessages } from '@/lib/blob';
+import { deletePostOnBluesky, deletePostOnMastodon } from '@/lib/crosspost/delete-external';
 import { LinkMetadata } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -100,7 +101,7 @@ export async function DELETE(
     // Find the message and verify ownership
     const message = await prisma.message.findUnique({
       where: { id: messageId },
-      select: { userId: true, imageUrls: true, videoUrls: true },
+      select: { userId: true },
     });
 
     if (!message) {
@@ -117,21 +118,85 @@ export async function DELETE(
       );
     }
 
-    // Delete blob assets if present
-    const imageUrls = message.imageUrls as string[] | null;
-    if (Array.isArray(imageUrls) && imageUrls.length > 0) {
-      await Promise.all(
-        imageUrls.map((url) => del(url).catch(() => {}))
-      );
-    }
-    const videoUrls = message.videoUrls as string[] | null;
-    if (Array.isArray(videoUrls) && videoUrls.length > 0) {
-      await Promise.all(
-        videoUrls.map((url) => del(url).catch(() => {}))
-      );
+    // Fetch message and all descendants (replies at any depth) for blob + cross-post cleanup
+    const allMessages: Array<{
+      id: string;
+      userId: string;
+      imageUrls: unknown;
+      videoUrls: unknown;
+      crossPostUrls: unknown;
+    }> = [];
+    let idsToProcess = [messageId];
+    while (idsToProcess.length > 0) {
+      const batch = await prisma.message.findMany({
+        where: { id: { in: idsToProcess } },
+        select: { id: true, userId: true, imageUrls: true, videoUrls: true, crossPostUrls: true },
+      });
+      allMessages.push(...batch);
+      const childIds = await prisma.message.findMany({
+        where: { parentId: { in: idsToProcess } },
+        select: { id: true },
+      });
+      idsToProcess = childIds.map((c) => c.id);
     }
 
-    // Delete the message
+    // Delete cross-posts for messages we own (we have credentials only for current user)
+    const messagesWeOwn = allMessages.filter((m) => m.userId === user.id);
+    const linkedIdentities = await prisma.linkedIdentity.findMany({
+      where: { userId: user.id },
+      select: { id: true, provider: true, providerUsername: true, providerData: true },
+    });
+    const blueskyIdentity = linkedIdentities.find((i) => i.provider === 'bluesky');
+    const mastodonIdentities = linkedIdentities.filter((i) => i.provider.startsWith('mastodon:'));
+
+    for (const m of messagesWeOwn) {
+      const crossPostUrls = m.crossPostUrls as Array<{
+        platform: string;
+        url?: string;
+        instanceName?: string;
+        statusId?: string;
+        statusIds?: string[];
+        instanceUrl?: string;
+        uri?: string;
+        cid?: string;
+        uris?: string[];
+      }> | null;
+      if (!crossPostUrls || !Array.isArray(crossPostUrls)) continue;
+
+      for (const cp of crossPostUrls) {
+        if (cp.platform === 'bluesky') {
+          const uris = cp.uris ?? (cp.uri ? [cp.uri] : []);
+          if (uris.length > 0 && blueskyIdentity) {
+            await deletePostOnBluesky(
+              blueskyIdentity as Parameters<typeof deletePostOnBluesky>[0],
+              uris
+            );
+          }
+        } else if (cp.platform === 'mastodon' && cp.instanceUrl) {
+          const statusIds = cp.statusIds ?? (cp.statusId ? [cp.statusId] : []);
+          if (statusIds.length > 0) {
+            const match = mastodonIdentities.find(
+              (i) =>
+                i.provider.startsWith('mastodon:') &&
+                cp.instanceUrl &&
+                i.provider === `mastodon:${new URL(cp.instanceUrl).hostname}`
+            );
+            if (match) {
+              await deletePostOnMastodon(
+                match as Parameters<typeof deletePostOnMastodon>[0],
+                cp.instanceUrl,
+                statusIds
+              );
+            }
+          }
+        }
+      }
+    }
+
+    // Delete blob assets for message and all descendants
+    await deleteBlobsFromMessages(allMessages);
+
+    // Delete the message (cascade will delete descendants)
     await prisma.message.delete({
       where: { id: messageId },
     });

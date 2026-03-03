@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth/session';
 import { put } from '@vercel/blob';
-import { resizeAvatarToLimit } from '@/lib/avatar/resize';
+import { resizeAvatarToLimit, ImageTooLargeAfterResizeError } from '@/lib/avatar/resize';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,7 +38,22 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     // Resize to at most 1200px per side and 1.4MB (proportions maintained)
-    const { buffer: resizedBuffer } = await resizeAvatarToLimit(buffer, contentType);
+    let resizedBuffer: Buffer;
+    try {
+      const result = await resizeAvatarToLimit(buffer, contentType);
+      resizedBuffer = result.buffer;
+    } catch (err) {
+      if (err instanceof ImageTooLargeAfterResizeError) {
+        return NextResponse.json(
+          {
+            error:
+              'Image could not be resized to fit the limit. Please manually resize to under 1200×1200 pixels and 1.4 MB.',
+          },
+          { status: 413 }
+        );
+      }
+      throw err;
+    }
 
     const pathname = `messages/${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 10)}.jpg`;
     const blob = await put(pathname, resizedBuffer, {

@@ -37,6 +37,8 @@ export interface CrossPostResult {
   url?: string;
   uri?: string;
   cid?: string;
+  /** All URIs in the thread (for delete); single post = [uri] */
+  uris?: string[];
   error?: string;
 }
 
@@ -110,6 +112,7 @@ export async function postToBluesky(
     const { blueskyStateStore } = await import('@/lib/auth/oauth-bluesky-stores');
     const { splitTextForPlatform } = await import('@/lib/crosspost/text-splitter');
     const { distributeMedia } = await import('@/lib/crosspost/media-distributor');
+    const { getThreadPostText } = await import('@/lib/crosspost/thread-text');
 
     const { clientId } = getBlueskyConfig();
     const metadata = await OAuthClient.fetchMetadata({
@@ -160,9 +163,11 @@ export async function postToBluesky(
     let parentUri: string | undefined;
     let parentCid: string | undefined;
     let firstPostRkey: string | undefined;
+    const allUris: string[] = [];
 
     for (let i = 0; i < numPosts; i++) {
-      const text = (textChunks[i] ?? '').trim() || (mediaPayloads[i] ? '.' : '');
+      const baseText = (textChunks[i] ?? '').trim() || (mediaPayloads[i] ? '.' : '');
+      const text = getThreadPostText(baseText, i, numPosts, BLUESKY_CHAR_LIMIT);
       const mediaPayload = mediaPayloads[i];
 
       const embedImages: Array<{ image: BlobRef; alt: string }> = [];
@@ -231,6 +236,7 @@ export async function postToBluesky(
       const cid = data.cid;
       const rkey = uri ? uri.split('/').pop() : undefined;
 
+      if (uri) allUris.push(uri);
       if (!rootUri && uri && cid) {
         rootUri = uri;
         rootCid = cid;
@@ -254,6 +260,7 @@ export async function postToBluesky(
       url,
       uri: rootUri,
       cid: rootCid,
+      uris: allUris.length > 0 ? allUris : (rootUri ? [rootUri] : undefined),
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';

@@ -50,7 +50,7 @@ You can attach images and video to messages from the **advanced post options**. 
 
 ### Images
 
-- **Limit**: Up to 6 images per message.
+- **Limit**: Up to 8 images per message.
 - **Size**: Large images are automatically resized so the longest side is at most 1200 pixels and the file size is under 1.4 MB. You can select any size; the app handles resizing.
 - **Flow**: Click **Image** → choose file(s) → click **Upload**. Use **Done** to close the modal and keep your attachments, or **Cancel** to discard any images added in this session.
 

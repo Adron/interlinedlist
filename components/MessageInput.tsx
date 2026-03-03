@@ -2,7 +2,7 @@
 
 import { useState, FormEvent, useRef, useEffect } from 'react';
 
-const MAX_IMAGES = 6;
+const MAX_IMAGES = 8;
 
 const RASTER_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
@@ -112,6 +112,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [pendingRotations, setPendingRotations] = useState<number[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
   const [rotatingUrlIndex, setRotatingUrlIndex] = useState<number | null>(null);
   const [pendingPreviewUrls, setPendingPreviewUrls] = useState<string[]>([]);
   const [showVideoModal, setShowVideoModal] = useState(false);
@@ -396,9 +397,10 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                         lineHeight: 1,
                         minWidth: 'auto',
                       }}
-                      title="Add images (up to 6; large images resized to 1200×1200, 1.4 MB)"
+                      title={`Add images (up to ${MAX_IMAGES}; large images resized to 1200×1200, 1.4 MB)`}
                       onClick={() => {
                         imageUrlsWhenModalOpenedRef.current = [...imageUrls];
+                        setError('');
                         setShowImageModal(true);
                       }}
                     >
@@ -514,8 +516,30 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
           </div>
 
           {imageUrls.length > 0 && (
-            <div className="mb-2 d-flex flex-wrap gap-1 align-items-center">
-              <small className="text-muted">Attached: {imageUrls.length} image(s)</small>
+            <div className="mb-2">
+              <small className="text-muted d-block mb-1">Attached: {imageUrls.length} image(s)</small>
+              <div className="d-flex flex-wrap gap-2 align-items-center">
+                {imageUrls.map((url, i) => (
+                  <div key={i} className="d-flex align-items-center gap-1 border rounded p-1 position-relative">
+                    <img
+                      src={url}
+                      alt=""
+                      style={{
+                        width: 48,
+                        height: 48,
+                        objectFit: 'cover',
+                        borderRadius: 4,
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="btn-close btn-sm"
+                      aria-label="Remove"
+                      onClick={() => setImageUrls((prev) => prev.filter((_, j) => j !== i))}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -699,6 +723,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                                     disabled={isRotating}
                                     onClick={async () => {
                                       setRotatingUrlIndex(i);
+                                      setError('');
                                       try {
                                         const blob = await rotateImageBlob(url, 90);
                                         const file = blobToFile(blob, 'image.jpg');
@@ -708,9 +733,11 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                                         const data = await res.json();
                                         if (res.ok && data.url) {
                                           setImageUrls((prev) => prev.map((u, j) => (j === i ? data.url : u)));
+                                        } else {
+                                          setError(data.error || 'Failed to upload image');
                                         }
                                       } catch {
-                                        // ignore rotate/re-upload errors
+                                        setError('Failed to upload image');
                                       } finally {
                                         setRotatingUrlIndex(null);
                                       }
@@ -727,6 +754,28 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                               </div>
                             );
                           })}
+                        </div>
+                      </div>
+                    )}
+                    {uploadingImages && uploadProgress && (
+                      <div className="mb-2" aria-live="polite">
+                        <small className="text-muted d-block mb-1">
+                          Uploading {uploadProgress.current} of {uploadProgress.total}
+                        </small>
+                        <div
+                          className="progress"
+                          role="progressbar"
+                          aria-valuenow={uploadProgress.current - 1}
+                          aria-valuemin={0}
+                          aria-valuemax={uploadProgress.total}
+                          aria-label={`Upload progress: ${uploadProgress.current} of ${uploadProgress.total}`}
+                        >
+                          <div
+                            className="progress-bar"
+                            style={{
+                              width: `${uploadProgress.total > 0 ? ((uploadProgress.current - 1) / uploadProgress.total) * 100 : 0}%`,
+                            }}
+                          />
                         </div>
                       </div>
                     )}
@@ -754,8 +803,12 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                       onClick={async () => {
                         if (pendingFiles.length === 0) return;
                         setUploadingImages(true);
+                        setError('');
                         const urls: string[] = [];
-                        for (let i = 0; i < pendingFiles.length; i++) {
+                        let firstError: string | null = null;
+                        const total = pendingFiles.length;
+                        for (let i = 0; i < total; i++) {
+                          setUploadProgress({ current: i + 1, total });
                           let file = pendingFiles[i];
                           const rot = pendingRotations[i] ?? 0;
                           if (rot !== 0 && isRasterImage(file)) {
@@ -771,14 +824,20 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                           try {
                             const res = await fetch('/api/messages/images/upload', { method: 'POST', body: fd });
                             const data = await res.json();
-                            if (res.ok && data.url) urls.push(data.url);
+                            if (res.ok && data.url) {
+                              urls.push(data.url);
+                            } else if (!firstError) {
+                              firstError = data.error || 'Failed to upload image';
+                            }
                           } catch {
-                            // per-file errors ignored; urls only includes successes
+                            if (!firstError) firstError = 'Failed to upload image';
                           }
                         }
+                        if (firstError) setError(firstError);
                         setImageUrls((prev) => [...prev, ...urls].slice(0, MAX_IMAGES));
                         setPendingFiles([]);
                         setPendingRotations([]);
+                        setUploadProgress(null);
                         setUploadingImages(false);
                       }}
                     >

@@ -66,14 +66,14 @@ export async function POST(request: NextRequest) {
     // Use provided publiclyVisible, or fall back to user's default
     const finalPubliclyVisible = publiclyVisible !== undefined ? Boolean(publiclyVisible) : defaultPubliclyVisible;
 
-    // Validate imageUrls if provided (1-6 URLs)
+    // Validate imageUrls if provided (1-8 URLs)
     let finalImageUrls: string[] | undefined;
     if (imageUrls !== undefined && imageUrls !== null) {
       if (!Array.isArray(imageUrls)) {
         return NextResponse.json({ error: 'imageUrls must be an array' }, { status: 400 });
       }
-      if (imageUrls.length > 6) {
-        return NextResponse.json({ error: 'At most 6 images per message' }, { status: 400 });
+      if (imageUrls.length > 8) {
+        return NextResponse.json({ error: 'At most 8 images per message' }, { status: 400 });
       }
       const urls = imageUrls.filter((u: unknown) => typeof u === 'string' && u.length > 0);
       if (urls.length !== imageUrls.length) {
@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
 
     // Cross-post to selected Mastodon accounts (skip for replies, skip for scheduled - cron will handle)
     const crossPostResults: Array<{ providerId: string; instanceName: string; success: boolean; url?: string; error?: string }> = [];
-    const crossPostUrls: Array<{ platform: string; url: string; instanceName: string; statusId?: string; instanceUrl?: string; uri?: string; cid?: string }> = [];
+    const crossPostUrls: Array<{ platform: string; url: string; instanceName: string; statusId?: string; statusIds?: string[]; instanceUrl?: string; uri?: string; cid?: string; uris?: string[] }> = [];
     const providerIds = !parentMessage && !isScheduled && Array.isArray(mastodonProviderIds)
       ? mastodonProviderIds.filter((id: unknown) => typeof id === 'string')
       : [];
@@ -216,6 +216,7 @@ export async function POST(request: NextRequest) {
             url: result.url,
             instanceName: result.instanceName,
             ...(result.statusId && { statusId: result.statusId }),
+            ...(result.statusIds && { statusIds: result.statusIds }),
             ...(result.instanceUrl && { instanceUrl: result.instanceUrl }),
           });
         }
@@ -252,6 +253,7 @@ export async function POST(request: NextRequest) {
             instanceName: 'Bluesky',
             ...(result.uri && { uri: result.uri }),
             ...(result.cid && { cid: result.cid }),
+            ...(result.uris && { uris: result.uris }),
           });
         }
       } else {

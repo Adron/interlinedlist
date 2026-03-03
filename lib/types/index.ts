@@ -86,9 +86,11 @@ export interface CrossPostUrl {
   url: string;
   instanceName: string;
   statusId?: string;
+  statusIds?: string[];
   instanceUrl?: string;
   uri?: string;
   cid?: string;
+  uris?: string[];
 }
 
 export interface Message {
