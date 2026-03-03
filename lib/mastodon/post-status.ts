@@ -106,6 +106,7 @@ export async function postToMastodon(
   try {
     const { splitTextForPlatform } = await import('@/lib/crosspost/text-splitter');
     const { distributeMedia } = await import('@/lib/crosspost/media-distributor');
+    const { getThreadPostText } = await import('@/lib/crosspost/thread-text');
 
     const textChunks = splitTextForPlatform(options.content, MASTODON_CHAR_LIMIT);
     const mediaPayloads = distributeMedia(
@@ -120,7 +121,8 @@ export async function postToMastodon(
     let firstStatusId: string | undefined;
 
     for (let i = 0; i < numPosts; i++) {
-      const text = (textChunks[i] ?? '').trim() || (mediaPayloads[i] ? '.' : '');
+      const baseText = (textChunks[i] ?? '').trim() || (mediaPayloads[i] ? '.' : '');
+      const text = getThreadPostText(baseText, i, numPosts, MASTODON_CHAR_LIMIT);
       const mediaPayload = mediaPayloads[i];
 
       const mediaIds: string[] = [];

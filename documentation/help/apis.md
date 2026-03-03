@@ -84,7 +84,7 @@ Endpoints that support **Bearer** are documented as “Session or Bearer”. All
 | POST | `/api/messages/images/upload` | Session | Upload an image (FormData `file`). Returns `{ url }`. Images resized to max 1200×1200, 1.4 MB. |
 | POST | `/api/messages/videos/upload` | Session | Upload a video (FormData `file`). Returns `{ url }`. Max 3 MB; formats: MP4, WebM, QuickTime, AVI. |
 
-Creating a message requires a verified email. Optional body fields include `imageUrls` (array of URLs from the upload endpoints, max 6) and `videoUrls` (array of URLs, max 1).
+Creating a message requires a verified email. Optional body fields include `imageUrls` (array of URLs from the upload endpoints, max 8) and `videoUrls` (array of URLs, max 1).
 
 ---
 

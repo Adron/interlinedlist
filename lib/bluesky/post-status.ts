@@ -110,6 +110,7 @@ export async function postToBluesky(
     const { blueskyStateStore } = await import('@/lib/auth/oauth-bluesky-stores');
     const { splitTextForPlatform } = await import('@/lib/crosspost/text-splitter');
     const { distributeMedia } = await import('@/lib/crosspost/media-distributor');
+    const { getThreadPostText } = await import('@/lib/crosspost/thread-text');
 
     const { clientId } = getBlueskyConfig();
     const metadata = await OAuthClient.fetchMetadata({
@@ -162,7 +163,8 @@ export async function postToBluesky(
     let firstPostRkey: string | undefined;
 
     for (let i = 0; i < numPosts; i++) {
-      const text = (textChunks[i] ?? '').trim() || (mediaPayloads[i] ? '.' : '');
+      const baseText = (textChunks[i] ?? '').trim() || (mediaPayloads[i] ? '.' : '');
+      const text = getThreadPostText(baseText, i, numPosts, BLUESKY_CHAR_LIMIT);
       const mediaPayload = mediaPayloads[i];
 
       const embedImages: Array<{ image: BlobRef; alt: string }> = [];

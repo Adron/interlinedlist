@@ -66,14 +66,14 @@ export async function POST(request: NextRequest) {
     // Use provided publiclyVisible, or fall back to user's default
     const finalPubliclyVisible = publiclyVisible !== undefined ? Boolean(publiclyVisible) : defaultPubliclyVisible;
 
-    // Validate imageUrls if provided (1-6 URLs)
+    // Validate imageUrls if provided (1-8 URLs)
     let finalImageUrls: string[] | undefined;
     if (imageUrls !== undefined && imageUrls !== null) {
       if (!Array.isArray(imageUrls)) {
         return NextResponse.json({ error: 'imageUrls must be an array' }, { status: 400 });
       }
-      if (imageUrls.length > 6) {
-        return NextResponse.json({ error: 'At most 6 images per message' }, { status: 400 });
+      if (imageUrls.length > 8) {
+        return NextResponse.json({ error: 'At most 8 images per message' }, { status: 400 });
       }
       const urls = imageUrls.filter((u: unknown) => typeof u === 'string' && u.length > 0);
       if (urls.length !== imageUrls.length) {

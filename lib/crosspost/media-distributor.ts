@@ -16,7 +16,7 @@ export interface MediaPayload {
  * - Video: gets its own post (cannot mix with images on Mastodon/Bluesky)
  * - Order: image batches first, then video
  *
- * @param imageUrls - Image URLs from InterlinedList (up to 6)
+ * @param imageUrls - Image URLs from InterlinedList (up to 8)
  * @param videoUrls - Video URLs (up to 1)
  * @param _platform - Reserved for future platform-specific behavior
  * @returns Array of payloads, each suitable for one platform post
