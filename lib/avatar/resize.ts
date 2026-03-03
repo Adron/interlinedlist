@@ -3,6 +3,13 @@ import sharp from 'sharp';
 const MAX_SIDE_PX = 1200;
 const MAX_BYTES = 1.4 * 1024 * 1024; // 1.4 MB
 
+export class ImageTooLargeAfterResizeError extends Error {
+  constructor() {
+    super('Image could not be resized to fit the limit');
+    this.name = 'ImageTooLargeAfterResizeError';
+  }
+}
+
 export interface ResizeResult {
   buffer: Buffer;
   contentType: string;
@@ -11,6 +18,7 @@ export interface ResizeResult {
 /**
  * Resize image so that width and height are at most MAX_SIDE_PX (maintain aspect ratio),
  * and output size is at most MAX_BYTES. Prefer JPEG for smaller size.
+ * @throws {ImageTooLargeAfterResizeError} when resize cannot bring the image within limits
  */
 export async function resizeAvatarToLimit(input: Buffer, mimeType?: string): Promise<ResizeResult> {
   const image = sharp(input);
@@ -37,26 +45,50 @@ export async function resizeAvatarToLimit(input: Buffer, mimeType?: string): Pro
   let quality = 85;
   let buffer: Buffer;
 
-  const tryEncode = async (q: number): Promise<Buffer> => {
-    const pipeline = sharp(input)
-      .rotate() // Apply EXIF orientation so images don't appear upside down
-      .resize(width, height, { fit: 'inside', withoutEnlargement: true });
-    if (isPng) {
-      return pipeline.png({ compressionLevel: 9 }).toBuffer();
-    }
-    return pipeline.jpeg({ quality: q }).toBuffer();
+  const tryEncodePng = async (): Promise<Buffer> => {
+    return sharp(input)
+      .rotate()
+      .resize(width, height, { fit: 'inside', withoutEnlargement: true })
+      .png({ compressionLevel: 9 })
+      .toBuffer();
   };
 
-  buffer = await tryEncode(quality);
-  while (buffer.length > MAX_BYTES && quality > 20) {
-    quality -= 10;
-    buffer = await tryEncode(quality);
+  const tryEncodeJpeg = async (q: number): Promise<Buffer> => {
+    return sharp(input)
+      .rotate()
+      .resize(width, height, { fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: q })
+      .toBuffer();
+  };
+
+  let contentType: string;
+  if (isPng) {
+    buffer = await tryEncodePng();
+    if (buffer.length > MAX_BYTES) {
+      // Try converting to JPEG with quality reduction
+      buffer = await tryEncodeJpeg(quality);
+      while (buffer.length > MAX_BYTES && quality > 20) {
+        quality -= 10;
+        buffer = await tryEncodeJpeg(quality);
+      }
+      contentType = 'image/jpeg';
+    } else {
+      contentType = 'image/png';
+    }
+  } else {
+    buffer = await tryEncodeJpeg(quality);
+    while (buffer.length > MAX_BYTES && quality > 20) {
+      quality -= 10;
+      buffer = await tryEncodeJpeg(quality);
+    }
+    contentType = 'image/jpeg';
   }
 
-  return {
-    buffer,
-    contentType: isPng ? 'image/png' : 'image/jpeg',
-  };
+  if (buffer.length > MAX_BYTES) {
+    throw new ImageTooLargeAfterResizeError();
+  }
+
+  return { buffer, contentType };
 }
 
 export function getMaxSizeBytes(): number {

@@ -399,6 +399,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                       title="Add images (up to 6; large images resized to 1200×1200, 1.4 MB)"
                       onClick={() => {
                         imageUrlsWhenModalOpenedRef.current = [...imageUrls];
+                        setError('');
                         setShowImageModal(true);
                       }}
                     >
@@ -699,6 +700,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                                     disabled={isRotating}
                                     onClick={async () => {
                                       setRotatingUrlIndex(i);
+                                      setError('');
                                       try {
                                         const blob = await rotateImageBlob(url, 90);
                                         const file = blobToFile(blob, 'image.jpg');
@@ -708,9 +710,11 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                                         const data = await res.json();
                                         if (res.ok && data.url) {
                                           setImageUrls((prev) => prev.map((u, j) => (j === i ? data.url : u)));
+                                        } else {
+                                          setError(data.error || 'Failed to upload image');
                                         }
                                       } catch {
-                                        // ignore rotate/re-upload errors
+                                        setError('Failed to upload image');
                                       } finally {
                                         setRotatingUrlIndex(null);
                                       }
@@ -754,7 +758,9 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                       onClick={async () => {
                         if (pendingFiles.length === 0) return;
                         setUploadingImages(true);
+                        setError('');
                         const urls: string[] = [];
+                        let firstError: string | null = null;
                         for (let i = 0; i < pendingFiles.length; i++) {
                           let file = pendingFiles[i];
                           const rot = pendingRotations[i] ?? 0;
@@ -771,11 +777,16 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                           try {
                             const res = await fetch('/api/messages/images/upload', { method: 'POST', body: fd });
                             const data = await res.json();
-                            if (res.ok && data.url) urls.push(data.url);
+                            if (res.ok && data.url) {
+                              urls.push(data.url);
+                            } else if (!firstError) {
+                              firstError = data.error || 'Failed to upload image';
+                            }
                           } catch {
-                            // per-file errors ignored; urls only includes successes
+                            if (!firstError) firstError = 'Failed to upload image';
                           }
                         }
+                        if (firstError) setError(firstError);
                         setImageUrls((prev) => [...prev, ...urls].slice(0, MAX_IMAGES));
                         setPendingFiles([]);
                         setPendingRotations([]);

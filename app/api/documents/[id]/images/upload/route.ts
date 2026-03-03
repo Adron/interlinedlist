@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserOrSyncToken } from "@/lib/auth/sync-token";
 import { put } from "@vercel/blob";
-import { resizeAvatarToLimit } from "@/lib/avatar/resize";
+import { resizeAvatarToLimit, ImageTooLargeAfterResizeError } from "@/lib/avatar/resize";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -76,11 +76,24 @@ export async function POST(
       contentTypeOut = contentType;
       ext = "svg";
     } else {
-      const { buffer: resizedBuffer, contentType: resizedContent } =
-        await resizeAvatarToLimit(buffer, contentType);
-      finalBuffer = resizedBuffer;
-      contentTypeOut = resizedContent;
-      ext = resizedContent.includes("png") ? "png" : "jpg";
+      try {
+        const { buffer: resizedBuffer, contentType: resizedContent } =
+          await resizeAvatarToLimit(buffer, contentType);
+        finalBuffer = resizedBuffer;
+        contentTypeOut = resizedContent;
+        ext = resizedContent.includes("png") ? "png" : "jpg";
+      } catch (err) {
+        if (err instanceof ImageTooLargeAfterResizeError) {
+          return NextResponse.json(
+            {
+              error:
+                "Image could not be resized to fit the limit. Please manually resize to under 1200×1200 pixels and 1.4 MB.",
+            },
+            { status: 413 }
+          );
+        }
+        throw err;
+      }
     }
 
     const basename = originalName.replace(ALLOWED_EXTENSIONS, "") || "image";
