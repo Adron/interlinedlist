@@ -4,15 +4,37 @@
 
 The backup and restore scripts provide a solid foundation for database backup and recovery, but there are several areas that need attention to ensure complete coverage of all database elements and data.
 
+## How to Run Backup and Restore
+
+**Backup:**
+- `npm run backup` - Backs up both production (.env) and local (.env.local) databases
+- `node scripts/backup-database.js` - Direct script invocation
+
+**Restore:**
+- `npm run restore` - Restores from the latest local backup in ~/Downloads/BACKUP/
+
+Full documentation: See [README.md](../README.md) "Database Backups" section (lines 867-920).
+
 ## Database Schema Overview
 
-The database contains the following tables:
+The database contains the following tables (from `prisma/schema.prisma`):
 1. **users** - User accounts, authentication, and preferences
-2. **messages** - Time-series messages posted by users
-3. **lists** - Dynamic lists created by users
-4. **list_properties** - Field definitions for lists
-5. **list_data_rows** - Data rows within lists
-6. **_prisma_migrations** - Prisma migration tracking table (critical for Prisma)
+2. **sync_tokens** - CLI sync token hashes per user
+3. **messages** - Time-series messages posted by users
+4. **lists** - Dynamic lists created by users
+5. **list_github_issue_cache** - Cached GitHub issue data for lists
+6. **list_properties** - Field definitions for lists
+7. **list_data_rows** - Data rows within lists
+8. **administrators** - Admin user associations
+9. **organizations** - Organization definitions
+10. **user_organizations** - User-organization membership
+11. **follows** - User follow relationships
+12. **list_watchers** - List watcher/collaborator associations
+13. **folders** - User document folders
+14. **documents** - User documents
+15. **linked_identities** - OAuth-linked identities (GitHub, Bluesky, etc.)
+16. **email_logs** - Email sending audit log
+17. **_prisma_migrations** - Prisma migration tracking table (critical for Prisma)
 
 ## Backup Script Analysis (`backup-database.js`)
 
@@ -45,7 +67,7 @@ The database contains the following tables:
 // Verify backup file contains expected tables
 const verifyBackup = (filepath) => {
   const content = fs.readFileSync(filepath, 'utf-8');
-  const requiredTables = ['users', 'messages', 'lists', 'list_properties', 'list_data_rows', '_prisma_migrations'];
+  const requiredTables = ['users', 'sync_tokens', 'messages', 'lists', 'list_github_issue_cache', 'list_properties', 'list_data_rows', 'administrators', 'organizations', 'user_organizations', 'follows', 'list_watchers', 'folders', 'documents', 'linked_identities', 'email_logs', '_prisma_migrations'];
   const missingTables = requiredTables.filter(table => !content.includes(`CREATE TABLE "${table}"`));
   if (missingTables.length > 0) {
     throw new Error(`Backup verification failed. Missing tables: ${missingTables.join(', ')}`);
@@ -78,6 +100,8 @@ const command = useCompression
 ```
 
 ## Restore Script Analysis (`restore-database.js`)
+
+**Scope**: The restore script **only restores local backups**. It uses `findLatestLocalBackup` to select the most recent `backup_local_*.sql` file and reads `.env.local` for the target database. Production restores would require manual `psql` commands or a separate script.
 
 ### ✅ What's Working Well
 
@@ -112,8 +136,8 @@ const verifyMigrations = async (config) => {
 const verifyRestore = async (config) => {
   logInfo('Verifying restore...');
   
-  // Check all tables exist
-  const tables = ['users', 'messages', 'lists', 'list_properties', 'list_data_rows', '_prisma_migrations'];
+  // Check all tables exist (see prisma/schema.prisma for source of truth)
+  const tables = ['users', 'sync_tokens', 'messages', 'lists', 'list_github_issue_cache', 'list_properties', 'list_data_rows', 'administrators', 'organizations', 'user_organizations', 'follows', 'list_watchers', 'folders', 'documents', 'linked_identities', 'email_logs', '_prisma_migrations'];
   for (const table of tables) {
     const checkCommand = `psql -h ${config.host} -p ${config.port} -U ${config.user} -d ${config.database} -c "SELECT COUNT(*) FROM ${table};"`;
     try {
@@ -171,8 +195,8 @@ const validateBackupFile = (filepath) => {
     throw new Error('Backup file does not appear to be a valid PostgreSQL dump');
   }
   
-  // Check for required tables
-  const requiredTables = ['users', 'messages', 'lists', 'list_properties', 'list_data_rows'];
+  // Check for required tables (see prisma/schema.prisma for source of truth)
+  const requiredTables = ['users', 'sync_tokens', 'messages', 'lists', 'list_github_issue_cache', 'list_properties', 'list_data_rows', 'administrators', 'organizations', 'user_organizations', 'follows', 'list_watchers', 'folders', 'documents', 'linked_identities', 'email_logs', '_prisma_migrations'];
   const missingTables = requiredTables.filter(table => !content.includes(`CREATE TABLE "${table}"`));
   if (missingTables.length > 0) {
     logWarning(`Backup file may be missing tables: ${missingTables.join(', ')}`);
@@ -196,8 +220,11 @@ const restoreCommand = `psql -h ${config.host} -p ${config.port} -U ${config.use
 
 ### Database Objects Coverage
 
+**Note**: `pg_dump` automatically includes all tables in the database. The following table lists representative coverage; all 17 tables (users, sync_tokens, messages, lists, list_github_issue_cache, list_properties, list_data_rows, administrators, organizations, user_organizations, follows, list_watchers, folders, documents, linked_identities, email_logs, _prisma_migrations) are fully covered.
+
 | Object Type | Backup Script | Restore Script | Notes |
 |------------|---------------|----------------|-------|
+| Tables (all 17) | ✅ | ✅ | pg_dump includes all tables by default |
 | Tables (users) | ✅ | ✅ | Fully covered |
 | Tables (messages) | ✅ | ✅ | Fully covered |
 | Tables (lists) | ✅ | ✅ | Fully covered |
