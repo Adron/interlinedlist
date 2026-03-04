@@ -418,12 +418,31 @@ export default function ListDataTable({
     }
   };
 
+  const isUrlValue = (value: any): boolean => {
+    if (value === null || value === undefined) return false;
+    const s = String(value).trim();
+    return s.startsWith("http://") || s.startsWith("https://");
+  };
+
+  const renderCellContent = (field: ParsedField, value: any) => {
+    const formatted = formatValue(field, value);
+    if (!formatted) return formatted;
+    if (field.propertyType === "url" || isUrlValue(value)) {
+      return (
+        <a href={formatted} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+          {formatted}
+        </a>
+      );
+    }
+    return formatted;
+  };
+
   const renderEditableCell = (row: ListDataRow, field: ParsedField) => {
     if (readOnly || useFormOnlyMode) {
       const value = row.rowData[field.propertyKey];
       return (
         <td key={field.propertyKey}>
-          {formatValue(field, value)}
+          {renderCellContent(field, value)}
         </td>
       );
     }
@@ -541,7 +560,7 @@ export default function ListDataTable({
         style={{ cursor: "pointer" }}
         className={isEditing ? "table-active" : ""}
       >
-        {formatValue(field, value)}
+        {renderCellContent(field, value)}
       </td>
     );
   };
