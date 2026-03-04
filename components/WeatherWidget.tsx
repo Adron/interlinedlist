@@ -1,18 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { DEFAULT_WEATHER_LOCATION } from '@/lib/config/weather';
-
-interface WeatherData {
-  location: string;
-  temperature: number;
-  condition: string;
-  conditionIcon: string;
-  high: number;
-  low: number;
-  humidity: number | null;
-  windSpeed: number;
-}
+import type { ExtendedWeatherData } from '@/lib/types/weather';
+import RainNext60 from './weather/RainNext60';
+import RainToday from './weather/RainToday';
+import WeekForecast from './weather/WeekForecast';
 
 interface WeatherWidgetProps {
   latitude?: number;
@@ -20,7 +13,7 @@ interface WeatherWidgetProps {
 }
 
 // Mock weather data - fallback for non-logged-in users
-const mockWeatherData: WeatherData = {
+const mockWeatherData: ExtendedWeatherData = {
   location: DEFAULT_WEATHER_LOCATION.name,
   temperature: 72,
   condition: 'Partly Cloudy',
@@ -32,33 +25,33 @@ const mockWeatherData: WeatherData = {
 };
 
 export default function WeatherWidget({ latitude, longitude }: WeatherWidgetProps) {
-  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [weather, setWeather] = useState<ExtendedWeatherData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Always fetch weather - coordinates should always be provided (either user's location or San Francisco default)
-    if (latitude === undefined || longitude === undefined) {
-      // Fallback to mock data only if coordinates are truly not available
-      setWeather(null);
-      return;
-    }
+  const fetchWeather = useCallback(
+    async (forceRefresh = false) => {
+      if (latitude === undefined || longitude === undefined) return;
 
-    const fetchWeather = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        const response = await fetch(
-          `/api/weather?latitude=${latitude}&longitude=${longitude}`
-        );
+        const params = new URLSearchParams({
+          latitude: String(latitude),
+          longitude: String(longitude),
+          extended: 'true',
+        });
+        if (forceRefresh) params.set('refresh', 'true');
+
+        const response = await fetch(`/api/weather?${params}`);
 
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error || 'Failed to fetch weather data');
         }
 
-        const weatherData: WeatherData = await response.json();
+        const weatherData: ExtendedWeatherData = await response.json();
         setWeather(weatherData);
       } catch (err) {
         console.error('Weather fetch error:', err);
@@ -66,10 +59,17 @@ export default function WeatherWidget({ latitude, longitude }: WeatherWidgetProp
       } finally {
         setLoading(false);
       }
-    };
+    },
+    [latitude, longitude]
+  );
 
+  useEffect(() => {
+    if (latitude === undefined || longitude === undefined) {
+      setWeather(null);
+      return;
+    }
     fetchWeather();
-  }, [latitude, longitude]);
+  }, [fetchWeather, latitude, longitude]);
 
   // Use mock data only if weather fetch failed and coordinates are not available
   // Otherwise, use fetched weather or show loading/error state
@@ -104,73 +104,99 @@ export default function WeatherWidget({ latitude, longitude }: WeatherWidgetProp
     );
   }
 
+  const refreshButton = (
+    <button
+      type="button"
+      className="btn btn-link btn-sm p-0 text-muted"
+      onClick={() => fetchWeather(true)}
+      disabled={loading}
+      title="Refresh weather"
+      aria-label="Refresh weather"
+    >
+      <i className={`bx bx-recycle ${loading ? 'bx-spin' : ''}`}></i>
+    </button>
+  );
+
   return (
-    <div className="card">
-      <div className="card-body">
-        <div className="d-flex justify-content-between align-items-start mb-3">
-          <div>
-            <h5 className="card-title mb-1">Today's Weather</h5>
-            <p className="text-muted small mb-0">
-              <i className="bx bx-map-pin me-1"></i>
-              {displayWeather.location}
-            </p>
-          </div>
-          <div className="text-end">
-            <i className={`bx ${displayWeather.conditionIcon} fs-32 text-primary`}></i>
-          </div>
-        </div>
-
-        <div className="mb-3">
-          <div className="d-flex align-items-baseline">
-            <span className="display-4 fw-bold me-2">{displayWeather.temperature}°</span>
-            <span className="text-muted">F</span>
-          </div>
-          <p className="text-muted mb-0">{displayWeather.condition}</p>
-        </div>
-
-        <div className="border-top pt-3">
-          <div className="row g-3">
-            <div className="col-6">
-              <div className="d-flex align-items-center">
-                <i className="bx bx-up-arrow-alt text-success me-2"></i>
-                <div>
-                  <small className="text-muted d-block">High</small>
-                  <strong>{displayWeather.high}°F</strong>
-                </div>
-              </div>
+    <>
+      <div className="card">
+        <div className="card-body">
+          <div className="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <h5 className="card-title mb-1">Today's Weather</h5>
+              <p className="text-muted small mb-0">
+                <i className="bx bx-map-pin me-1"></i>
+                {displayWeather.location}
+              </p>
             </div>
-            <div className="col-6">
-              <div className="d-flex align-items-center">
-                <i className="bx bx-down-arrow-alt text-info me-2"></i>
-                <div>
-                  <small className="text-muted d-block">Low</small>
-                  <strong>{displayWeather.low}°F</strong>
-                </div>
-              </div>
+            <div className="d-flex align-items-center gap-1">
+              {refreshButton}
+              <i className={`bx ${displayWeather.conditionIcon} fs-32 text-primary`}></i>
             </div>
-            {displayWeather.humidity !== null && (
+          </div>
+
+          <div className="mb-3">
+            <div className="d-flex align-items-baseline">
+              <span className="display-4 fw-bold me-2">{displayWeather.temperature}°</span>
+              <span className="text-muted">F</span>
+            </div>
+            <p className="text-muted mb-0">{displayWeather.condition}</p>
+          </div>
+
+          <div className="border-top pt-3">
+            <div className="row g-3">
               <div className="col-6">
                 <div className="d-flex align-items-center">
-                  <i className="bx bx-droplet text-primary me-2"></i>
+                  <i className="bx bx-up-arrow-alt text-success me-2"></i>
                   <div>
-                    <small className="text-muted d-block">Humidity</small>
-                    <strong>{displayWeather.humidity}%</strong>
+                    <small className="text-muted d-block">High</small>
+                    <strong>{displayWeather.high}°F</strong>
                   </div>
                 </div>
               </div>
-            )}
-            <div className={displayWeather.humidity !== null ? 'col-6' : 'col-12'}>
-              <div className="d-flex align-items-center">
-                <i className="bx bx-wind text-secondary me-2"></i>
-                <div>
-                  <small className="text-muted d-block">Wind</small>
-                  <strong>{displayWeather.windSpeed} mph</strong>
+              <div className="col-6">
+                <div className="d-flex align-items-center">
+                  <i className="bx bx-down-arrow-alt text-info me-2"></i>
+                  <div>
+                    <small className="text-muted d-block">Low</small>
+                    <strong>{displayWeather.low}°F</strong>
+                  </div>
+                </div>
+              </div>
+              {displayWeather.humidity !== null && (
+                <div className="col-6">
+                  <div className="d-flex align-items-center">
+                    <i className="bx bx-droplet text-primary me-2"></i>
+                    <div>
+                      <small className="text-muted d-block">Humidity</small>
+                      <strong>{displayWeather.humidity}%</strong>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div className={displayWeather.humidity !== null ? 'col-6' : 'col-12'}>
+                <div className="d-flex align-items-center">
+                  <i className="bx bx-wind text-secondary me-2"></i>
+                  <div>
+                    <small className="text-muted d-block">Wind</small>
+                    <strong>{displayWeather.windSpeed} mph</strong>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {weather?.hourly && weather.hourly.length > 0 && (
+        <RainNext60 hourly={weather.hourly} onRefresh={() => fetchWeather(true)} refreshing={loading} />
+      )}
+      {weather?.hourly && weather.hourly.length > 0 && (
+        <RainToday hourly={weather.hourly} timeZone={weather.timeZone} onRefresh={() => fetchWeather(true)} refreshing={loading} />
+      )}
+      {weather?.weekly && weather.weekly.length > 0 && (
+        <WeekForecast weekly={weather.weekly} onRefresh={() => fetchWeather(true)} refreshing={loading} />
+      )}
+    </>
   );
 }
