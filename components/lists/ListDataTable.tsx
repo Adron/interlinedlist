@@ -50,8 +50,8 @@ export default function ListDataTable({
     offset: 0,
     hasMore: false,
   });
-  const [filters, setFilters] = useState<Record<string, string>>(() =>
-    listSource === 'github' ? { state: 'open' } : {}
+  const [filters, setFilters] = useState<Record<string, string>>(
+    listSource === 'github' ? { state: 'open' } : ({} as Record<string, string>)
   );
   const [sortField, setSortField] = useState<string>("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
