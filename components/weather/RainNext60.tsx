@@ -18,8 +18,12 @@ function formatHourLabel(isoString: string): string {
 }
 
 export default function RainNext60({ hourly, onRefresh, refreshing }: RainNext60Props) {
-  // Next 60 min = first 1-2 hourly periods (current hour + next hour)
-  const periods = hourly.slice(0, 2);
+  // Next 60 min = current hour + next hour (filter out past periods)
+  const startOfCurrentHour = new Date();
+  startOfCurrentHour.setMinutes(0, 0, 0);
+  const startOfHourMs = startOfCurrentHour.getTime();
+  const futurePeriods = hourly.filter((p) => new Date(p.startTime).getTime() >= startOfHourMs);
+  const periods = futurePeriods.slice(0, 2);
 
   if (periods.length === 0) return null;
 
