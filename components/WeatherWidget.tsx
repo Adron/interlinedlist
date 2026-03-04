@@ -192,7 +192,7 @@ export default function WeatherWidget({ latitude, longitude }: WeatherWidgetProp
         <RainNext60 hourly={weather.hourly} onRefresh={() => fetchWeather(true)} refreshing={loading} />
       )}
       {weather?.hourly && weather.hourly.length > 0 && (
-        <RainToday hourly={weather.hourly} timeZone={weather.timeZone} onRefresh={() => fetchWeather(true)} refreshing={loading} />
+        <RainToday hourly={weather.hourly} onRefresh={() => fetchWeather(true)} refreshing={loading} />
       )}
       {weather?.weekly && weather.weekly.length > 0 && (
         <WeekForecast weekly={weather.weekly} onRefresh={() => fetchWeather(true)} refreshing={loading} />

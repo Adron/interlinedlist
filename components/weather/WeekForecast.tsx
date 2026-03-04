@@ -40,7 +40,8 @@ function aggregateByDay(periods: WeeklyPeriod[]): DaySummary[] {
   const byDate = new Map<string, WeeklyPeriod[]>();
   for (const p of periods) {
     const date = new Date(p.startTime);
-    const key = date.toISOString().slice(0, 10);
+    // Use local date (YYYY-MM-DD) for grouping, not UTC
+    const key = date.toLocaleDateString('en-CA');
     if (!byDate.has(key)) byDate.set(key, []);
     byDate.get(key)!.push(p);
   }
@@ -59,8 +60,9 @@ function aggregateByDay(periods: WeeklyPeriod[]): DaySummary[] {
     const primary = dayPeriod ?? dayPeriods[0];
     const maxPrecip = Math.max(...dayPeriods.map((p) => p.probabilityOfPrecipitation));
 
-    const date = new Date(key);
-    const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+    // Parse key as local date for correct weekday in user's timezone
+    const [y, m, d] = key.split('-').map(Number);
+    const dayName = new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'short' });
 
     summaries.push({
       dayName,

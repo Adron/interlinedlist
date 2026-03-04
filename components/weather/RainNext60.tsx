@@ -8,6 +8,7 @@ interface RainNext60Props {
   refreshing?: boolean;
 }
 
+/** Formats hour in the browser's local timezone */
 function formatHourLabel(isoString: string): string {
   const date = new Date(isoString);
   return date.toLocaleTimeString('en-US', {

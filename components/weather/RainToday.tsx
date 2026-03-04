@@ -4,23 +4,22 @@ import type { HourlyPeriod } from '@/lib/types/weather';
 
 interface RainTodayProps {
   hourly: HourlyPeriod[];
-  timeZone?: string;
   onRefresh?: () => void;
   refreshing?: boolean;
 }
 
 const HOURS_TO_SHOW = 8;
 
-function formatTimeLabel(isoString: string, timeZone?: string): string {
+/** Formats time in the browser's local timezone */
+function formatTimeLabel(isoString: string): string {
   const date = new Date(isoString);
   return date.toLocaleTimeString('en-US', {
     hour: 'numeric',
     hour12: true,
-    timeZone: timeZone || undefined,
   });
 }
 
-export default function RainToday({ hourly, timeZone = 'America/Los_Angeles', onRefresh, refreshing }: RainTodayProps) {
+export default function RainToday({ hourly, onRefresh, refreshing }: RainTodayProps) {
   // Show next 6-8 hours from the start of the hourly data
   const periods = hourly.slice(0, HOURS_TO_SHOW);
 
@@ -53,14 +52,14 @@ export default function RainToday({ hourly, timeZone = 'America/Los_Angeles', on
               className="d-flex flex-column align-items-center flex-shrink-0"
               style={{ minWidth: 32 }}
             >
-              <span className="small text-muted mb-1">{formatTimeLabel(p.startTime, timeZone)}</span>
+              <span className="small text-muted mb-1">{formatTimeLabel(p.startTime)}</span>
               <div
                 className="bg-primary bg-opacity-25 rounded-top"
                 style={{
                   width: 24,
                   height: Math.max(4, (p.probabilityOfPrecipitation / 100) * barMaxHeight),
                 }}
-                title={`${formatTimeLabel(p.startTime, timeZone)}: ${p.probabilityOfPrecipitation}%`}
+                title={`${formatTimeLabel(p.startTime)}: ${p.probabilityOfPrecipitation}%`}
               />
               <span className="small text-muted mt-1">{p.probabilityOfPrecipitation}%</span>
             </div>
