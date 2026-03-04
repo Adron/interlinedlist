@@ -9,16 +9,17 @@ export function getGitHubListSchema(): ParsedField[] {
   return [
     {
       propertyKey: 'number',
-      propertyName: '#',
+      propertyName: 'Issue #',
       propertyType: 'number',
       displayOrder: 0,
       isRequired: false,
       defaultValue: null,
       validationRules: null,
-      helpText: null,
+      helpText: 'Auto-assigned by GitHub when the issue is created',
       placeholder: null,
       isVisible: true,
       visibilityCondition: null,
+      isReadOnly: true,
     },
     {
       propertyKey: 'title',
@@ -97,6 +98,7 @@ export function getGitHubListSchema(): ParsedField[] {
       placeholder: null,
       isVisible: true,
       visibilityCondition: null,
+      isReadOnly: true,
     },
     {
       propertyKey: 'created_at',
@@ -110,6 +112,7 @@ export function getGitHubListSchema(): ParsedField[] {
       placeholder: null,
       isVisible: true,
       visibilityCondition: null,
+      isReadOnly: true,
     },
     {
       propertyKey: 'updated_at',
@@ -123,6 +126,7 @@ export function getGitHubListSchema(): ParsedField[] {
       placeholder: null,
       isVisible: true,
       visibilityCondition: null,
+      isReadOnly: true,
     },
   ];
 }

@@ -94,7 +94,7 @@ function validateFieldValue(
       break;
 
     case "multiselect":
-      if (validationRules.options && Array.isArray(validationRules.options)) {
+      if (validationRules.options && Array.isArray(validationRules.options) && validationRules.options.length > 0) {
         if (!Array.isArray(value)) {
           return {
             field: field.propertyKey,

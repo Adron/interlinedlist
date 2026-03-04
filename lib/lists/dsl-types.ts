@@ -108,6 +108,8 @@ export interface ParsedField {
   placeholder: string | null;
   isVisible: boolean;
   visibilityCondition: Record<string, any> | null;
+  /** When true, field is read-only (e.g. GitHub issue number) */
+  isReadOnly?: boolean;
 }
 
 /**

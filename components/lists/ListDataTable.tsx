@@ -50,7 +50,9 @@ export default function ListDataTable({
     offset: 0,
     hasMore: false,
   });
-  const [filters, setFilters] = useState<Record<string, string>>({});
+  const [filters, setFilters] = useState<Record<string, string>>(() =>
+    listSource === 'github' ? { state: 'open' } : {}
+  );
   const [sortField, setSortField] = useState<string>("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   
@@ -759,13 +761,15 @@ export default function ListDataTable({
                                 >
                                   <i className="bx bx-edit"></i>
                                 </Link>
-                                <button
-                                  className="btn btn-outline-danger"
-                                  onClick={() => handleDelete(row.id)}
-                                  title="Delete row"
-                                >
-                                  <i className="bx bx-trash"></i>
-                                </button>
+                                {listSource !== 'github' && (
+                                  <button
+                                    className="btn btn-outline-danger"
+                                    onClick={() => handleDelete(row.id)}
+                                    title="Delete row"
+                                  >
+                                    <i className="bx bx-trash"></i>
+                                  </button>
+                                )}
                               </>
                             ) : editingCell?.rowId === row.id ? (
                               <Link
@@ -791,13 +795,15 @@ export default function ListDataTable({
                                 >
                                   <i className="bx bx-edit"></i>
                                 </Link>
-                                <button
-                                  className="btn btn-outline-danger"
-                                  onClick={() => handleDelete(row.id)}
-                                  title="Delete row"
-                                >
-                                  <i className="bx bx-trash"></i>
-                                </button>
+                                {listSource !== 'github' && (
+                                  <button
+                                    className="btn btn-outline-danger"
+                                    onClick={() => handleDelete(row.id)}
+                                    title="Delete row"
+                                  >
+                                    <i className="bx bx-trash"></i>
+                                  </button>
+                                )}
                               </>
                             )}
                           </div>

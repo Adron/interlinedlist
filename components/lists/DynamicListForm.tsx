@@ -44,6 +44,8 @@ export default function DynamicListForm({
       const field = sortedFields.find((f) => f.propertyKey === key);
       if (field && (field.propertyType === "date" || field.propertyType === "datetime")) {
         formatted[key] = formatFieldValue(field, data[key]);
+      } else if (field?.propertyType === "multiselect" && typeof data[key] === "string" && data[key]) {
+        formatted[key] = (data[key] as string).split(",").map((v) => v.trim()).filter(Boolean);
       } else {
         formatted[key] = data[key];
       }
@@ -125,7 +127,15 @@ export default function DynamicListForm({
     try {
       await onSubmit(dataToSubmit);
     } catch (error: any) {
-      setErrors({ _form: error.message || "An error occurred" });
+      const message = error?.message || (error instanceof Error ? error.message : "An error occurred");
+      const details = error?.details;
+      const errorMap: Record<string, string> = { _form: message };
+      if (Array.isArray(details)) {
+        details.forEach((d: { field: string; message: string }) => {
+          errorMap[d.field] = d.message;
+        });
+      }
+      setErrors(errorMap);
     } finally {
       setIsSubmitting(false);
     }
@@ -154,6 +164,7 @@ export default function DynamicListForm({
             onChange={(e) => handleChange(field.propertyKey, e.target.value)}
             required={field.isRequired}
             disabled={loading || isSubmitting}
+            readOnly={field.isReadOnly}
             min={field.validationRules?.min}
             max={field.validationRules?.max}
           />
@@ -182,6 +193,7 @@ export default function DynamicListForm({
             required={field.isRequired}
             placeholder={field.placeholder || undefined}
             disabled={loading || isSubmitting}
+            readOnly={field.isReadOnly}
             {...(fieldComponent.props.minLength !== undefined && {
               minLength: fieldComponent.props.minLength,
             })}
@@ -213,6 +225,7 @@ export default function DynamicListForm({
             required={field.isRequired}
             placeholder={field.placeholder || undefined}
             disabled={loading || isSubmitting}
+            readOnly={field.isReadOnly}
             rows={fieldComponent.props.rows}
             {...(fieldComponent.props.minLength !== undefined && {
               minLength: fieldComponent.props.minLength,
@@ -230,7 +243,11 @@ export default function DynamicListForm({
             className={`form-select form-select-sm ${error ? "is-invalid" : ""}`}
             value={
               field.propertyType === "multiselect"
-                ? undefined
+                ? Array.isArray(value)
+                  ? value
+                  : typeof value === "string" && value
+                  ? value.split(",").map((v) => v.trim()).filter(Boolean)
+                  : []
                 : value !== null && value !== undefined
                 ? String(value)
                 : ""
