@@ -297,6 +297,7 @@ export async function POST(request: NextRequest) {
             platform: 'linkedin',
             url: result.url,
             instanceName: 'LinkedIn',
+            ...(result.postId && { postId: result.postId }),
           });
         }
       } else {

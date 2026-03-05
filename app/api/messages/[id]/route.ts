@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth/session';
 import { deleteBlobsFromMessages } from '@/lib/blob';
-import { deletePostOnBluesky, deletePostOnMastodon } from '@/lib/crosspost/delete-external';
+import { deletePostOnBluesky, deletePostOnLinkedIn, deletePostOnMastodon } from '@/lib/crosspost/delete-external';
 import { LinkMetadata } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -147,6 +147,7 @@ export async function DELETE(
       select: { id: true, provider: true, providerUsername: true, providerData: true },
     });
     const blueskyIdentity = linkedIdentities.find((i) => i.provider === 'bluesky');
+    const linkedInIdentity = linkedIdentities.find((i) => i.provider === 'linkedin');
     const mastodonIdentities = linkedIdentities.filter((i) => i.provider.startsWith('mastodon:'));
 
     for (const m of messagesWeOwn) {
@@ -160,6 +161,7 @@ export async function DELETE(
         uri?: string;
         cid?: string;
         uris?: string[];
+        postId?: string;
       }> | null;
       if (!crossPostUrls || !Array.isArray(crossPostUrls)) continue;
 
@@ -188,6 +190,18 @@ export async function DELETE(
                 statusIds
               );
             }
+          }
+        } else if (cp.platform === 'linkedin' && linkedInIdentity) {
+          let postId = cp.postId;
+          if (!postId && cp.url) {
+            const match = cp.url.match(/\/feed\/update\/(.+)$/);
+            postId = match ? decodeURIComponent(match[1]) : undefined;
+          }
+          if (postId) {
+            await deletePostOnLinkedIn(
+              linkedInIdentity as Parameters<typeof deletePostOnLinkedIn>[0],
+              postId
+            );
           }
         }
       }

@@ -94,6 +94,8 @@ export interface CrossPostResult {
   instanceName: string;
   success: boolean;
   url?: string;
+  /** Post URN (urn:li:share:... or urn:li:ugcPost:...) for delete-on-delete */
+  postId?: string;
   error?: string;
 }
 
@@ -204,6 +206,7 @@ export async function postToLinkedIn(
       instanceName: 'LinkedIn',
       success: true,
       url,
+      postId: postId ?? undefined,
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';

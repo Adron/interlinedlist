@@ -1,7 +1,18 @@
 /**
- * Delete cross-posted content from Bluesky and Mastodon when a message is deleted.
- * Uses stored URIs (Bluesky) and status IDs (Mastodon) from crossPostUrls.
+ * Delete cross-posted content from Bluesky, Mastodon, and LinkedIn when a message is deleted.
+ * Uses stored URIs (Bluesky), status IDs (Mastodon), and post URNs (LinkedIn) from crossPostUrls.
  */
+
+interface LinkedInProviderData {
+  access_token: string;
+  expires_in?: number;
+}
+
+interface LinkedIdentityWithLinkedIn {
+  id: string;
+  provider: string;
+  providerData: LinkedInProviderData | null;
+}
 
 interface BlueskyProviderData {
   did?: string;
@@ -153,6 +164,47 @@ export async function deletePostOnMastodon(
       }
     }
 
+    return { success: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Delete a LinkedIn post. Uses DELETE /rest/posts/{urn}.
+ * Post URN can be urn:li:share:{id} or urn:li:ugcPost:{id}.
+ */
+export async function deletePostOnLinkedIn(
+  identity: LinkedIdentityWithLinkedIn,
+  postId: string
+): Promise<{ success: boolean; error?: string }> {
+  const providerData = identity.providerData as LinkedInProviderData | null;
+  if (!providerData?.access_token) {
+    return { success: false, error: 'Missing LinkedIn credentials' };
+  }
+
+  const trimmed = postId.trim();
+  if (!trimmed || (!trimmed.startsWith('urn:li:share:') && !trimmed.startsWith('urn:li:ugcPost:'))) {
+    return { success: false, error: 'Invalid LinkedIn post URN' };
+  }
+
+  try {
+    const encoded = encodeURIComponent(trimmed);
+    const res = await fetch(`https://api.linkedin.com/rest/posts/${encoded}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${providerData.access_token}`,
+        'X-Restli-Protocol-Version': '2.0.0',
+        'Linkedin-Version': '202510',
+      },
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error('LinkedIn delete post failed:', errText);
+      return { success: false, error: errText || `HTTP ${res.status}` };
+    }
     return { success: true };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
