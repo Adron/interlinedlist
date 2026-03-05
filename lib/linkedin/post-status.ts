@@ -1,9 +1,73 @@
 /**
  * Cross-post a message to LinkedIn.
- * Uses LinkedIn Posts API (REST). Text-only for MVP; images can be added later.
+ * Uses LinkedIn Posts API (REST). Supports text, single image, or multi-image (2-20) posts.
  */
 
 const LINKEDIN_CHAR_LIMIT = 3000;
+const LINKEDIN_API_VERSION = '202510';
+const LINKEDIN_MAX_IMAGES = 20;
+
+const LINKEDIN_HEADERS = {
+  'Content-Type': 'application/json',
+  'X-Restli-Protocol-Version': '2.0.0',
+  'Linkedin-Version': LINKEDIN_API_VERSION,
+} as const;
+
+function inferMimeType(url: string, contentType: string | null): string {
+  if (contentType && /^image\/(jpeg|png|gif)$/i.test(contentType)) {
+    return contentType.split(';')[0].trim().toLowerCase();
+  }
+  const lower = url.toLowerCase();
+  if (lower.includes('.png')) return 'image/png';
+  if (lower.includes('.gif')) return 'image/gif';
+  return 'image/jpeg';
+}
+
+async function uploadImageToLinkedIn(
+  accessToken: string,
+  authorUrn: string,
+  imageUrl: string
+): Promise<string | null> {
+  try {
+    const imgRes = await fetch(imageUrl);
+    if (!imgRes.ok) return null;
+    const arrayBuffer = await imgRes.arrayBuffer();
+    const mimeType = inferMimeType(imageUrl, imgRes.headers.get('content-type'));
+
+    const initRes = await fetch(
+      'https://api.linkedin.com/rest/images?action=initializeUpload',
+      {
+        method: 'POST',
+        headers: {
+          ...LINKEDIN_HEADERS,
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          initializeUploadRequest: { owner: authorUrn },
+        }),
+      }
+    );
+
+    if (!initRes.ok) return null;
+    const initData = (await initRes.json()) as {
+      value?: { uploadUrl?: string; image?: string };
+    };
+    const uploadUrl = initData.value?.uploadUrl;
+    const imageUrn = initData.value?.image;
+    if (!uploadUrl || !imageUrn) return null;
+
+    const putRes = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': mimeType },
+      body: arrayBuffer,
+    });
+
+    if (!putRes.ok) return null;
+    return imageUrn;
+  } catch {
+    return null;
+  }
+}
 
 interface LinkedInProviderData {
   access_token: string;
@@ -57,7 +121,40 @@ export async function postToLinkedIn(
     const textChunks = splitTextForPlatform(options.content, LINKEDIN_CHAR_LIMIT);
     const commentary = (textChunks[0] ?? options.content.trim()) || ' ';
 
-    const payload = {
+    const imageUrls = options.imageUrls?.filter(
+      (u): u is string => typeof u === 'string' && u.length > 0
+    );
+    const urlsToUpload = (imageUrls ?? []).slice(0, LINKEDIN_MAX_IMAGES);
+
+    let content: { media?: { id: string; altText: string }; multiImage?: { images: Array<{ id: string; altText: string }> } } | undefined;
+
+    if (urlsToUpload.length > 0) {
+      const imageUrns: string[] = [];
+      for (const url of urlsToUpload) {
+        const urn = await uploadImageToLinkedIn(accessToken, authorUrn, url);
+        if (!urn) {
+          return {
+            providerId: identity.id,
+            instanceName: 'LinkedIn',
+            success: false,
+            error: `Failed to upload image to LinkedIn`,
+          };
+        }
+        imageUrns.push(urn);
+      }
+
+      if (imageUrns.length === 1) {
+        content = { media: { id: imageUrns[0], altText: '' } };
+      } else {
+        content = {
+          multiImage: {
+            images: imageUrns.map((id) => ({ id, altText: '' })),
+          },
+        };
+      }
+    }
+
+    const payload: Record<string, unknown> = {
       author: authorUrn,
       commentary,
       visibility,
@@ -69,14 +166,13 @@ export async function postToLinkedIn(
       lifecycleState: 'PUBLISHED',
       isReshareDisabledByAuthor: false,
     };
+    if (content) payload.content = content;
 
     const response = await fetch('https://api.linkedin.com/rest/posts', {
       method: 'POST',
       headers: {
+        ...LINKEDIN_HEADERS,
         Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-        'X-Restli-Protocol-Version': '2.0.0',
-        'Linkedin-Version': '202405',
       },
       body: JSON.stringify(payload),
     });
