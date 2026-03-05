@@ -1,6 +1,7 @@
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/prisma';
 import { LinkMetadata, CrossPostUrl } from '@/lib/types';
+import MessageInput from './MessageInput';
 import MessageTable from './MessageTable';
 
 export default async function DashboardMessageFeed() {
@@ -61,15 +62,26 @@ export default async function DashboardMessageFeed() {
     }));
 
     return (
-      <MessageTable
-        initialMessages={serializedMessages}
-        initialTotal={total}
-        currentUserId={user?.id}
-        itemsPerPage={messagesPerPage}
-        showPreviews={user?.showPreviews ?? true}
-        onlyMine={true}
-        dateFormat="datagrid"
-      />
+      <>
+        {user && user.emailVerified && user.cleared && (
+          <div className="mb-3">
+            <MessageInput
+              maxLength={user.maxMessageLength || 666}
+              defaultPubliclyVisible={user.defaultPubliclyVisible ?? false}
+              showAdvancedPostSettings={user.showAdvancedPostSettings ?? false}
+            />
+          </div>
+        )}
+        <MessageTable
+          initialMessages={serializedMessages}
+          initialTotal={total}
+          currentUserId={user?.id}
+          itemsPerPage={messagesPerPage}
+          showPreviews={user?.showPreviews ?? true}
+          onlyMine={true}
+          dateFormat="datagrid"
+        />
+      </>
     );
   } catch (error: any) {
     // Handle case where messages table doesn't exist yet
