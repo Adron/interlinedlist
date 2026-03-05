@@ -6,6 +6,7 @@ import { APP_URL } from '@/lib/config/app';
 import { buildMessageWhereClause } from '@/lib/messages/queries';
 import { postToMastodon } from '@/lib/mastodon/post-status';
 import { postToBluesky } from '@/lib/bluesky/post-status';
+import { postToLinkedIn } from '@/lib/linkedin/post-status';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { content, publiclyVisible, imageUrls, videoUrls, mastodonProviderIds, crossPostToBluesky, parentId, scheduledAt: scheduledAtRaw } = body;
+    const { content, publiclyVisible, imageUrls, videoUrls, mastodonProviderIds, crossPostToBluesky, crossPostToLinkedIn, parentId, scheduledAt: scheduledAtRaw } = body;
 
     // Validate content
     if (!content || typeof content !== 'string' || content.trim().length === 0) {
@@ -142,6 +143,7 @@ export async function POST(request: NextRequest) {
           scheduledCrossPostConfig: {
             mastodonProviderIds: Array.isArray(mastodonProviderIds) ? mastodonProviderIds : [],
             crossPostToBluesky: crossPostToBluesky === true,
+            crossPostToLinkedIn: crossPostToLinkedIn === true,
           } as object,
         }),
       },
@@ -262,6 +264,47 @@ export async function POST(request: NextRequest) {
           instanceName: 'Bluesky',
           success: false,
           error: 'Bluesky account not linked. Please link in Settings.',
+        });
+      }
+    }
+
+    // Cross-post to LinkedIn if enabled (skip for replies, skip for scheduled)
+    if (!parentMessage && !isScheduled && crossPostToLinkedIn === true) {
+      const linkedInIdentity = await prisma.linkedIdentity.findFirst({
+        where: {
+          userId: user.id,
+          provider: 'linkedin',
+        },
+        select: {
+          id: true,
+          provider: true,
+          providerUserId: true,
+          providerUsername: true,
+          providerData: true,
+        },
+      });
+
+      if (linkedInIdentity) {
+        const result = await postToLinkedIn(linkedInIdentity as Parameters<typeof postToLinkedIn>[0], {
+          content: content.trim(),
+          publiclyVisible: finalPubliclyVisible as boolean,
+          imageUrls: finalImageUrls,
+          videoUrls: finalVideoUrls,
+        });
+        crossPostResults.push(result);
+        if (result.success && result.url) {
+          crossPostUrls.push({
+            platform: 'linkedin',
+            url: result.url,
+            instanceName: 'LinkedIn',
+          });
+        }
+      } else {
+        crossPostResults.push({
+          providerId: '',
+          instanceName: 'LinkedIn',
+          success: false,
+          error: 'LinkedIn account not linked. Please link in Settings.',
         });
       }
     }

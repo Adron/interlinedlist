@@ -121,8 +121,10 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [mastodonIdentities, setMastodonIdentities] = useState<Identity[]>([]);
   const [blueskyIdentity, setBlueskyIdentity] = useState<Identity | null>(null);
+  const [linkedinIdentity, setLinkedinIdentity] = useState<Identity | null>(null);
   const [selectedMastodonIds, setSelectedMastodonIds] = useState<Set<string>>(new Set());
   const [crossPostToBluesky, setCrossPostToBluesky] = useState(false);
+  const [crossPostToLinkedIn, setCrossPostToLinkedIn] = useState(false);
   const [crossPostResults, setCrossPostResults] = useState<Array<{ providerId: string; instanceName: string; success: boolean; error?: string }> | null>(null);
   const [scheduledAt, setScheduledAt] = useState<Date | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -176,8 +178,10 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
         if (data.identities) {
           const mastodon = data.identities.filter((i: Identity) => i.provider?.startsWith?.('mastodon:'));
           const bluesky = data.identities.find((i: Identity) => i.provider === 'bluesky') ?? null;
+          const linkedin = data.identities.find((i: Identity) => i.provider === 'linkedin') ?? null;
           setMastodonIdentities(mastodon);
           setBlueskyIdentity(bluesky);
+          setLinkedinIdentity(linkedin);
         }
       })
       .catch(() => {});
@@ -195,6 +199,11 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
 
   const toggleBluesky = () => {
     setCrossPostToBluesky((prev) => !prev);
+    setCrossPostResults(null);
+  };
+
+  const toggleLinkedIn = () => {
+    setCrossPostToLinkedIn((prev) => !prev);
     setCrossPostResults(null);
   };
 
@@ -229,6 +238,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
           ...(videoUrls.length > 0 && { videoUrls }),
           ...(selectedMastodonIds.size > 0 && { mastodonProviderIds: Array.from(selectedMastodonIds) }),
           ...(crossPostToBluesky && { crossPostToBluesky: true }),
+          ...(crossPostToLinkedIn && { crossPostToLinkedIn: true }),
           ...(scheduledAt && scheduledAt > new Date() && { scheduledAt: scheduledAt.toISOString() }),
         }),
       });
@@ -254,6 +264,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
       setVideoUrls([]);
       setPendingVideoFile(null);
       setCrossPostToBluesky(false);
+      setCrossPostToLinkedIn(false);
       setScheduledAt(null);
       setShowScheduleModal(false);
       setError('');
@@ -469,6 +480,22 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                         <i className="bx bxl-bluesky" style={{ fontSize: '1.1rem' }}></i>
                       </button>
                     )}
+                    {linkedinIdentity && (
+                      <button
+                        type="button"
+                        className={`btn btn-sm btn-link p-1 ${crossPostToLinkedIn ? 'text-primary' : 'text-muted'}`}
+                        aria-label={`Cross-post to LinkedIn${linkedinIdentity.providerUsername ? ` - ${linkedinIdentity.providerUsername}` : 'Cross-post to LinkedIn'}`}
+                        style={{ 
+                          border: 'none',
+                          lineHeight: 1,
+                          minWidth: 'auto',
+                        }}
+                        title={`Cross-post to LinkedIn${linkedinIdentity.providerUsername ? ` - ${linkedinIdentity.providerUsername}` : ''}`}
+                        onClick={toggleLinkedIn}
+                      >
+                        <i className="bx bxl-linkedin" style={{ fontSize: '1.1rem' }}></i>
+                      </button>
+                    )}
                     <button
                       type="button"
                       className="btn btn-sm btn-link p-1 text-muted"
@@ -549,12 +576,13 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
             </div>
           )}
 
-          {(selectedMastodonIds.size > 0 || crossPostToBluesky) && (
+          {(selectedMastodonIds.size > 0 || crossPostToBluesky || crossPostToLinkedIn) && (
             <div className="mb-2 d-flex flex-wrap gap-1 align-items-center">
               <small className="text-muted">
                 Posting to: {[
                   ...mastodonIdentities.filter((m) => selectedMastodonIds.has(m.id)).map((m) => getMastodonInstanceName(m.provider)),
                   ...(crossPostToBluesky ? ['Bluesky'] : []),
+                  ...(crossPostToLinkedIn ? ['LinkedIn'] : []),
                 ].join(', ')}
               </small>
             </div>

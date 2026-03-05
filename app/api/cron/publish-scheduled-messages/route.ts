@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { postToMastodon } from "@/lib/mastodon/post-status";
 import { postToBluesky } from "@/lib/bluesky/post-status";
+import { postToLinkedIn } from "@/lib/linkedin/post-status";
 
 export const dynamic = "force-dynamic";
 
@@ -40,10 +41,11 @@ export async function GET(request: NextRequest) {
 
   for (const message of due) {
     const config = message.scheduledCrossPostConfig as
-      | { mastodonProviderIds?: string[]; crossPostToBluesky?: boolean }
+      | { mastodonProviderIds?: string[]; crossPostToBluesky?: boolean; crossPostToLinkedIn?: boolean }
       | null;
     const mastodonProviderIds = config?.mastodonProviderIds ?? [];
     const crossPostToBluesky = config?.crossPostToBluesky === true;
+    const crossPostToLinkedIn = config?.crossPostToLinkedIn === true;
 
     const imageUrls = message.imageUrls as string[] | null;
     const videoUrls = message.videoUrls as string[] | null;
@@ -133,6 +135,38 @@ export async function GET(request: NextRequest) {
               ...(result.uri && { uri: result.uri }),
               ...(result.cid && { cid: result.cid }),
               ...(result.uris && { uris: result.uris }),
+            });
+          }
+        }
+      }
+
+      if (crossPostToLinkedIn) {
+        const linkedInIdentity = await prisma.linkedIdentity.findFirst({
+          where: {
+            userId: message.userId,
+            provider: "linkedin",
+          },
+          select: {
+            id: true,
+            provider: true,
+            providerUserId: true,
+            providerUsername: true,
+            providerData: true,
+          },
+        });
+
+        if (linkedInIdentity) {
+          const result = await postToLinkedIn(linkedInIdentity as Parameters<typeof postToLinkedIn>[0], {
+            content: message.content,
+            publiclyVisible: message.publiclyVisible,
+            imageUrls: finalImageUrls,
+            videoUrls: finalVideoUrls,
+          });
+          if (result.success && result.url) {
+            crossPostUrls.push({
+              platform: "linkedin",
+              url: result.url,
+              instanceName: "LinkedIn",
             });
           }
         }

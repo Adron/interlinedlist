@@ -55,6 +55,11 @@ export async function POST(request: NextRequest) {
       // Bluesky: verify via AT Protocol - would need proper API call
       // For now, just update lastVerifiedAt if we have a token
       // TODO: implement proper Bluesky verification
+    } else if (identity.provider === 'linkedin') {
+      const res = await fetch('https://api.linkedin.com/v2/userinfo', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!res.ok) throw new Error('Token invalid');
     }
 
     await prisma.linkedIdentity.update({

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export interface LinkedIdentity {
@@ -42,6 +42,9 @@ function getProviderConnectUrl(provider: string, instance?: string, handle?: str
     if (handle?.trim()) params.set('handle', handle.trim());
     return `/api/auth/bluesky/authorize?${params}`;
   }
+  if (provider === 'linkedin') {
+    return '/api/auth/linkedin/authorize?link=true';
+  }
   if (provider.startsWith('mastodon:') || instance) {
     const inst = instance || provider.replace('mastodon:', '');
     return `/api/auth/mastodon/authorize?instance=${encodeURIComponent(inst)}&link=true`;
@@ -63,6 +66,14 @@ export default function ConnectedAccountsSection({
   const [verifying, setVerifying] = useState<string | null>(null);
   const [disconnecting, setDisconnecting] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [linkedinConfigured, setLinkedinConfigured] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    fetch('/api/auth/linkedin/status')
+      .then((res) => res.json())
+      .then((data) => setLinkedinConfigured(data.configured === true))
+      .catch(() => setLinkedinConfigured(false));
+  }, []);
 
   const hasIdentity = (provider: string) =>
     identities.some((i) => i.provider === provider);
@@ -353,15 +364,17 @@ export default function ConnectedAccountsSection({
                     {disconnecting === 'linkedin' ? 'Disconnecting...' : 'Disconnect'}
                   </button>
                 </>
-              ) : (
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-secondary"
-                  disabled
-                  title="Coming soon"
+              ) : linkedinConfigured === true ? (
+                <a
+                  href={getProviderConnectUrl('linkedin')}
+                  className="btn btn-sm btn-primary"
                 >
-                  Connect (coming soon)
-                </button>
+                  Connect
+                </a>
+              ) : (
+                <span className="btn btn-sm btn-outline-secondary disabled">
+                  {linkedinConfigured === null ? 'Loading...' : 'Coming soon'}
+                </span>
               )}
             </div>
           </div>
