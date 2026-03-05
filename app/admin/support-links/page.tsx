@@ -12,6 +12,7 @@ const SUPPORT_LINKS = [
   { title: 'Resend Emails', url: 'https://resend.com/emails' },
   { title: 'Resend Domains', url: 'https://resend.com/domains' },
   { title: 'Resend API Keys', url: 'https://resend.com/api-keys' },
+  { title: 'LinkedIn Developer Portal', url: 'https://www.linkedin.com/developers/apps' },
 ];
 
 export default async function SupportLinksPage() {
