@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/session";
 import { computeContentHash } from "@/lib/documents/queries";
+import { trackAction } from "@/lib/analytics/track";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +60,8 @@ export async function POST(request: NextRequest) {
         contentHash,
       },
     });
+
+    trackAction("document_create", { userId: user.id, properties: { documentId: document.id } }).catch(() => {});
 
     return NextResponse.json(
       { message: "Document created successfully", document },

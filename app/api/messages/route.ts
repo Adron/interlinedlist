@@ -7,6 +7,7 @@ import { buildMessageWhereClause } from '@/lib/messages/queries';
 import { postToMastodon } from '@/lib/mastodon/post-status';
 import { postToBluesky } from '@/lib/bluesky/post-status';
 import { postToLinkedIn } from '@/lib/linkedin/post-status';
+import { trackAction } from '@/lib/analytics/track';
 
 export const dynamic = 'force-dynamic';
 
@@ -158,6 +159,8 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    trackAction('message_post', { userId: user.id }).catch(() => {});
 
     // Detect links and trigger async metadata fetch (don't await)
     const detectedLinks = detectLinks(content.trim());

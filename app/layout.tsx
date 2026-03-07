@@ -5,6 +5,7 @@ import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import ThemeProvider from '@/components/ThemeProvider';
 import ThemeBridgeInit from '@/components/ThemeBridgeInit';
+import AnalyticsPageView from '@/components/AnalyticsPageView';
 import { getCurrentUser } from '@/lib/auth/session';
 
 export const metadata: Metadata = {
@@ -63,6 +64,7 @@ export default async function RootLayout({
       </head>
       <body style={{ margin: 0, minHeight: '100vh' }}>
         <ThemeBridgeInit />
+        <AnalyticsPageView />
         <ThemeProvider theme={user?.theme || 'system'}>
           <div className="app-wrapper">
             <Navigation />

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminAndPublicOwner } from '@/lib/auth/admin-access';
 import { prisma } from '@/lib/prisma';
+import { trackAction } from '@/lib/analytics/track';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,10 +36,12 @@ export async function PATCH(request: NextRequest) {
 
     let updated = 0;
     for (const u of users) {
+      const newCleared = !u.cleared;
       await prisma.user.update({
         where: { id: u.id },
-        data: { cleared: !u.cleared },
+        data: { cleared: newCleared },
       });
+      if (newCleared) trackAction('cleared', { userId: u.id }).catch(() => {});
       updated++;
     }
 

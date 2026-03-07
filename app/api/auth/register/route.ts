@@ -7,6 +7,7 @@ import { logEmailSend, getResendLogParams } from '@/lib/email/log-email';
 import { getEmailVerificationEmailHtml, getEmailVerificationEmailText } from '@/lib/email/templates/email-verification';
 import { SESSION_COOKIE_NAME, SESSION_MAX_AGE, APP_CONFIG } from '@/lib/config/app';
 import { ensureUserInPublicOrganization } from '@/lib/organizations/queries';
+import { trackAction } from '@/lib/analytics/track';
 
 export const dynamic = 'force-dynamic';
 
@@ -109,6 +110,8 @@ export async function POST(request: NextRequest) {
         throw error;
       }
     }
+
+    trackAction('sign_up', { userId: user.id }).catch(() => {});
 
     // Add user to "The Public" organization
     try {

@@ -5,6 +5,7 @@ import ListBreadcrumbs from '@/components/lists/ListBreadcrumbs';
 import ListChildLinks from '@/components/lists/ListChildLinks';
 import ListDetailActions from '@/components/lists/ListDetailActions';
 import ListDetailViewModel from '@/components/lists/ListDetailViewModel';
+import AnalyticsActionTracker from '@/components/AnalyticsActionTracker';
 import EditSchemaForm from './EditSchemaForm';
 import EditParentForm from '@/components/lists/EditParentForm';
 import AddRowForm from './AddRowForm';
@@ -144,15 +145,18 @@ export default async function ListDetailPage({ params, searchParams }: ListDetai
           </div>
         </>
       ) : (
-        <ListDetailViewModel
-          listId={resolvedParams.id}
-          listTitle={list.title}
-          isPublic={list.isPublic}
-          isGitHubList={isGitHubList}
-          fields={properties}
-          listSource={isGitHubList ? 'github' : 'local'}
-          githubRepo={githubRepo ?? undefined}
-        />
+        <>
+          <AnalyticsActionTracker name="list_view" properties={{ listId: resolvedParams.id }} />
+          <ListDetailViewModel
+            listId={resolvedParams.id}
+            listTitle={list.title}
+            isPublic={list.isPublic}
+            isGitHubList={isGitHubList}
+            fields={properties}
+            listSource={isGitHubList ? 'github' : 'local'}
+            githubRepo={githubRepo ?? undefined}
+          />
+        </>
       )}
     </div>
   );

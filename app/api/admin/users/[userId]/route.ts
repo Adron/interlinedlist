@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminAndPublicOwner } from '@/lib/auth/admin-access';
 import { prisma } from '@/lib/prisma';
+import { trackAction } from '@/lib/analytics/track';
 
 export const dynamic = 'force-dynamic';
 
@@ -80,6 +81,10 @@ export async function PUT(
     }
     if (body.cleared !== undefined) {
       updateData.cleared = body.cleared;
+    }
+
+    if (body.cleared === true && !existingUser.cleared) {
+      trackAction('cleared', { userId }).catch(() => {});
     }
 
     // Update user

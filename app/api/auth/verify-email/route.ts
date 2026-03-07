@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { isTokenExpired } from '@/lib/auth/tokens';
+import { trackAction } from '@/lib/analytics/track';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,6 +71,8 @@ export async function POST(request: NextRequest) {
         emailVerificationExpires: null,
       },
     });
+
+    trackAction('email_verified', { userId: user.id }).catch(() => {});
 
     return NextResponse.json(
       { message: 'Email verified successfully' },

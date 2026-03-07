@@ -9,6 +9,7 @@ import {
 import { validateFormData } from "@/lib/lists/dsl-validator";
 import { prisma } from "@/lib/prisma";
 import { getGitHubIssuesContext, githubFetch } from "@/lib/github/issues";
+import { trackAction } from "@/lib/analytics/track";
 import { issueToRow, rowDataToIssuePayload } from "@/lib/lists/github-list-adapter";
 
 export const dynamic = "force-dynamic";
@@ -141,6 +142,7 @@ export async function POST(
         }
       }
       const result = await bulkCreateListDataRows(id, user.id, data);
+      trackAction("list_add_row", { userId: user.id, properties: { listId: id, count: result.count } }).catch(() => {});
       return NextResponse.json(
         { message: `${result.count} rows created successfully`, count: result.count },
         { status: 201 }
@@ -195,10 +197,12 @@ export async function POST(
         update: { issueData: issue as object, fetchedAt: new Date() },
       });
       const row = issueToRow(issue);
+      trackAction("list_add_row", { userId: user.id, properties: { listId: id } }).catch(() => {});
       return NextResponse.json({ message: "Row created successfully", data: row }, { status: 201 });
     }
 
     const row = await createListDataRow(id, user.id, data);
+    trackAction("list_add_row", { userId: user.id, properties: { listId: id } }).catch(() => {});
     return NextResponse.json({ message: "Row created successfully", data: row }, { status: 201 });
   } catch (error: unknown) {
     console.error("Create list data error:", error);

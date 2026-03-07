@@ -348,3 +348,22 @@ model EmailLog {
   @@index([status])
   @@map("email_logs")
 }
+
+model AnalyticsEvent {
+  id         String    @id @default(uuid())
+  type       String    // "page_view" | "action"
+  name       String    // Event name (e.g. sign_up, message_post, list_create)
+  path       String?
+  userId     String?
+  sessionId  String?
+  referrer   String?
+  properties Json?
+  createdAt  DateTime  @default(now())
+
+  @@index([type, createdAt])
+  @@index([name, createdAt])
+  @@index([userId])
+  @@index([sessionId])
+  @@index([createdAt])
+  @@map("analytics_events")
+}
