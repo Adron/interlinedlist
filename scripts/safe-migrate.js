@@ -39,6 +39,26 @@ function logError(message) {
   log(`✗ ${message}`, 'red');
 }
 
+/** Run a command with retries on P1002 (advisory lock timeout). */
+function runWithRetry(command, maxAttempts = 3, delayMs = 5000) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      execSync(command, { stdio: 'inherit' });
+      return;
+    } catch (err) {
+      const output = (err.stdout?.toString() || '') + (err.stderr?.toString() || '') + (err.message || '');
+      const isP1002 = output.includes('P1002') || output.includes('advisory lock') || output.includes('timed out');
+      if (isP1002 && attempt < maxAttempts) {
+        logWarning(`Migration timed out (attempt ${attempt}/${maxAttempts}). Retrying in ${delayMs / 1000}s...`);
+        const deadline = Date.now() + delayMs;
+        while (Date.now() < deadline) { /* busy wait */ }
+      } else {
+        throw err;
+      }
+    }
+  }
+}
+
 // Check if we're in the project root
 if (!fs.existsSync(path.join(process.cwd(), 'prisma/schema.prisma'))) {
   logError('prisma/schema.prisma not found. Please run this script from the project root.');
@@ -59,6 +79,13 @@ if (fs.existsSync(envLocalPath)) {
       }
     }
   });
+}
+
+// For Neon: use direct connection for migrations to avoid P1002 advisory lock timeout.
+// Temporarily point DATABASE_URL to direct connection when using pooler.
+if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('-pooler.')) {
+  process.env.DATABASE_URL = process.env.DATABASE_URL.replace('-pooler.', '.');
+  logInfo('Using direct connection for migrations (avoids Neon pooler advisory lock timeout).');
 }
 
 logInfo('Checking migration status...');
@@ -118,9 +145,7 @@ try {
     logInfo('Using "prisma migrate deploy" to safely apply migrations without resetting the database...');
     console.log('');
     
-    execSync('npx prisma migrate deploy', {
-      stdio: 'inherit',
-    });
+    runWithRetry('npx prisma migrate deploy', 3, 5000);
     logSuccess('Migrations applied successfully!');
     process.exit(0);
   }
@@ -134,9 +159,7 @@ try {
     console.log('');
     
     try {
-      execSync('npx prisma migrate deploy', {
-        stdio: 'inherit',
-      });
+      runWithRetry('npx prisma migrate deploy', 3, 5000);
       logSuccess('Migrations applied successfully!');
       logInfo('Migration history should now be in sync.');
       process.exit(0);
@@ -157,9 +180,7 @@ try {
   if (statusExitCode !== 0) {
     logWarning('Migration status check indicates issues. Attempting safe migration...');
     try {
-      execSync('npx prisma migrate deploy', {
-        stdio: 'inherit',
-      });
+      runWithRetry('npx prisma migrate deploy', 3, 5000);
       logSuccess('Migrations applied successfully!');
       process.exit(0);
     } catch (deployError) {

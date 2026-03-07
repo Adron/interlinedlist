@@ -823,10 +823,9 @@ npx prisma migrate deploy
 - Reads from `DATABASE_URL` environment variable
 - Does NOT regenerate Prisma Client (use `prisma generate` separately if needed)
 
-**For Vercel Deployments**: Migrations run automatically during build via the `vercel-build` script:
-```json
-"vercel-build": "prisma migrate deploy && next build"
-```
+**For Vercel Deployments**: Migrations run automatically during build via the `vercel-build` script.
+
+**Neon (P1002 timeout)**: If you use Neon with a pooled connection (`-pooler` in hostname), the migration scripts temporarily use a direct connection (remove `-pooler` from host) to avoid advisory lock timeouts.
 
 #### Migration Workflow
 
