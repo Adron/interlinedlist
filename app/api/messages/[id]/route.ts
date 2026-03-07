@@ -78,6 +78,126 @@ export async function GET(
   }
 }
 
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> | { id: string } }
+) {
+  try {
+    const user = await getCurrentUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const resolvedParams = params instanceof Promise ? await params : params;
+    const messageId = resolvedParams.id;
+
+    const message = await prisma.message.findUnique({
+      where: { id: messageId },
+      select: { userId: true, scheduledAt: true },
+    });
+
+    if (!message) {
+      return NextResponse.json(
+        { error: 'Message not found' },
+        { status: 404 }
+      );
+    }
+
+    if (message.userId !== user.id) {
+      return NextResponse.json(
+        { error: 'You can only edit your own messages' },
+        { status: 403 }
+      );
+    }
+
+    if (!message.scheduledAt || message.scheduledAt <= new Date()) {
+      return NextResponse.json(
+        { error: 'Can only edit scheduled posts that are in the future' },
+        { status: 400 }
+      );
+    }
+
+    const body = await request.json();
+    const { scheduledAt: scheduledAtRaw, scheduledCrossPostConfig } = body;
+
+    const updates: Record<string, unknown> = {};
+
+    if (scheduledAtRaw !== undefined && scheduledAtRaw !== null && typeof scheduledAtRaw === 'string') {
+      const parsed = new Date(scheduledAtRaw);
+      if (isNaN(parsed.getTime())) {
+        return NextResponse.json({ error: 'Invalid scheduledAt date' }, { status: 400 });
+      }
+      if (parsed <= new Date()) {
+        return NextResponse.json({ error: 'scheduledAt must be in the future' }, { status: 400 });
+      }
+      updates.scheduledAt = parsed;
+    }
+
+    if (scheduledCrossPostConfig !== undefined) {
+      if (scheduledCrossPostConfig !== null && typeof scheduledCrossPostConfig !== 'object') {
+        return NextResponse.json({ error: 'scheduledCrossPostConfig must be an object or null' }, { status: 400 });
+      }
+      const config = scheduledCrossPostConfig as {
+        mastodonProviderIds?: string[];
+        crossPostToBluesky?: boolean;
+        crossPostToLinkedIn?: boolean;
+      } | null;
+      if (config) {
+        updates.scheduledCrossPostConfig = {
+          mastodonProviderIds: Array.isArray(config.mastodonProviderIds) ? config.mastodonProviderIds : [],
+          crossPostToBluesky: Boolean(config.crossPostToBluesky),
+          crossPostToLinkedIn: Boolean(config.crossPostToLinkedIn),
+        };
+      } else {
+        updates.scheduledCrossPostConfig = null;
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json({ error: 'No valid updates provided' }, { status: 400 });
+    }
+
+    const updated = await prisma.message.update({
+      where: { id: messageId },
+      data: updates,
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+
+    const serialized = {
+      ...updated,
+      createdAt: updated.createdAt.toISOString(),
+      updatedAt: updated.updatedAt.toISOString(),
+      scheduledAt: updated.scheduledAt?.toISOString() ?? null,
+      linkMetadata: updated.linkMetadata as LinkMetadata | null,
+      imageUrls: updated.imageUrls,
+      videoUrls: updated.videoUrls,
+      crossPostUrls: updated.crossPostUrls,
+      scheduledCrossPostConfig: updated.scheduledCrossPostConfig,
+    };
+
+    return NextResponse.json(serialized, { status: 200 });
+  } catch (error) {
+    console.error('PATCH message error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> | { id: string } }

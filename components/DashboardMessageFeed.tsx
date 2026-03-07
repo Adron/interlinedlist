@@ -1,6 +1,6 @@
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/prisma';
-import { LinkMetadata, CrossPostUrl } from '@/lib/types';
+import { LinkMetadata, CrossPostUrl, Message } from '@/lib/types';
 import MessageInput from './MessageInput';
 import MessageTable from './MessageTable';
 
@@ -51,11 +51,12 @@ export default async function DashboardMessageFeed() {
     const total = await prisma.message.count({ where });
 
     // Serialize dates to strings for client components
-    const serializedMessages = messages.map((message) => ({
+    const serializedMessages: Message[] = messages.map((message) => ({
       ...message,
       createdAt: message.createdAt.toISOString(),
       updatedAt: message.updatedAt.toISOString(),
       scheduledAt: message.scheduledAt?.toISOString() ?? null,
+      scheduledCrossPostConfig: message.scheduledCrossPostConfig as Message['scheduledCrossPostConfig'],
       linkMetadata: message.linkMetadata as LinkMetadata | null,
       imageUrls: (Array.isArray(message.imageUrls) ? message.imageUrls : null) as string[] | null,
       videoUrls: (Array.isArray(message.videoUrls) ? message.videoUrls : null) as string[] | null,

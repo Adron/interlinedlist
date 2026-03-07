@@ -64,6 +64,14 @@ export default async function DashboardPage() {
               <h4 className="h6 mb-3">Data Management</h4>
               <div className="d-flex gap-2 flex-wrap">
                 <Link
+                  href="/dashboard/scheduled"
+                  className="btn btn-outline-primary btn-sm"
+                  title="Scheduled posts"
+                >
+                  <i className="bx bx-calendar-alt me-1"></i>
+                  Scheduled posts
+                </Link>
+                <Link
                   href="/exports"
                   className="btn btn-outline-primary btn-sm"
                   title="Exports"

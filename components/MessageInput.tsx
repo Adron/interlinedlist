@@ -990,11 +990,70 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                     <label className="form-label small">Date and time</label>
                     <input
                       type="datetime-local"
-                      className="form-control"
+                      className="form-control mb-3"
                       min={toDatetimeLocal(new Date(Date.now() + 60000))}
                       value={scheduleDraft}
                       onChange={(e) => setScheduleDraft(e.target.value)}
                     />
+                    <label className="form-label small">Cross-post to</label>
+                    <div className="d-flex flex-wrap gap-3">
+                      {mastodonIdentities.map((m) => {
+                        const instanceName = getMastodonInstanceName(m.provider);
+                        const isSelected = selectedMastodonIds.has(m.id);
+                        return (
+                          <div key={m.id} className="form-check">
+                            <input
+                              className="form-check-input"
+                              type="checkbox"
+                              id={`schedule-mastodon-${m.id}`}
+                              checked={isSelected}
+                              onChange={() => {
+                                setSelectedMastodonIds((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(m.id)) next.delete(m.id);
+                                  else next.add(m.id);
+                                  return next;
+                                });
+                              }}
+                            />
+                            <label className="form-check-label small" htmlFor={`schedule-mastodon-${m.id}`}>
+                              Mastodon ({instanceName})
+                            </label>
+                          </div>
+                        );
+                      })}
+                      {blueskyIdentity && (
+                        <div className="form-check">
+                          <input
+                            className="form-check-input"
+                            type="checkbox"
+                            id="schedule-bluesky"
+                            checked={crossPostToBluesky}
+                            onChange={(e) => setCrossPostToBluesky(e.target.checked)}
+                          />
+                          <label className="form-check-label small" htmlFor="schedule-bluesky">
+                            Bluesky
+                          </label>
+                        </div>
+                      )}
+                      {linkedinIdentity && (
+                        <div className="form-check">
+                          <input
+                            className="form-check-input"
+                            type="checkbox"
+                            id="schedule-linkedin"
+                            checked={crossPostToLinkedIn}
+                            onChange={(e) => setCrossPostToLinkedIn(e.target.checked)}
+                          />
+                          <label className="form-check-label small" htmlFor="schedule-linkedin">
+                            LinkedIn
+                          </label>
+                        </div>
+                      )}
+                      {mastodonIdentities.length === 0 && !blueskyIdentity && !linkedinIdentity && (
+                        <span className="small text-muted">No cross-post accounts connected</span>
+                      )}
+                    </div>
                   </div>
                   <div className="modal-footer">
                     <button

@@ -104,6 +104,11 @@ export interface Message {
   createdAt: string; // ISO string for client components
   updatedAt?: string; // ISO string, optional
   scheduledAt?: string | null; // ISO string when scheduled, null when published
+  scheduledCrossPostConfig?: {
+    mastodonProviderIds?: string[];
+    crossPostToBluesky?: boolean;
+    crossPostToLinkedIn?: boolean;
+  } | null;
   user: MessageUser;
   userId?: string; // Optional, may not be included in all queries
   parentId?: string | null;
