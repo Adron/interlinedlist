@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserOrSyncToken } from "@/lib/auth/sync-token";
 import { computeContentHash } from "@/lib/documents/queries";
+import { trackAction } from "@/lib/analytics/track";
 
 export const dynamic = "force-dynamic";
 
@@ -177,6 +178,8 @@ export async function POST(request: NextRequest) {
         console.error("Sync op error:", op, err);
       }
     }
+
+    trackAction("document_sync", { userId: user.id }).catch(() => {});
 
     const serverTime = new Date().toISOString();
     return NextResponse.json({ lastSyncAt: serverTime }, { status: 200 });

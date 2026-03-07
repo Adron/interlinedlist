@@ -51,6 +51,9 @@ export default async function AdminPage() {
       <ListBreadcrumbs items={breadcrumbItems} />
       <div className="row mb-4">
         <div className="col-12 d-flex justify-content-end gap-2">
+          <a href="/admin/analytics" className="btn btn-outline-primary">
+            <i className="bx bx-bar-chart-alt me-2"></i>Analytics
+          </a>
           <a href="/admin/support-links" className="btn btn-outline-primary">
             <i className="bx bx-link me-2"></i>Support Links
           </a>

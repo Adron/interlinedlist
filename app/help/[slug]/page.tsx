@@ -1,13 +1,15 @@
 import { notFound } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import { getHelpContent, getHelpSlugs } from '@/lib/help';
+import AnalyticsActionTracker from '@/components/AnalyticsActionTracker';
 
 interface HelpTopicPageProps {
-  params: { slug: string };
+  params: Promise<{ slug: string }> | { slug: string };
 }
 
 export default async function HelpTopicPage({ params }: HelpTopicPageProps) {
-  const content = getHelpContent(params.slug);
+  const { slug } = await Promise.resolve(params);
+  const content = getHelpContent(slug);
 
   if (!content) {
     notFound();
@@ -15,6 +17,7 @@ export default async function HelpTopicPage({ params }: HelpTopicPageProps) {
 
   return (
     <div className="card">
+      <AnalyticsActionTracker name="help_view" properties={{ slug }} />
       <div className="card-header">
         <h1 className="h4 mb-0">{content.title}</h1>
       </div>

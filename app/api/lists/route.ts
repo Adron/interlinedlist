@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/session";
 import { parseDSLSchema, validateDSLSchema } from "@/lib/lists/dsl-parser";
 import { getUserLists, validateParentRelationship } from "@/lib/lists/queries";
+import { trackAction } from "@/lib/analytics/track";
 
 export const dynamic = "force-dynamic";
 
@@ -186,6 +187,8 @@ export async function POST(request: NextRequest) {
         // Non-fatal; user can refresh manually
       }
     }
+
+    trackAction("list_create", { userId: user.id, properties: { listId: list.id } }).catch(() => {});
 
     // Fetch created list with properties
     const createdList = await prisma.list.findUnique({

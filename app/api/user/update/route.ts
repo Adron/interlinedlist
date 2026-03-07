@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth/session';
+import { trackAction } from '@/lib/analytics/track';
 
 export const dynamic = 'force-dynamic';
 
@@ -204,6 +205,8 @@ export async function PATCH(request: NextRequest) {
         throw updateError;
       }
     }
+
+    trackAction('settings_update', { userId: user.id }).catch(() => {});
 
     return NextResponse.json(
       { message: 'User updated successfully', user: updatedUser },

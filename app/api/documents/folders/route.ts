@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getRootFolders, validateFolderParent } from "@/lib/documents/queries";
+import { trackAction } from "@/lib/analytics/track";
 
 export const dynamic = "force-dynamic";
 
@@ -64,6 +65,8 @@ export async function POST(request: NextRequest) {
         parentId: parentId || null,
       },
     });
+
+    trackAction("document_create", { userId: user.id, properties: { folderId: folder.id, type: "folder" } }).catch(() => {});
 
     return NextResponse.json(
       { message: "Folder created successfully", folder },

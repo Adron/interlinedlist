@@ -61,6 +61,7 @@ export async function GET(request: NextRequest) {
     const { hashPassword } = await import('@/lib/auth/password');
     const { getCurrentUser } = await import('@/lib/auth/session');
     const { ensureUserInPublicOrganization } = await import('@/lib/organizations/queries');
+    const { trackAction } = await import('@/lib/analytics/track');
     const { randomBytes } = await import('crypto');
 
     const provider = 'bluesky';
@@ -100,6 +101,7 @@ export async function GET(request: NextRequest) {
           },
         });
       }
+      trackAction('oauth_connect', { userId: user.id, properties: { provider: 'bluesky' } }).catch(() => {});
       return NextResponse.redirect(`${APP_URL}/settings?success=Bluesky+linked`);
     }
 
@@ -152,6 +154,8 @@ export async function GET(request: NextRequest) {
         profileUrl: `https://bsky.app/profile/${handle}`,
       },
     });
+
+    trackAction('oauth_connect', { userId: user.id, properties: { provider: 'bluesky' } }).catch(() => {});
 
     const response = NextResponse.redirect(`${APP_URL}/dashboard`);
     response.cookies.set('session', user.id, {

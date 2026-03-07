@@ -11,6 +11,7 @@ import {
 import { getOAuthStateCookie, deleteOAuthStateCookie } from '@/lib/auth/oauth-state';
 import { getCurrentUser } from '@/lib/auth/session';
 import { ensureUserInPublicOrganization } from '@/lib/organizations/queries';
+import { trackAction } from '@/lib/analytics/track';
 import { APP_URL } from '@/lib/config/app';
 
 export const dynamic = 'force-dynamic';
@@ -123,6 +124,7 @@ export async function GET(request: NextRequest) {
           },
         });
       }
+      trackAction('oauth_connect', { userId: user.id, properties: { provider } }).catch(() => {});
       return redirectToSettings('Mastodon account linked successfully');
     }
 
@@ -185,6 +187,8 @@ export async function GET(request: NextRequest) {
         avatarUrl: account.avatar,
       },
     });
+
+    trackAction('oauth_connect', { userId: user.id, properties: { provider } }).catch(() => {});
 
     const response = NextResponse.redirect(`${APP_URL}/dashboard`);
     response.cookies.set('session', user.id, {
