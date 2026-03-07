@@ -2,10 +2,21 @@ import Link from 'next/link';
 
 interface AnalyticsDashboardProps {
   range: number;
+  totalPageViews: number;
+  uniqueSessions: number;
+  totalActions: number;
   pageViewsByDay: { date: string; count: number }[];
   topPages: { path: string; count: number }[];
   topReferrers: { referrer: string; count: number }[];
   funnelCounts: Record<string, number>;
+  signUpFunnel: {
+    registerViews: number;
+    signUps: number;
+    emailVerified: number;
+    cleared: number;
+  } | null;
+  helpDocsBySlug: { slug: string; count: number }[];
+  oauthByProvider: { provider: string; count: number }[];
 }
 
 const FUNNEL_LABELS: Record<string, string> = {
@@ -25,17 +36,61 @@ const FUNNEL_LABELS: Record<string, string> = {
 
 export default function AnalyticsDashboard({
   range,
+  totalPageViews,
+  uniqueSessions,
+  totalActions,
   pageViewsByDay,
   topPages,
   topReferrers,
   funnelCounts,
+  signUpFunnel,
+  helpDocsBySlug,
+  oauthByProvider,
 }: AnalyticsDashboardProps) {
   const maxPageViews = Math.max(1, ...pageViewsByDay.map((d) => d.count));
-  const totalPageViews = pageViewsByDay.reduce((s, d) => s + d.count, 0);
 
   return (
     <>
       <div className="row mb-4">
+        <div className="col-12">
+          <div className="row g-3">
+            <div className="col-md-3">
+              <div className="card h-100">
+                <div className="card-body">
+                  <p className="text-muted small mb-1">Page views</p>
+                  <p className="h4 mb-0">{totalPageViews.toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+            <div className="col-md-3">
+              <div className="card h-100">
+                <div className="card-body">
+                  <p className="text-muted small mb-1">Unique sessions</p>
+                  <p className="h4 mb-0">{uniqueSessions.toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+            <div className="col-md-3">
+              <div className="card h-100">
+                <div className="card-body">
+                  <p className="text-muted small mb-1">Actions</p>
+                  <p className="h4 mb-0">{totalActions.toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+            <div className="col-md-3">
+              <div className="card h-100">
+                <div className="card-body">
+                  <p className="text-muted small mb-1">Sign ups</p>
+                  <p className="h4 mb-0">{(funnelCounts.sign_up ?? 0).toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="row mb-3">
         <div className="col-12">
           <div className="btn-group" role="group">
             <Link
@@ -67,9 +122,6 @@ export default function AnalyticsDashboard({
               <h5 className="card-title mb-0">Traffic</h5>
             </div>
             <div className="card-body">
-              <p className="text-muted small mb-3">
-                Total page views: <strong>{totalPageViews.toLocaleString()}</strong>
-              </p>
               {pageViewsByDay.length > 0 ? (
                 <div className="d-flex align-items-end gap-1" style={{ height: 120 }}>
                   {pageViewsByDay.map((d) => (
@@ -204,6 +256,133 @@ export default function AnalyticsDashboard({
               </div>
               {Object.keys(funnelCounts).length === 0 && (
                 <p className="text-muted small mb-0">No action events in this period.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {signUpFunnel && (signUpFunnel.registerViews > 0 || signUpFunnel.signUps > 0) && (
+        <div className="row mb-4">
+          <div className="col-12">
+            <div className="card">
+              <div className="card-header">
+                <h5 className="card-title mb-0">Sign-up funnel</h5>
+              </div>
+              <div className="card-body">
+                <p className="text-muted small mb-3">
+                  Register page views → Sign ups → Email verified → Cleared for posting
+                </p>
+                <div className="d-flex align-items-end gap-2 flex-wrap" style={{ minHeight: 80 }}>
+                  <div className="text-center">
+                    <div
+                      className="bg-primary bg-opacity-75 rounded px-2 py-1 text-white small"
+                      style={{ minWidth: 70 }}
+                    >
+                      {signUpFunnel.registerViews}
+                    </div>
+                    <p className="small text-muted mb-0 mt-1">Register views</p>
+                  </div>
+                  <span className="small text-muted">→</span>
+                  <div className="text-center">
+                    <div
+                      className="bg-primary bg-opacity-75 rounded px-2 py-1 text-white small"
+                      style={{ minWidth: 70 }}
+                    >
+                      {signUpFunnel.signUps}
+                    </div>
+                    <p className="small text-muted mb-0 mt-1">Sign ups</p>
+                  </div>
+                  <span className="small text-muted">→</span>
+                  <div className="text-center">
+                    <div
+                      className="bg-primary bg-opacity-75 rounded px-2 py-1 text-white small"
+                      style={{ minWidth: 70 }}
+                    >
+                      {signUpFunnel.emailVerified}
+                    </div>
+                    <p className="small text-muted mb-0 mt-1">Email verified</p>
+                  </div>
+                  <span className="small text-muted">→</span>
+                  <div className="text-center">
+                    <div
+                      className="bg-success bg-opacity-75 rounded px-2 py-1 text-white small"
+                      style={{ minWidth: 70 }}
+                    >
+                      {signUpFunnel.cleared}
+                    </div>
+                    <p className="small text-muted mb-0 mt-1">Cleared</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="row mb-4">
+        <div className="col-md-6">
+          <div className="card h-100">
+            <div className="card-header">
+              <h5 className="card-title mb-0">Help docs (most viewed)</h5>
+            </div>
+            <div className="card-body p-0">
+              {helpDocsBySlug.length > 0 ? (
+                <div className="table-responsive">
+                  <table className="table table-sm table-hover mb-0">
+                    <thead>
+                      <tr>
+                        <th>Slug</th>
+                        <th className="text-end">Views</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {helpDocsBySlug.map((h) => (
+                        <tr key={h.slug}>
+                          <td>
+                            <a href={`/help/${h.slug}`} className="text-decoration-none">
+                              {h.slug}
+                            </a>
+                          </td>
+                          <td className="text-end">{h.count.toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-muted small p-3 mb-0">No help doc views in this period.</p>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="col-md-6">
+          <div className="card h-100">
+            <div className="card-header">
+              <h5 className="card-title mb-0">OAuth connections by provider</h5>
+            </div>
+            <div className="card-body p-0">
+              {oauthByProvider.length > 0 ? (
+                <div className="table-responsive">
+                  <table className="table table-sm table-hover mb-0">
+                    <thead>
+                      <tr>
+                        <th>Provider</th>
+                        <th className="text-end">Connections</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {oauthByProvider.map((o) => (
+                        <tr key={o.provider}>
+                          <td className="text-capitalize">{o.provider}</td>
+                          <td className="text-end">{o.count.toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-muted small p-3 mb-0">No OAuth connections in this period.</p>
               )}
             </div>
           </div>
