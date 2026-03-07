@@ -103,6 +103,7 @@ export interface Message {
   crossPostUrls?: CrossPostUrl[] | null;
   createdAt: string; // ISO string for client components
   updatedAt?: string; // ISO string, optional
+  scheduledAt?: string | null; // ISO string when scheduled, null when published
   user: MessageUser;
   userId?: string; // Optional, may not be included in all queries
   parentId?: string | null;

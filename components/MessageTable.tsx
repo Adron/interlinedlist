@@ -10,6 +10,7 @@ import { detectLinks } from '@/lib/messages/link-detector';
 import LinkMetadataCard from './messages/LinkMetadataCard';
 import MessageReplies from './MessageReplies';
 import { extractListNameFromMessage } from '@/lib/utils/message-extractor';
+import ScheduledPostIndicator from './ScheduledPostIndicator';
 
 interface MessageUser {
   id: string;
@@ -763,6 +764,9 @@ export default function MessageTable({
                         {dateFormat === 'datagrid' 
                           ? formatDatagridDateTime(message.createdAt)
                           : formatDateTime(message.createdAt)}
+                        {isOwner && message.scheduledAt && (
+                          <ScheduledPostIndicator scheduledAt={message.scheduledAt} />
+                        )}
                       </span>
                     </td>
                     <td style={{ padding: '0.25rem 0.5rem' }}>

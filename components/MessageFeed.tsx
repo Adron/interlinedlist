@@ -11,20 +11,24 @@ export default async function MessageFeed() {
     // Build where clause based on authentication
     let where: any = {};
 
+    const scheduledFilter = {
+      OR: [{ scheduledAt: null }, { scheduledAt: { lte: new Date() } }],
+    };
     if (user) {
-      // Authenticated users see: their own messages (public or private) + all public messages
+      // Authenticated: own messages (incl. scheduled) + others' published public messages
       where = {
-        parentId: null, // Only top-level messages
+        parentId: null,
         OR: [
-          { userId: user.id }, // User's own messages
-          { publiclyVisible: true }, // All public messages
+          { userId: user.id },
+          { publiclyVisible: true, ...scheduledFilter },
         ],
       };
     } else {
-      // Unauthenticated users see only public messages
+      // Unauthenticated: only published public messages
       where = {
         parentId: null,
         publiclyVisible: true,
+        ...scheduledFilter,
       };
     }
 
@@ -58,6 +62,7 @@ export default async function MessageFeed() {
       ...message,
       createdAt: message.createdAt.toISOString(),
       updatedAt: message.updatedAt.toISOString(),
+      scheduledAt: message.scheduledAt?.toISOString() ?? null,
       linkMetadata: message.linkMetadata as LinkMetadata | null,
       crossPostUrls: (Array.isArray(message.crossPostUrls) ? message.crossPostUrls : null) as CrossPostUrl[] | null,
     }));

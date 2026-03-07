@@ -116,6 +116,7 @@ export default async function UserProfilePage({
     ...message,
     createdAt: message.createdAt.toISOString(),
     updatedAt: message.updatedAt.toISOString(),
+    scheduledAt: message.scheduledAt?.toISOString() ?? null,
     linkMetadata: message.linkMetadata as LinkMetadata | null,
     crossPostUrls: (Array.isArray(message.crossPostUrls) ? message.crossPostUrls : null) as CrossPostUrl[] | null,
   }));

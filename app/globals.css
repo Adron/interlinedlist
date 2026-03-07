@@ -247,3 +247,17 @@ textarea:focus {
   background-color: var(--color-button-primary);
   color: var(--color-button-text);
 }
+
+/* Scheduled post "Posted" badge fade-out */
+@keyframes scheduledPostedFadeOut {
+  0%, 83% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.scheduled-posted-badge {
+  animation: scheduledPostedFadeOut 3s ease-out forwards;
+}

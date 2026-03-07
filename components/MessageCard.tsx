@@ -11,6 +11,7 @@ import MessageReplies from './MessageReplies';
 import { Message as MessageType, LinkMetadataItem } from '@/lib/types';
 import { detectLinks } from '@/lib/messages/link-detector';
 import { extractListNameFromMessage } from '@/lib/utils/message-extractor';
+import ScheduledPostIndicator from './ScheduledPostIndicator';
 
 interface MessageUser {
   id: string;
@@ -137,6 +138,9 @@ export default function MessageCard({
                 </Link>
                 <span className="text-muted ms-2" style={{ fontSize: '0.75rem' }}>
                   · {formatDateTime(message.createdAt)}
+                  {isOwner && message.scheduledAt && (
+                    <ScheduledPostIndicator scheduledAt={message.scheduledAt} />
+                  )}
                 </span>
                 {!message.publiclyVisible && (
                   <span className="badge bg-secondary ms-2" style={{ fontSize: '0.65rem' }}>

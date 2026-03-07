@@ -55,6 +55,7 @@ export default async function DashboardMessageFeed() {
       ...message,
       createdAt: message.createdAt.toISOString(),
       updatedAt: message.updatedAt.toISOString(),
+      scheduledAt: message.scheduledAt?.toISOString() ?? null,
       linkMetadata: message.linkMetadata as LinkMetadata | null,
       imageUrls: (Array.isArray(message.imageUrls) ? message.imageUrls : null) as string[] | null,
       videoUrls: (Array.isArray(message.videoUrls) ? message.videoUrls : null) as string[] | null,
