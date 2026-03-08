@@ -205,9 +205,9 @@ export default function UserDropdown({ user }: UserDropdownProps) {
           <span className="align-middle">Help</span>
         </Link>
 
-        {/* Login as - nested dropend submenu */}
+        {/* Switch to - nested dropstart submenu (opens left) */}
         <div
-          className="dropend position-relative"
+          className="dropstart position-relative"
           ref={loginAsRef}
           onMouseEnter={() => setIsLoginAsOpen(true)}
           onMouseLeave={() => setIsLoginAsOpen(false)}
@@ -221,16 +221,16 @@ export default function UserDropdown({ user }: UserDropdownProps) {
             }}
           >
             <i className="bx bx-user-circle align-middle me-2" style={{ fontSize: '18px' }}></i>
-            <span className="align-middle">Login as</span>
+            <span className="align-middle">Switch to</span>
           </a>
           <div
             className={`dropdown-menu ${isLoginAsOpen ? 'show' : ''}`}
             style={{
               display: isLoginAsOpen ? 'block' : 'none',
               position: 'absolute',
-              left: '100%',
+              right: '100%',
               top: 0,
-              marginLeft: '2px',
+              marginRight: '2px',
             }}
           >
             {accounts.map((acc) => {

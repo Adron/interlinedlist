@@ -143,6 +143,7 @@ export function getSessionCookieOptions() {
  * Get the current user from session
  */
 export async function getCurrentUser() {
+  try {
   const tokens = await getSessionTokens();
   const validTokens: string[] = [];
   let user: Awaited<ReturnType<typeof getUserFromSession>> = null;
@@ -157,12 +158,32 @@ export async function getCurrentUser() {
     }
   }
 
+  // Legacy cookie migration: single value that looks like userId (not a Session id)
+  if (!user && tokens.length === 1) {
+    const legacyUser = await getUserWithFallbacks(tokens[0]);
+    if (legacyUser) {
+      const newCookieValue = await createSession(legacyUser.id, []);
+      const cookieStore = await cookies();
+      cookieStore.set(SESSION_COOKIE_NAME, newCookieValue, getSessionCookieOptions());
+      user = legacyUser;
+      return addIsAdministrator(user);
+    }
+  }
+
   if (validTokens.length !== tokens.length) {
     await setSessionCookie(validTokens);
   }
 
   if (!user) return null;
 
+  return addIsAdministrator(user);
+  } catch (err: any) {
+  console.error('getCurrentUser error:', err);
+  return null;
+  }
+}
+
+async function addIsAdministrator(user: NonNullable<Awaited<ReturnType<typeof getUserFromSession>>>) {
   try {
     let isAdministrator = false;
     try {
@@ -180,10 +201,12 @@ export async function getCurrentUser() {
     return { ...user, isAdministrator };
   } catch (error: any) {
     if (error?.message?.includes('isPrivateAccount') || error?.code === 'P2022') {
-      return getUserWithFallbacks(user.id);
+      const u = await getUserWithFallbacks(user.id);
+      return u ? { ...u, isAdministrator: !!u?.isAdministrator } : null;
     }
     if (error?.message?.includes('maxMessageLength') || error?.code === 'P2021') {
-      return getUserWithFallbacks(user.id);
+      const u = await getUserWithFallbacks(user.id);
+      return u ? { ...u, isAdministrator: !!u?.isAdministrator } : null;
     }
     throw error;
   }
