@@ -102,6 +102,7 @@ export default function UserDropdown({ user }: UserDropdownProps) {
   const displayName = user.displayName || user.username;
   const initials = displayName[0]?.toUpperCase() ?? '?';
   const hasMultipleAccounts = accounts.length > 1;
+  const showAccountsSection = accounts.length >= 1;
 
   return (
     <div className="dropdown topbar-item" ref={dropdownRef}>
@@ -201,8 +202,8 @@ export default function UserDropdown({ user }: UserDropdownProps) {
           <span className="align-middle">Help</span>
         </Link>
 
-        {/* Switch to - inline accordion (only when 2+ accounts) */}
-        {hasMultipleAccounts && (
+        {/* Switch to / Add account - inline accordion */}
+        {showAccountsSection && (
           <>
             <a
               className="dropdown-item d-flex align-items-center justify-content-between"
