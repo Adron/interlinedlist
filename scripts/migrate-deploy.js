@@ -11,6 +11,33 @@
  */
 
 const { execSync } = require('child_process');
+const path = require('path');
+const fs = require('fs');
+
+// Load .env and .env.local when running locally (Node does not auto-load these).
+// Existing env vars (e.g. from Vercel or shell) take precedence. .env.local overrides .env.
+function loadEnvFile(file, override = false) {
+  const p = path.resolve(process.cwd(), file);
+  if (fs.existsSync(p)) {
+    const content = fs.readFileSync(p, 'utf8');
+    for (const line of content.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const eq = trimmed.indexOf('=');
+      if (eq > 0) {
+        const key = trimmed.slice(0, eq).trim();
+        if (!override && key in process.env) continue;
+        let val = trimmed.slice(eq + 1).trim();
+        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+          val = val.slice(1, -1);
+        }
+        process.env[key] = val;
+      }
+    }
+  }
+}
+loadEnvFile('.env');
+loadEnvFile('.env.local', true);
 
 if (process.env.SKIP_DB_MIGRATE === '1') {
   console.log('[migrate-deploy] Skipping migrations (SKIP_DB_MIGRATE=1)');
