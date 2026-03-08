@@ -52,6 +52,13 @@ export async function PUT(
       );
     }
 
+    if (error.message?.includes('Cannot leave or be removed')) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 403 }
+      );
+    }
+
     if (error.message?.includes('permission') || error.message?.includes('Insufficient')) {
       return NextResponse.json(
         { error: error.message },
@@ -98,6 +105,13 @@ export async function DELETE(
       return NextResponse.json(
         { error: error.message },
         { status: 404 }
+      );
+    }
+
+    if (error.message?.includes('Cannot leave or be removed')) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 403 }
       );
     }
 

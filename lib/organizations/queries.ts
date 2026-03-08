@@ -491,10 +491,18 @@ export async function updateUserRole(
         organizationId,
       },
     },
+    include: {
+      organization: true,
+    },
   });
 
   if (!membership) {
     throw new Error('User is not a member of this organization');
+  }
+
+  // Cannot deactivate membership in system organizations (e.g. "The Public")
+  if (membership.organization.isSystem && active === false) {
+    throw new Error('Cannot leave or be removed from this organization');
   }
 
   // Check permissions: owner can update any role, admin can update member/admin roles
