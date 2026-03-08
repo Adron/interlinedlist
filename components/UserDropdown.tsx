@@ -27,7 +27,6 @@ export default function UserDropdown({ user }: UserDropdownProps) {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const loginAsRef = useRef<HTMLDivElement>(null);
 
   // Fetch accounts when dropdown opens
   useEffect(() => {
@@ -53,19 +52,16 @@ export default function UserDropdown({ user }: UserDropdownProps) {
       if (dropdownRef.current && !dropdownRef.current.contains(target)) {
         setIsOpen(false);
       }
-      if (loginAsRef.current && !loginAsRef.current.contains(target) && !dropdownRef.current?.contains(target)) {
-        setIsLoginAsOpen(false);
-      }
     };
 
-    if (isOpen || isLoginAsOpen) {
+    if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isOpen, isLoginAsOpen]);
+  }, [isOpen]);
 
   const handleLogout = async (all = false) => {
     try {
@@ -205,94 +201,91 @@ export default function UserDropdown({ user }: UserDropdownProps) {
           <span className="align-middle">Help</span>
         </Link>
 
-        {/* Switch to - nested dropstart submenu (opens left) */}
-        <div
-          className="dropstart position-relative"
-          ref={loginAsRef}
-          onMouseEnter={() => setIsLoginAsOpen(true)}
-          onMouseLeave={() => setIsLoginAsOpen(false)}
-        >
-          <a
-            className="dropdown-item dropdown-toggle d-flex align-items-center"
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              setIsLoginAsOpen(!isLoginAsOpen);
-            }}
-          >
-            <i className="bx bx-user-circle align-middle me-2" style={{ fontSize: '18px' }}></i>
-            <span className="align-middle">Switch to</span>
-          </a>
-          <div
-            className={`dropdown-menu ${isLoginAsOpen ? 'show' : ''}`}
-            style={{
-              display: isLoginAsOpen ? 'block' : 'none',
-              position: 'absolute',
-              right: 0,
-              top: 0,
-              transform: 'translateX(calc(-100% + 8px))',
-              marginRight: 0,
-            }}
-          >
-            {accounts.map((acc) => {
-              const accDisplayName = acc.displayName || acc.username;
-              const isCurrent = acc.id === currentUserId;
-              return (
-                <a
-                  key={acc.id}
-                  className={`dropdown-item d-flex align-items-center ${isCurrent ? 'active' : ''}`}
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleSwitchAccount(acc.id);
-                  }}
-                  aria-current={isCurrent ? 'true' : undefined}
-                >
-                  {acc.avatar ? (
-                    <img
-                      src={acc.avatar}
-                      alt=""
-                      className="rounded-circle me-2"
-                      width="24"
-                      height="24"
-                      style={{ objectFit: 'cover' }}
-                    />
-                  ) : (
-                    <div
-                      className="rounded-circle me-2 d-flex align-items-center justify-content-center"
-                      style={{
-                        width: 24,
-                        height: 24,
-                        backgroundColor: 'var(--bs-secondary)',
-                        color: 'white',
-                        fontSize: '0.75rem',
-                        fontWeight: 'bold',
-                      }}
-                    >
-                      {(accDisplayName[0] ?? '?').toUpperCase()}
-                    </div>
-                  )}
-                  <span className="flex-grow-1">{accDisplayName}</span>
-                  {isCurrent && (
-                    <i className="bx bx-check ms-2" style={{ fontSize: '18px' }} aria-hidden="true"></i>
-                  )}
-                </a>
-              );
-            })}
-            <div className="dropdown-divider my-1"></div>
-            <Link
-              className="dropdown-item d-flex align-items-center"
-              href="/login?add=1"
-              onClick={() => {
-                setIsOpen(false);
-                setIsLoginAsOpen(false);
+        {/* Switch to - inline accordion (only when 2+ accounts) */}
+        {hasMultipleAccounts && (
+          <>
+            <a
+              className="dropdown-item d-flex align-items-center justify-content-between"
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                setIsLoginAsOpen(!isLoginAsOpen);
               }}
+              aria-expanded={isLoginAsOpen}
             >
-              <i className="bx bx-plus-circle align-middle me-2" style={{ fontSize: '18px' }}></i>
-              <span className="align-middle">Add account</span>
-            </Link>
-          </div>
-        </div>
+              <span className="d-flex align-items-center">
+                <i className="bx bx-user-circle align-middle me-2" style={{ fontSize: '18px' }}></i>
+                <span className="align-middle">Switch to</span>
+              </span>
+              <i
+                className={`bx align-middle ${isLoginAsOpen ? 'bx-chevron-up' : 'bx-chevron-down'}`}
+                style={{ fontSize: '18px' }}
+                aria-hidden="true"
+              />
+            </a>
+            {isLoginAsOpen && (
+              <>
+                {accounts.map((acc) => {
+                  const accDisplayName = acc.displayName || acc.username;
+                  const isCurrent = acc.id === currentUserId;
+                  return (
+                    <a
+                      key={acc.id}
+                      className={`dropdown-item d-flex align-items-center ps-4 ${isCurrent ? 'active' : ''}`}
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleSwitchAccount(acc.id);
+                      }}
+                      aria-current={isCurrent ? 'true' : undefined}
+                    >
+                      {acc.avatar ? (
+                        <img
+                          src={acc.avatar}
+                          alt=""
+                          className="rounded-circle me-2"
+                          width="24"
+                          height="24"
+                          style={{ objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <div
+                          className="rounded-circle me-2 d-flex align-items-center justify-content-center"
+                          style={{
+                            width: 24,
+                            height: 24,
+                            backgroundColor: 'var(--bs-secondary)',
+                            color: 'white',
+                            fontSize: '0.75rem',
+                            fontWeight: 'bold',
+                          }}
+                        >
+                          {(accDisplayName[0] ?? '?').toUpperCase()}
+                        </div>
+                      )}
+                      <span className="flex-grow-1">{accDisplayName}</span>
+                      {isCurrent && (
+                        <i className="bx bx-check ms-2" style={{ fontSize: '18px' }} aria-hidden="true"></i>
+                      )}
+                    </a>
+                  );
+                })}
+                <div className="dropdown-divider my-1"></div>
+                <Link
+                  className="dropdown-item d-flex align-items-center ps-4"
+                  href="/login?add=1"
+                  onClick={() => {
+                    setIsOpen(false);
+                    setIsLoginAsOpen(false);
+                  }}
+                >
+                  <i className="bx bx-plus-circle align-middle me-2" style={{ fontSize: '18px' }}></i>
+                  <span className="align-middle">Add account</span>
+                </Link>
+              </>
+            )}
+          </>
+        )}
 
         <div className="dropdown-divider my-1"></div>
 
