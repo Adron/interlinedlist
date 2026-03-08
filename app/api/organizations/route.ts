@@ -43,6 +43,16 @@ export async function GET(request: NextRequest) {
     // If public=true, get all public organizations
     if (publicOnly) {
       const result = await getPublicOrganizations({ limit, offset });
+      const user = await getCurrentUser();
+      // Merge user membership (role) for authenticated users so Join/Leave shows correctly
+      if (user) {
+        const userOrgs = await getUserOrganizations(user.id);
+        const roleByOrgId = new Map(userOrgs.map((o) => [o.id, o.role]));
+        result.organizations = result.organizations.map((org) => ({
+          ...org,
+          role: roleByOrgId.get(org.id),
+        }));
+      }
       return NextResponse.json(result);
     }
 
@@ -77,7 +87,6 @@ export async function GET(request: NextRequest) {
       // Convert to array and apply pagination
       const allOrgs = Array.from(orgsMap.values());
       const paginatedOrgs = allOrgs.slice(offset, offset + limit);
-      
       return NextResponse.json({
         organizations: paginatedOrgs,
         pagination: {
