@@ -5,6 +5,15 @@ import { useRouter } from 'next/navigation';
 import OrganizationCard from './OrganizationCard';
 import { Organization, OrganizationRole } from '@/lib/types';
 
+const STORAGE_KEY = 'organizations-public-only';
+
+function getStoredPublicOnly(filterPublic: boolean): boolean {
+  if (typeof window === 'undefined') return filterPublic;
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored !== null) return stored === 'true';
+  return filterPublic;
+}
+
 interface OrganizationListProps {
   initialOrganizations?: (Organization & { role?: OrganizationRole; memberCount?: number })[];
   showCreateButton?: boolean;
@@ -20,7 +29,7 @@ export default function OrganizationList({
   const [organizations, setOrganizations] = useState(initialOrganizations);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [publicOnly, setPublicOnly] = useState(filterPublic);
+  const [publicOnly, setPublicOnly] = useState(() => getStoredPublicOnly(filterPublic));
   // Initialize userLoggedIn from showCreateButton prop (which comes from server-side user check)
   // This ensures button is visible immediately if user is logged in
   const [userLoggedIn, setUserLoggedIn] = useState(showCreateButton);
@@ -145,7 +154,11 @@ export default function OrganizationList({
                 type="checkbox"
                 id="publicOnly"
                 checked={publicOnly}
-                onChange={(e) => setPublicOnly(e.target.checked)}
+                onChange={(e) => {
+                  const val = e.target.checked;
+                  setPublicOnly(val);
+                  localStorage.setItem(STORAGE_KEY, String(val));
+                }}
               />
               <label className="form-check-label" htmlFor="publicOnly">
                 Public only

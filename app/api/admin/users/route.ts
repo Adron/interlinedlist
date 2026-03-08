@@ -6,6 +6,7 @@ import { generateEmailVerificationToken, getEmailVerificationExpiration } from '
 import { resend, FROM_EMAIL } from '@/lib/email/resend';
 import { logEmailSend, getResendLogParams } from '@/lib/email/log-email';
 import { getEmailVerificationEmailHtml, getEmailVerificationEmailText } from '@/lib/email/templates/email-verification';
+import { ensureUserInPublicOrganization } from '@/lib/organizations/queries';
 
 export const dynamic = 'force-dynamic';
 
@@ -145,6 +146,14 @@ export async function POST(request: NextRequest) {
       await prisma.administrator.create({
         data: { userId: createdUser.id },
       });
+    }
+
+    // Add user to "The Public" system organization (all users belong to it)
+    try {
+      await ensureUserInPublicOrganization(createdUser.id);
+    } catch (orgError: any) {
+      console.error('Failed to add user to public organization:', orgError);
+      // Don't fail user creation if this fails - log it
     }
 
     // Send verification email if email is not verified and verification fields exist

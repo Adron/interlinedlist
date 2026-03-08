@@ -228,9 +228,10 @@ export default function UserDropdown({ user }: UserDropdownProps) {
             style={{
               display: isLoginAsOpen ? 'block' : 'none',
               position: 'absolute',
-              right: '100%',
+              right: 0,
               top: 0,
-              marginRight: '2px',
+              transform: 'translateX(calc(-100% + 8px))',
+              marginRight: 0,
             }}
           >
             {accounts.map((acc) => {
