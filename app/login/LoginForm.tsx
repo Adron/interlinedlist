@@ -5,7 +5,11 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { syncThemeToStorage } from '@/lib/theme/theme-sync';
 
-export default function LoginForm() {
+interface LoginFormProps {
+  addAccountMode?: boolean;
+}
+
+export default function LoginForm({ addAccountMode = false }: LoginFormProps) {
   const searchParams = useSearchParams();
   const [formData, setFormData] = useState({
     email: '',
@@ -84,7 +88,9 @@ export default function LoginForm() {
         <div className="col-md-6 col-lg-5">
           <div className="card">
             <div className="card-body p-4">
-              <h1 className="card-title text-center mb-4">Login</h1>
+              <h1 className="card-title text-center mb-4">
+                {addAccountMode ? 'Add another account' : 'Login'}
+              </h1>
               <form onSubmit={handleSubmit}>
                 <div className="mb-3">
                   <label htmlFor="email" className="form-label">
@@ -134,7 +140,13 @@ export default function LoginForm() {
                   className="btn btn-primary w-100"
                   disabled={loading}
                 >
-                  {loading ? 'Logging in...' : 'Login'}
+                  {loading
+                    ? addAccountMode
+                      ? 'Adding account...'
+                      : 'Logging in...'
+                    : addAccountMode
+                      ? 'Add account'
+                      : 'Login'}
                 </button>
               </form>
 

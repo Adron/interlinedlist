@@ -5,7 +5,8 @@ import { generateEmailVerificationToken, getEmailVerificationExpiration } from '
 import { resend, FROM_EMAIL } from '@/lib/email/resend';
 import { logEmailSend, getResendLogParams } from '@/lib/email/log-email';
 import { getEmailVerificationEmailHtml, getEmailVerificationEmailText } from '@/lib/email/templates/email-verification';
-import { SESSION_COOKIE_NAME, SESSION_MAX_AGE, APP_CONFIG } from '@/lib/config/app';
+import { createSession, getSessionCookieOptions } from '@/lib/auth/session';
+import { SESSION_COOKIE_NAME } from '@/lib/config/app';
 import { ensureUserInPublicOrganization } from '@/lib/organizations/queries';
 import { trackAction } from '@/lib/analytics/track';
 
@@ -160,15 +161,8 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
 
-    // Set cookie directly on the response
-    // This ensures the cookie is included in the response headers
-    response.cookies.set(SESSION_COOKIE_NAME, user.id, {
-      httpOnly: true,
-      secure: APP_CONFIG.isProduction,
-      sameSite: 'lax',
-      maxAge: SESSION_MAX_AGE,
-      path: '/',
-    });
+    const cookieValue = await createSession(user.id);
+    response.cookies.set(SESSION_COOKIE_NAME, cookieValue, getSessionCookieOptions());
 
     return response;
   } catch (error) {

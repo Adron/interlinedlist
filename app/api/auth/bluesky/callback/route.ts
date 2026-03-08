@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { APP_URL } from '@/lib/config/app';
+import { APP_URL, SESSION_COOKIE_NAME } from '@/lib/config/app';
 import { getBlueskyClientMetadata } from '@/lib/auth/oauth-bluesky';
 
 export const dynamic = 'force-dynamic';
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
 
     const { prisma } = await import('@/lib/prisma');
     const { hashPassword } = await import('@/lib/auth/password');
-    const { getCurrentUser } = await import('@/lib/auth/session');
+    const { getCurrentUser, createSession, getSessionCookieOptions } = await import('@/lib/auth/session');
     const { ensureUserInPublicOrganization } = await import('@/lib/organizations/queries');
     const { trackAction } = await import('@/lib/analytics/track');
     const { randomBytes } = await import('crypto');
@@ -114,13 +114,8 @@ export async function GET(request: NextRequest) {
         },
       });
       const response = NextResponse.redirect(`${APP_URL}/dashboard`);
-      response.cookies.set('session', existingLink.userId, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7,
-        path: '/',
-      });
+      const cookieValue = await createSession(existingLink.userId);
+      response.cookies.set(SESSION_COOKIE_NAME, cookieValue, getSessionCookieOptions());
       return response;
     }
 
@@ -158,13 +153,8 @@ export async function GET(request: NextRequest) {
     trackAction('oauth_connect', { userId: user.id, properties: { provider: 'bluesky' } }).catch(() => {});
 
     const response = NextResponse.redirect(`${APP_URL}/dashboard`);
-    response.cookies.set('session', user.id, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7,
-      path: '/',
-    });
+    const cookieValue = await createSession(user.id);
+    response.cookies.set(SESSION_COOKIE_NAME, cookieValue, getSessionCookieOptions());
     return response;
   } catch (error) {
     console.error('Bluesky callback error:', error);

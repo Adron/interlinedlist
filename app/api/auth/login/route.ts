@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyPassword } from '@/lib/auth/password';
-import { createSession } from '@/lib/auth/session';
-import { SESSION_COOKIE_NAME, SESSION_MAX_AGE, APP_CONFIG } from '@/lib/config/app';
+import { createSession, getSessionCookieOptions } from '@/lib/auth/session';
+import { SESSION_COOKIE_NAME } from '@/lib/config/app';
 
 export const dynamic = 'force-dynamic';
 
@@ -78,15 +78,9 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
 
-    // Set cookie directly on the response
-    // This ensures the cookie is included in the response headers
-    response.cookies.set(SESSION_COOKIE_NAME, user.id, {
-      httpOnly: true,
-      secure: APP_CONFIG.isProduction,
-      sameSite: 'lax',
-      maxAge: SESSION_MAX_AGE,
-      path: '/',
-    });
+    // Create session and set cookie on response
+    const cookieValue = await createSession(user.id);
+    response.cookies.set(SESSION_COOKIE_NAME, cookieValue, getSessionCookieOptions());
 
     return response;
   } catch (error: any) {

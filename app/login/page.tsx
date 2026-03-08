@@ -3,17 +3,18 @@ import { getCurrentUser } from '@/lib/auth/session';
 import LoginForm from './LoginForm';
 
 interface LoginPageProps {
-  searchParams: { reset?: string };
+  searchParams: { reset?: string; add?: string };
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const user = await getCurrentUser();
-  
-  // Redirect if already logged in (middleware should handle this, but double-check)
-  if (user) {
+  const isAddAccount = searchParams.add === '1';
+
+  // Redirect if already logged in, unless adding another account
+  if (user && !isAddAccount) {
     redirect('/dashboard');
   }
 
-  return <LoginForm />;
+  return <LoginForm addAccountMode={isAddAccount} />;
 }
 

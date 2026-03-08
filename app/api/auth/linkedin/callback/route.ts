@@ -9,10 +9,10 @@ import {
   LINKEDIN_PROVIDER,
 } from '@/lib/auth/oauth-linkedin';
 import { getOAuthStateCookie, deleteOAuthStateCookie } from '@/lib/auth/oauth-state';
-import { getCurrentUser } from '@/lib/auth/session';
+import { getCurrentUser, createSession, getSessionCookieOptions } from '@/lib/auth/session';
 import { ensureUserInPublicOrganization } from '@/lib/organizations/queries';
 import { trackAction } from '@/lib/analytics/track';
-import { APP_URL } from '@/lib/config/app';
+import { APP_URL, SESSION_COOKIE_NAME } from '@/lib/config/app';
 
 export const dynamic = 'force-dynamic';
 
@@ -169,13 +169,8 @@ export async function GET(request: NextRequest) {
     trackAction('oauth_connect', { userId: user.id, properties: { provider: 'linkedin' } }).catch(() => {});
 
     const response = NextResponse.redirect(`${APP_URL}/dashboard`);
-    response.cookies.set('session', user.id, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7,
-      path: '/',
-    });
+    const cookieValue = await createSession(user.id);
+    response.cookies.set(SESSION_COOKIE_NAME, cookieValue, getSessionCookieOptions());
     return response;
   } catch (error) {
     console.error('LinkedIn callback error:', error);
