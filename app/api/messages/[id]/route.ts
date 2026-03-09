@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth/session';
+import { getCurrentUserOrSyncToken } from '@/lib/auth/sync-token';
 import { deleteBlobsFromMessages } from '@/lib/blob';
 import { deletePostOnBluesky, deletePostOnLinkedIn, deletePostOnMastodon } from '@/lib/crosspost/delete-external';
 import { LinkMetadata } from '@/lib/types';
@@ -12,7 +12,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
-    const user = await getCurrentUser();
+    const user = await getCurrentUserOrSyncToken(request);
     
     // Handle both sync and async params (Next.js 14+)
     const resolvedParams = params instanceof Promise ? await params : params;
@@ -203,7 +203,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
-    const user = await getCurrentUser();
+    const user = await getCurrentUserOrSyncToken(request);
 
     if (!user) {
       return NextResponse.json(
