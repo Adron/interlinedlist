@@ -17,7 +17,7 @@ Used by the web app. After **login**, the server sets an HTTP-only session cooki
 - **Login**: `POST /api/auth/login` with `{ "email", "password" }` → sets session cookie, returns user info.
 - **Logout**: `POST /api/auth/logout` → clears session.
 - **Register**: `POST /api/auth/register` with body per route.
-- **Current user**: `GET /api/user` → returns the authenticated user (requires session).
+- **Current user**: `GET /api/user` → returns the authenticated user (session or Bearer).
 
 ### Sync token (Bearer)
 
@@ -60,7 +60,7 @@ Endpoints that support **Bearer** are documented as “Session or Bearer”. All
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET  | `/api/user` | Session | Current authenticated user. |
+| GET  | `/api/user` | Session or Bearer | Current authenticated user. |
 | POST | `/api/user/update` | Session | Update profile (displayName, bio, settings, etc.). |
 | POST | `/api/user/avatar/upload` | Session | Upload avatar (multipart). |
 | POST | `/api/user/avatar/from-url` | Session | Set avatar from URL. |
@@ -75,10 +75,10 @@ Endpoints that support **Bearer** are documented as “Session or Bearer”. All
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET  | `/api/messages` | Session | List messages (query: `limit`, `offset`, `onlyMine`). |
-| POST | `/api/messages` | Session | Create message. Body: `content`, `publiclyVisible`, optional `imageUrls`, `videoUrls`, `parentId`, cross-post options. |
-| GET  | `/api/messages/[id]` | Session | Get one message by ID. |
-| DELETE | `/api/messages/[id]` | Session | Delete a message (own only). |
+| GET  | `/api/messages` | Session or Bearer | List messages (query: `limit`, `offset`, `onlyMine`). |
+| POST | `/api/messages` | Session or Bearer | Create message. Body: `content`, `publiclyVisible`, optional `imageUrls`, `videoUrls`, `parentId`, cross-post options. |
+| GET  | `/api/messages/[id]` | Session or Bearer | Get one message by ID. |
+| DELETE | `/api/messages/[id]` | Session or Bearer | Delete a message (own only). |
 | GET  | `/api/messages/[id]/replies` | Session | Get replies to a message. |
 | POST | `/api/messages/[id]/metadata` | Session | Trigger link metadata fetch for the message. |
 | POST | `/api/messages/images/upload` | Session | Upload an image (FormData `file`). Returns `{ url }`. Images resized to max 1200×1200, 1.4 MB. |
@@ -195,7 +195,7 @@ All export endpoints return CSV (or similar) and require a session.
 
 ## Tooling (CLI)
 
-The Document Sync CLI uses the sync token and the documents/sync API. See **Tooling (CLI)** and **Local Testing (CLI)** in the Help sidebar for setup and usage. The CLI obtains a token via `POST /api/auth/sync-token` and sends it as `Authorization: Bearer <token>` on `GET` and `POST /api/documents/sync`.
+The Document Sync CLI and native clients (e.g. iOS app) use the sync token for API access. See **Tooling (CLI)** and **Local Testing (CLI)** in the Help sidebar for setup and usage. Obtain a token via `POST /api/auth/sync-token`, then send `Authorization: Bearer <token>` on requests. Bearer auth is supported for: `GET /api/user`; `GET` and `POST /api/messages`; `GET` and `DELETE /api/messages/[id]`; and `GET` and `POST /api/documents/sync`.
 
 ---
 
