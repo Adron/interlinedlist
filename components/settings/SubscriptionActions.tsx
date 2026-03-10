@@ -167,7 +167,7 @@ export default function SubscriptionActions({
               Redirecting...
             </>
           ) : (
-            `Annual (${priceAnnualLabel})`
+            Annual ({priceAnnualLabel})
           )}
         </button>
       )}

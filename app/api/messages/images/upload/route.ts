@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth/session';
+import { isSubscriber } from '@/lib/subscription/is-subscriber';
 import { put } from '@vercel/blob';
 import { resizeAvatarToLimit, ImageTooLargeAfterResizeError } from '@/lib/avatar/resize';
 
@@ -17,9 +18,9 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       );
     }
-    if (!user.cleared) {
+    if (!isSubscriber(user.customerStatus)) {
       return NextResponse.json(
-        { error: 'Your account is pending approval. Contact an administrator.' },
+        { error: 'Subscribe to unlock image posting.' },
         { status: 403 }
       );
     }

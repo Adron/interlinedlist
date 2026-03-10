@@ -88,6 +88,7 @@ interface MessageInputProps {
   maxLength: number;
   defaultPubliclyVisible?: boolean;
   showAdvancedPostSettings?: boolean;
+  isSubscriber?: boolean;
   onSubmit?: () => void;
 }
 
@@ -100,7 +101,7 @@ function toDatetimeLocal(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-export default function MessageInput({ maxLength, defaultPubliclyVisible = false, showAdvancedPostSettings = false, onSubmit }: MessageInputProps) {
+export default function MessageInput({ maxLength, defaultPubliclyVisible = false, showAdvancedPostSettings = false, isSubscriber = false, onSubmit }: MessageInputProps) {
   const [content, setContent] = useState('');
   const [publiclyVisible, setPubliclyVisible] = useState(defaultPubliclyVisible);
   const [error, setError] = useState('');
@@ -355,29 +356,46 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                 >
                   {remainingChars} characters remaining
                 </span>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-link p-1 text-muted"
-                  onClick={toggleSettingsMenu}
-                  aria-label="Posting options"
-                  disabled={updatingSetting}
-                  style={{ 
-                    border: 'none',
-                    lineHeight: 1,
-                    minWidth: 'auto',
-                    transition: 'transform 0.3s ease-in-out',
-                  }}
-                >
-                  <i 
-                    className="bx bx-cog" 
+                {isSubscriber ? (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-link p-1 text-muted"
+                    onClick={toggleSettingsMenu}
+                    aria-label="Posting options"
+                    disabled={updatingSetting}
                     style={{ 
-                      fontSize: '1.1rem',
-                      transform: showSettingsMenu ? 'rotate(90deg)' : 'rotate(0deg)',
-                      display: 'inline-block',
+                      border: 'none',
+                      lineHeight: 1,
+                      minWidth: 'auto',
                       transition: 'transform 0.3s ease-in-out',
                     }}
-                  ></i>
-                </button>
+                  >
+                    <i 
+                      className="bx bx-cog" 
+                      style={{ 
+                        fontSize: '1.1rem',
+                        transform: showSettingsMenu ? 'rotate(90deg)' : 'rotate(0deg)',
+                        display: 'inline-block',
+                        transition: 'transform 0.3s ease-in-out',
+                      }}
+                    ></i>
+                  </button>
+                ) : (
+                  <span
+                    className="btn btn-sm btn-link p-1 text-muted"
+                    style={{ 
+                      border: 'none',
+                      lineHeight: 1,
+                      minWidth: 'auto',
+                      opacity: 0.5,
+                      cursor: 'not-allowed',
+                    }}
+                    title="Subscribe for full features"
+                    aria-label="Subscribe for full features"
+                  >
+                    <i className="bx bx-cog" style={{ fontSize: '1.1rem' }}></i>
+                  </span>
+                )}
                 {showSettingsMenu && (
                   <div 
                     className="d-flex flex-wrap align-items-center gap-2"

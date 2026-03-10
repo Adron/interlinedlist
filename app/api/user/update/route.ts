@@ -17,12 +17,13 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { 
-      displayName, 
-      bio, 
-      avatar, 
-      theme, 
-      maxMessageLength, 
+    // Only allow these fields; customerStatus and stripeCustomerId are admin/webhook-only
+    const {
+      displayName,
+      bio,
+      avatar,
+      theme,
+      maxMessageLength,
       defaultPubliclyVisible,
       messagesPerPage,
       viewingPreference,
@@ -144,6 +145,8 @@ export async function PATCH(request: NextRequest) {
           longitude: true,
           isPrivateAccount: true,
           githubDefaultRepo: true,
+          customerStatus: true,
+          stripeCustomerId: true,
           createdAt: true,
         },
       });

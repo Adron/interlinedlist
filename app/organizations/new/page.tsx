@@ -1,4 +1,5 @@
 import { getCurrentUser } from '@/lib/auth/session';
+import { isSubscriber } from '@/lib/subscription/is-subscriber';
 import CreateOrganizationForm from '@/components/organizations/CreateOrganizationForm';
 import { redirect } from 'next/navigation';
 
@@ -9,6 +10,10 @@ export default async function NewOrganizationPage() {
 
   if (!user) {
     redirect('/login');
+  }
+
+  if (!isSubscriber(user.customerStatus)) {
+    redirect('/organizations');
   }
 
   return (
