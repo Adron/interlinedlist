@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getCurrentUser } from '@/lib/auth/session';
 import { getCurrentUserOrSyncToken } from '@/lib/auth/sync-token';
 import { deleteBlobsFromMessages } from '@/lib/blob';
 import { deletePostOnBluesky, deletePostOnLinkedIn, deletePostOnMastodon } from '@/lib/crosspost/delete-external';
