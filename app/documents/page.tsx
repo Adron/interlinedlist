@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
+import { isSubscriber } from '@/lib/subscription/is-subscriber';
 import Link from 'next/link';
 import FolderTree from '@/components/documents/FolderTree';
 import DocumentList from '@/components/documents/DocumentList';
@@ -35,15 +36,26 @@ export default async function DocumentsPage() {
             <i className="bx bx-note me-2"></i>
             Documents
           </h1>
-          <div className="d-flex gap-2">
-            <Link href="/documents/new" className="btn btn-primary">
-              <i className="bx bx-plus me-2"></i>
-              New Document
-            </Link>
-            <Link href="/documents/folders/new" className="btn btn-outline-primary">
-              <i className="bx bx-folder-plus me-2"></i>
-              New Folder
-            </Link>
+          <div className="d-flex gap-2 align-items-center">
+            {isSubscriber(user.customerStatus) ? (
+              <>
+                <Link href="/documents/new" className="btn btn-primary">
+                  <i className="bx bx-plus me-2"></i>
+                  New Document
+                </Link>
+                <Link href="/documents/folders/new" className="btn btn-outline-primary">
+                  <i className="bx bx-folder-plus me-2"></i>
+                  New Folder
+                </Link>
+              </>
+            ) : (
+              <>
+                <span className="text-muted small">Subscribe to create documents.</span>
+                <Link href="/settings" className="btn btn-outline-primary btn-sm">
+                  Upgrade
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>

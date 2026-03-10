@@ -1,4 +1,5 @@
 import { getCurrentUser } from '@/lib/auth/session';
+import { isSubscriber } from '@/lib/subscription/is-subscriber';
 import { getPublicOrganizations, getUserOrganizations } from '@/lib/organizations/queries';
 import OrganizationList from '@/components/organizations/OrganizationList';
 import { redirect } from 'next/navigation';
@@ -67,7 +68,8 @@ export default async function OrganizationsPage() {
           <h1 className="mb-4">Organizations</h1>
           <OrganizationList
             initialOrganizations={organizationsWithMembership}
-            showCreateButton={!!user}
+            showCreateButton={!!user && isSubscriber(user.customerStatus)}
+            showUpgradePrompt={!!user && !isSubscriber(user.customerStatus)}
             filterPublic={false}
           />
         </div>

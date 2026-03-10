@@ -1,4 +1,5 @@
 import { getCurrentUser } from '@/lib/auth/session';
+import { isSubscriber } from '@/lib/subscription/is-subscriber';
 import { prisma } from '@/lib/prisma';
 import { LinkMetadata, CrossPostUrl } from '@/lib/types';
 import MessageList from './MessageList';
@@ -69,12 +70,13 @@ export default async function MessageFeed() {
 
     return (
       <>
-        {user && user.emailVerified && user.cleared && (
+        {user && user.emailVerified && (
           <div className="mb-3">
             <MessageInput
               maxLength={user.maxMessageLength || 666}
               defaultPubliclyVisible={user.defaultPubliclyVisible ?? false}
-              showAdvancedPostSettings={user.showAdvancedPostSettings ?? false}
+              showAdvancedPostSettings={isSubscriber(user.customerStatus) && (user.showAdvancedPostSettings ?? false)}
+              isSubscriber={isSubscriber(user.customerStatus)}
             />
           </div>
         )}

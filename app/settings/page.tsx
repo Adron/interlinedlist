@@ -1,8 +1,10 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
+import { isSubscriber } from '@/lib/subscription/is-subscriber';
 import { getLinkedIdentitiesForUser } from '@/lib/auth/linked-identities';
 import Link from 'next/link';
 import ProfileSettings from './ProfileSettings';
+import SubscriptionStatusSection from './SubscriptionStatusSection';
 import PermissionsSection from './PermissionsSection';
 import ProfileLocationSection from './ProfileLocationSection';
 import ViewPreferencesSection from './ViewPreferencesSection';
@@ -51,6 +53,10 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         {/* Column 2: Permissions, Profile location, View preferences, Message settings */}
         <div className="col-lg-4 col-md-6 col-12 order-2 order-md-2">
           <div className="d-flex flex-column gap-4">
+            <SubscriptionStatusSection
+              customerStatus={user.customerStatus ?? 'free'}
+              isSubscriber={isSubscriber(user.customerStatus)}
+            />
             <PermissionsSection emailVerified={user.emailVerified} />
             <ProfileLocationSection
               latitude={user.latitude ?? null}
@@ -64,6 +70,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             <MessageSettingsSection
               defaultPubliclyVisible={user.defaultPubliclyVisible ?? false}
               showAdvancedPostSettings={user.showAdvancedPostSettings ?? false}
+              isSubscriber={isSubscriber(user.customerStatus)}
             />
           </div>
         </div>

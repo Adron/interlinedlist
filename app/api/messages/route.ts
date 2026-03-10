@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserOrSyncToken } from '@/lib/auth/sync-token';
+import { isSubscriber } from '@/lib/subscription/is-subscriber';
 import { detectLinks } from '@/lib/messages/link-detector';
 import { APP_URL } from '@/lib/config/app';
 import { buildMessageWhereClause } from '@/lib/messages/queries';
@@ -30,16 +31,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if account is cleared (admin-approved)
-    if (!user.cleared) {
+    const body = await request.json();
+    const { content, publiclyVisible, imageUrls, videoUrls, mastodonProviderIds, crossPostToBluesky, crossPostToLinkedIn, parentId, scheduledAt: scheduledAtRaw } = body;
+
+    // Subscriber-only: cross-post, images, video, schedule
+    const hasCrossPost = (Array.isArray(mastodonProviderIds) && mastodonProviderIds.length > 0) || crossPostToBluesky === true || crossPostToLinkedIn === true;
+    const hasImages = imageUrls !== undefined && imageUrls !== null && Array.isArray(imageUrls) && imageUrls.length > 0;
+    const hasVideo = videoUrls !== undefined && videoUrls !== null && Array.isArray(videoUrls) && videoUrls.length > 0;
+    const hasSchedule = scheduledAtRaw !== undefined && scheduledAtRaw !== null && typeof scheduledAtRaw === 'string';
+    if ((hasCrossPost || hasImages || hasVideo || hasSchedule) && !isSubscriber(user.customerStatus)) {
       return NextResponse.json(
-        { error: 'Your account is pending approval. Contact an administrator.' },
+        { error: 'Subscribe to unlock images, video, cross-posting, and scheduled posts.' },
         { status: 403 }
       );
     }
-
-    const body = await request.json();
-    const { content, publiclyVisible, imageUrls, videoUrls, mastodonProviderIds, crossPostToBluesky, crossPostToLinkedIn, parentId, scheduledAt: scheduledAtRaw } = body;
 
     // Validate content
     if (!content || typeof content !== 'string' || content.trim().length === 0) {

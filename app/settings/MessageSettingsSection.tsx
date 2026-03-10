@@ -6,11 +6,13 @@ import { useRouter } from 'next/navigation';
 interface MessageSettingsSectionProps {
   defaultPubliclyVisible: boolean | null;
   showAdvancedPostSettings: boolean | null;
+  isSubscriber?: boolean;
 }
 
 export default function MessageSettingsSection({ 
   defaultPubliclyVisible: initialDefaultPubliclyVisible,
   showAdvancedPostSettings: initialShowAdvancedPostSettings,
+  isSubscriber = false,
 }: MessageSettingsSectionProps) {
   const router = useRouter();
   const [formData, setFormData] = useState({
@@ -82,8 +84,8 @@ export default function MessageSettingsSection({
             </div>
           </div>
 
-          {/* Show Advanced Post Settings */}
-          <div className="mb-4">
+          {/* Show Advanced Post Settings - subscriber only */}
+          <div className={`mb-4 ${!isSubscriber ? 'opacity-75' : ''}`}>
             <label className="form-label">Advanced Post Settings</label>
             <div>
               <div className="form-check">
@@ -93,7 +95,7 @@ export default function MessageSettingsSection({
                   id="showAdvancedPostSettings"
                   checked={formData.showAdvancedPostSettings === true}
                   onChange={(e) => setFormData({ ...formData, showAdvancedPostSettings: e.target.checked })}
-                  disabled={loading}
+                  disabled={loading || !isSubscriber}
                 />
                 <label className="form-check-label" htmlFor="showAdvancedPostSettings">
                   Show advanced post settings menu by default
@@ -101,7 +103,9 @@ export default function MessageSettingsSection({
               </div>
             </div>
             <small className="form-text text-muted">
-              When enabled, the advanced post settings menu (thread, image, video, organization, scheduled) will be visible by default in the message input box
+              {isSubscriber
+                ? 'When enabled, the advanced post settings menu (thread, image, video, organization, scheduled) will be visible by default in the message input box'
+                : 'Subscribe for full features to unlock images, video, cross-posting, and scheduled posts.'}
             </small>
           </div>
 

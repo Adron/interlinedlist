@@ -17,12 +17,14 @@ function getStoredPublicOnly(filterPublic: boolean): boolean {
 interface OrganizationListProps {
   initialOrganizations?: (Organization & { role?: OrganizationRole; memberCount?: number })[];
   showCreateButton?: boolean;
+  showUpgradePrompt?: boolean;
   filterPublic?: boolean;
 }
 
 export default function OrganizationList({
   initialOrganizations = [],
   showCreateButton = false,
+  showUpgradePrompt = false,
   filterPublic = false,
 }: OrganizationListProps) {
   const router = useRouter();
@@ -166,8 +168,8 @@ export default function OrganizationList({
             </div>
           )}
         </div>
-        {/* Always show button if user is logged in - check both prop and state */}
-        {(showCreateButton || userLoggedIn) && (
+        {/* Show create button for subscribers, upgrade prompt for free users */}
+        {(showCreateButton || (userLoggedIn && !showUpgradePrompt)) && (
           <button
             className="btn btn-primary"
             onClick={() => router.push('/organizations/new')}
@@ -176,6 +178,11 @@ export default function OrganizationList({
             <i className="bx bx-plus me-1"></i>
             Create Organization
           </button>
+        )}
+        {showUpgradePrompt && (
+          <a href="/settings" className="btn btn-outline-primary btn-sm">
+            Subscribe to create organizations
+          </a>
         )}
       </div>
 

@@ -1,5 +1,6 @@
 import { redirect, notFound } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
+import { isSubscriber } from '@/lib/subscription/is-subscriber';
 import Link from 'next/link';
 import FolderTree from '@/components/documents/FolderTree';
 import DocumentList from '@/components/documents/DocumentList';
@@ -42,13 +43,19 @@ export default async function FolderPage({
               <i className="bx bx-folder me-2 text-warning"></i>
               {folder.name}
             </h1>
-            <Link
-              href={`/documents/folders/${folder.id}/new`}
-              className="btn btn-primary"
-            >
-              <i className="bx bx-plus me-2"></i>
-              New Document
-            </Link>
+            {isSubscriber(user.customerStatus) ? (
+              <Link
+                href={`/documents/folders/${folder.id}/new`}
+                className="btn btn-primary"
+              >
+                <i className="bx bx-plus me-2"></i>
+                New Document
+              </Link>
+            ) : (
+              <Link href="/settings" className="btn btn-outline-primary btn-sm">
+                Subscribe to create documents
+              </Link>
+            )}
           </div>
         </div>
       </div>
