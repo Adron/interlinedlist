@@ -6,12 +6,16 @@ interface SubscriptionActionsProps {
   isSubscriber: boolean;
   priceMonthly?: string;
   priceAnnual?: string;
+  priceMonthlyLabel?: string;
+  priceAnnualLabel?: string;
 }
 
 export default function SubscriptionActions({
   isSubscriber,
   priceMonthly,
   priceAnnual,
+  priceMonthlyLabel = '$6.99/mo',
+  priceAnnualLabel = '$60/yr',
 }: SubscriptionActionsProps) {
   const [loading, setLoading] = useState<string | null>(null);
 
@@ -103,7 +107,7 @@ export default function SubscriptionActions({
           ) : (
             <>
               <i className="bx bx-cart me-1"></i>
-              Subscribe ($6.99/mo)
+              Subscribe ({priceMonthlyLabel})
             </>
           )}
         </button>
@@ -121,7 +125,7 @@ export default function SubscriptionActions({
               Redirecting...
             </>
           ) : (
-            'Annual ($60/yr)'
+            `Annual (${priceAnnualLabel})`
           )}
         </button>
       )}

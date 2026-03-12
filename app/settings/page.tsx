@@ -12,7 +12,9 @@ import MessageSettingsSection from './MessageSettingsSection';
 import SecuritySection from './SecuritySection';
 
 interface SettingsPageProps {
-  searchParams: Promise<{ error?: string; success?: string }> | { error?: string; success?: string };
+  searchParams:
+    | Promise<{ error?: string; success?: string; subscription?: string }>
+    | { error?: string; success?: string; subscription?: string };
 }
 
 export default async function SettingsPage({ searchParams }: SettingsPageProps) {
@@ -56,6 +58,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             <SubscriptionStatusSection
               customerStatus={user.customerStatus ?? 'free'}
               isSubscriber={isSubscriber(user.customerStatus)}
+              subscriptionFeedback={params.subscription}
             />
             <PermissionsSection emailVerified={user.emailVerified} />
             <ProfileLocationSection
