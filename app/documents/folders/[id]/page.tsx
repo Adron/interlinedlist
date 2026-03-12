@@ -52,7 +52,7 @@ export default async function FolderPage({
                 New Document
               </Link>
             ) : (
-              <Link href="/settings" className="btn btn-outline-primary btn-sm">
+              <Link href="/subscription" className="btn btn-outline-primary btn-sm">
                 Subscribe to create documents
               </Link>
             )}

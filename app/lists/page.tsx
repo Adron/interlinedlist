@@ -38,7 +38,7 @@ export default async function ListsPage() {
           ) : (
             <>
               <span className="text-muted small">Subscribe to create lists.</span>
-              <Link href="/settings" className="btn btn-outline-primary btn-sm">
+              <Link href="/subscription" className="btn btn-outline-primary btn-sm">
                 Upgrade
               </Link>
             </>
@@ -60,7 +60,7 @@ export default async function ListsPage() {
                 Create Your First List
               </Link>
             ) : (
-              <Link href="/settings" className="btn btn-outline-primary">
+              <Link href="/subscription" className="btn btn-outline-primary">
                 Upgrade to Create Lists
               </Link>
             )}

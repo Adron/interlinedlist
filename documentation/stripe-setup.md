@@ -58,7 +58,7 @@ The CLI will output a webhook signing secret. Use that for `STRIPE_WEBHOOK_SECRE
 
 ## 4. Verify Setup
 
-1. Run the app and go to Settings
+1. Run the app and go to Subscription (user dropdown > Subscription, or `/subscription`)
 2. Click **Subscribe** and complete a test checkout (use card `4242 4242 4242 4242`)
 3. After checkout, you should see "Subscription activated successfully"
 4. Your `customerStatus` should update to `subscriber:monthly` or `subscriber:annual` (via webhook)

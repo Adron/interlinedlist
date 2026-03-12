@@ -4,7 +4,6 @@ import { isSubscriber } from '@/lib/subscription/is-subscriber';
 import { getLinkedIdentitiesForUser } from '@/lib/auth/linked-identities';
 import Link from 'next/link';
 import ProfileSettings from './ProfileSettings';
-import SubscriptionStatusSection from './SubscriptionStatusSection';
 import PermissionsSection from './PermissionsSection';
 import ProfileLocationSection from './ProfileLocationSection';
 import ViewPreferencesSection from './ViewPreferencesSection';
@@ -13,8 +12,8 @@ import SecuritySection from './SecuritySection';
 
 interface SettingsPageProps {
   searchParams:
-    | Promise<{ error?: string; success?: string; subscription?: string }>
-    | { error?: string; success?: string; subscription?: string };
+    | Promise<{ error?: string; success?: string }>
+    | { error?: string; success?: string };
 }
 
 export default async function SettingsPage({ searchParams }: SettingsPageProps) {
@@ -55,11 +54,6 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         {/* Column 2: Permissions, Profile location, View preferences, Message settings */}
         <div className="col-lg-4 col-md-6 col-12 order-2 order-md-2">
           <div className="d-flex flex-column gap-4">
-            <SubscriptionStatusSection
-              customerStatus={user.customerStatus ?? 'free'}
-              isSubscriber={isSubscriber(user.customerStatus)}
-              subscriptionFeedback={params.subscription}
-            />
             <PermissionsSection emailVerified={user.emailVerified} />
             <ProfileLocationSection
               latitude={user.latitude ?? null}

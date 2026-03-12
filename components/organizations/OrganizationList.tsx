@@ -180,7 +180,7 @@ export default function OrganizationList({
           </button>
         )}
         {showUpgradePrompt && (
-          <a href="/settings" className="btn btn-outline-primary btn-sm">
+          <a href="/subscription" className="btn btn-outline-primary btn-sm">
             Subscribe to create organizations
           </a>
         )}

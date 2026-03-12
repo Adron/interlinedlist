@@ -168,6 +168,15 @@ export default function UserDropdown({ user }: UserDropdownProps) {
 
         <Link
           className="dropdown-item"
+          href="/subscription"
+          onClick={() => setIsOpen(false)}
+        >
+          <i className="bx bx-credit-card align-middle me-2" style={{ fontSize: '18px' }}></i>
+          <span className="align-middle">Subscription</span>
+        </Link>
+
+        <Link
+          className="dropdown-item"
           href="/user/organizations"
           onClick={() => setIsOpen(false)}
         >

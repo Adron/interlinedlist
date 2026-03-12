@@ -54,8 +54,8 @@ export async function POST(request: NextRequest) {
       customer: stripeCustomerId,
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${APP_URL}/settings?subscription=success`,
-      cancel_url: `${APP_URL}/settings?subscription=cancelled`,
+      success_url: `${APP_URL}/subscription?subscription=success`,
+      cancel_url: `${APP_URL}/subscription?subscription=cancelled`,
       metadata: { userId: user.id },
     });
 

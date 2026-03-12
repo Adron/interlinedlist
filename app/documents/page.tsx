@@ -51,7 +51,7 @@ export default async function DocumentsPage() {
             ) : (
               <>
                 <span className="text-muted small">Subscribe to create documents.</span>
-                <Link href="/settings" className="btn btn-outline-primary btn-sm">
+                <Link href="/subscription" className="btn btn-outline-primary btn-sm">
                   Upgrade
                 </Link>
               </>
