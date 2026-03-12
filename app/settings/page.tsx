@@ -48,7 +48,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
       <div className="row g-4">
         {/* Column 1: Profile Settings */}
         <div className="col-lg-4 col-md-6 col-12 order-1 order-md-1">
-          <ProfileSettings user={user} />
+          <ProfileSettings user={user} isSubscriber={isSubscriber(user.customerStatus)} />
         </div>
 
         {/* Column 2: Permissions, Profile location, View preferences, Message settings */}
