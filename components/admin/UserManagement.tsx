@@ -12,6 +12,8 @@ interface User {
   bio: string | null;
   emailVerified: boolean;
   cleared?: boolean;
+  customerStatus?: string;
+  stripeCustomerId?: string | null;
   createdAt: string;
   isAdministrator?: boolean;
 }
@@ -170,6 +172,8 @@ export default function UserManagement({ initialUsers, initialTotal, currentUser
       emailVerified: user.emailVerified,
       cleared: user.cleared ?? false,
       isAdministrator: user.isAdministrator || false,
+      customerStatus: user.customerStatus || 'free',
+      stripeCustomerId: user.stripeCustomerId || '',
     });
     setSaveError(null);
   };
@@ -486,6 +490,8 @@ export default function UserManagement({ initialUsers, initialTotal, currentUser
                     <th>Username</th>
                     <th>Status</th>
                     <th>Cleared</th>
+                    <th>Customer</th>
+                    <th>Stripe ID</th>
                     <th>Created</th>
                     <th>Actions</th>
                   </tr>
@@ -551,6 +557,16 @@ export default function UserManagement({ initialUsers, initialTotal, currentUser
                         ) : (
                           <span className="badge bg-warning">Not cleared</span>
                         )}
+                      </td>
+                      <td>
+                        <span className="badge bg-secondary">
+                          {user.customerStatus === 'subscriber' || user.customerStatus?.startsWith('subscriber:')
+                            ? 'Subscriber'
+                            : 'Free'}
+                        </span>
+                      </td>
+                      <td className="text-muted small font-monospace" style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }} title={user.stripeCustomerId || undefined}>
+                        {user.stripeCustomerId || '—'}
                       </td>
                       <td>
                         {new Date(user.createdAt).toLocaleDateString()}
@@ -826,6 +842,50 @@ export default function UserManagement({ initialUsers, initialTotal, currentUser
                         Administrator
                       </label>
                     </div>
+                  </div>
+                </div>
+
+                <div className="row">
+                  <div className="col-md-6 mb-3">
+                    <label htmlFor="editCustomerStatus" className="form-label">
+                      Customer status
+                    </label>
+                    <select
+                      className="form-select"
+                      id="editCustomerStatus"
+                      value={editFormData.customerStatus || 'free'}
+                      onChange={(e) =>
+                        setEditFormData({
+                          ...editFormData,
+                          customerStatus: e.target.value,
+                        })
+                      }
+                      disabled={isSaving}
+                    >
+                      <option value="free">Free</option>
+                      <option value="subscriber">Subscriber</option>
+                      <option value="subscriber:monthly">Subscriber (Monthly)</option>
+                      <option value="subscriber:annual">Subscriber (Annual)</option>
+                    </select>
+                  </div>
+                  <div className="col-md-6 mb-3">
+                    <label htmlFor="editStripeCustomerId" className="form-label">
+                      Stripe Customer ID
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control font-monospace"
+                      id="editStripeCustomerId"
+                      placeholder="cus_..."
+                      value={editFormData.stripeCustomerId || ''}
+                      onChange={(e) =>
+                        setEditFormData({
+                          ...editFormData,
+                          stripeCustomerId: e.target.value || null,
+                        })
+                      }
+                      disabled={isSaving}
+                    />
                   </div>
                 </div>
               </div>

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import MessageInput from './MessageInput';
 import ListsTreeView from './ListsTreeView';
+import { isSubscriber } from '@/lib/subscription/is-subscriber';
 
 interface LeftSidebarProps {
   user?: {
@@ -10,6 +11,7 @@ interface LeftSidebarProps {
     maxMessageLength: number | null;
     defaultPubliclyVisible: boolean | null;
     showAdvancedPostSettings?: boolean | null;
+    customerStatus?: string | null;
     emailVerified: boolean;
     cleared?: boolean;
   } | null;
@@ -37,25 +39,12 @@ export default function LeftSidebar({ user }: LeftSidebarProps) {
                 </div>
               </div>
             </div>
-          ) : !user.cleared ? (
-            <div className="card mb-3">
-              <div className="card-body">
-                <div className="alert alert-warning mb-0" role="alert">
-                  <h6 className="alert-heading">
-                    <i className="bx bx-time me-2"></i>
-                    Account Pending Approval
-                  </h6>
-                  <p className="mb-0 small">
-                    Your account is pending approval. Contact an administrator.
-                  </p>
-                </div>
-              </div>
-            </div>
           ) : (
             <MessageInput
               maxLength={user.maxMessageLength || 666}
               defaultPubliclyVisible={user.defaultPubliclyVisible ?? false}
-              showAdvancedPostSettings={user.showAdvancedPostSettings ?? false}
+              showAdvancedPostSettings={isSubscriber(user.customerStatus) && (user.showAdvancedPostSettings ?? false)}
+              isSubscriber={isSubscriber(user.customerStatus)}
               onSubmit={() => {}}
             />
           )}

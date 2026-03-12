@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
       bio,
       emailVerified,
       isAdministrator,
+      customerStatus,
     } = body;
 
     // Validation
@@ -90,6 +91,7 @@ export async function POST(request: NextRequest) {
         avatar: avatar || null,
         bio: bio || null,
         emailVerified: emailVerified || false,
+        customerStatus: customerStatus || 'free',
       };
 
       if (verificationToken && expiration) {
@@ -107,6 +109,8 @@ export async function POST(request: NextRequest) {
           avatar: true,
           bio: true,
           emailVerified: true,
+          customerStatus: true,
+          stripeCustomerId: true,
           createdAt: true,
         },
       });
@@ -123,19 +127,22 @@ export async function POST(request: NextRequest) {
             avatar: avatar || null,
             bio: bio || null,
             emailVerified: emailVerified || false,
+            customerStatus: customerStatus || 'free',
           },
-          select: {
-            id: true,
-            email: true,
-            username: true,
-            displayName: true,
-            avatar: true,
-            bio: true,
-            emailVerified: true,
-            createdAt: true,
-          },
-        });
-        hasEmailVerificationFields = false;
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          displayName: true,
+          avatar: true,
+          bio: true,
+          emailVerified: true,
+          customerStatus: true,
+          stripeCustomerId: true,
+          createdAt: true,
+        },
+      });
+      hasEmailVerificationFields = false;
       } else {
         throw error;
       }
@@ -262,6 +269,8 @@ export async function GET(request: NextRequest) {
           bio: true,
           emailVerified: true,
           cleared: true,
+          customerStatus: true,
+          stripeCustomerId: true,
           createdAt: true,
         },
         orderBy: {

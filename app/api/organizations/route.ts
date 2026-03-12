@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth/session';
+import { isSubscriber } from '@/lib/subscription/is-subscriber';
 import {
   getPublicOrganizations,
   getUserOrganizations,
@@ -115,6 +116,12 @@ export async function POST(request: NextRequest) {
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (!isSubscriber(user.customerStatus)) {
+      return NextResponse.json(
+        { error: 'Subscribe to create organizations.' },
+        { status: 403 }
+      );
     }
 
     const body = await request.json();

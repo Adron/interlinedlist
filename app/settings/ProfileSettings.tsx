@@ -19,9 +19,10 @@ interface User {
 
 interface ProfileSettingsProps {
   user: User;
+  isSubscriber?: boolean;
 }
 
-export default function ProfileSettings({ user }: ProfileSettingsProps) {
+export default function ProfileSettings({ user, isSubscriber = false }: ProfileSettingsProps) {
   const router = useRouter();
   const [formData, setFormData] = useState({
     displayName: user.displayName || '',
@@ -470,11 +471,22 @@ export default function ProfileSettings({ user }: ProfileSettingsProps) {
             {validatedAvatarUrl && avatarValidation.status === 'idle' && (
               <div className="mt-2">
                 <div className="d-flex align-items-center gap-2">
-                  <Avatar
-                    src={validatedAvatarUrl}
-                    alt={`${formData.displayName || user.username}'s avatar`}
-                    size={60}
-                  />
+                  <span className="position-relative d-inline-block">
+                    <Avatar
+                      src={validatedAvatarUrl}
+                      alt={`${formData.displayName || user.username}'s avatar`}
+                      size={60}
+                    />
+                    {isSubscriber && (
+                      <span
+                        className="position-absolute bottom-0 end-0 rounded-circle bg-primary d-flex align-items-center justify-content-center"
+                        style={{ width: 18, height: 18 }}
+                        title="Subscriber"
+                      >
+                        <i className="bx bx-badge-check text-white" style={{ fontSize: 12 }} aria-hidden />
+                      </span>
+                    )}
+                  </span>
                   <small className="text-muted">
                     {formData.avatar === validatedAvatarUrl ? 'Current avatar' : 'Previous avatar'}
                   </small>

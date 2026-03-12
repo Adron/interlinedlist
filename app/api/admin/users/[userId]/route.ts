@@ -82,6 +82,12 @@ export async function PUT(
     if (body.cleared !== undefined) {
       updateData.cleared = body.cleared;
     }
+    if (body.customerStatus !== undefined) {
+      updateData.customerStatus = body.customerStatus;
+    }
+    if (body.stripeCustomerId !== undefined) {
+      updateData.stripeCustomerId = body.stripeCustomerId || null;
+    }
 
     if (body.cleared === true && !existingUser.cleared) {
       trackAction('cleared', { userId }).catch(() => {});
@@ -100,6 +106,8 @@ export async function PUT(
         bio: true,
         emailVerified: true,
         cleared: true,
+        customerStatus: true,
+        stripeCustomerId: true,
         createdAt: true,
       },
     });

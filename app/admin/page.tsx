@@ -17,6 +17,8 @@ export default async function AdminPage() {
       bio: true,
       emailVerified: true,
       cleared: true,
+      customerStatus: true,
+      stripeCustomerId: true,
       createdAt: true,
     },
     orderBy: {

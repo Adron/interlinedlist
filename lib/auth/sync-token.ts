@@ -65,6 +65,8 @@ export async function getCurrentUserOrSyncToken(
             isPrivateAccount: (u as { isPrivateAccount?: boolean }).isPrivateAccount ?? false,
             cleared: (u as { cleared?: boolean }).cleared ?? false,
             githubDefaultRepo: (u as { githubDefaultRepo?: string | null }).githubDefaultRepo ?? null,
+            customerStatus: (u as { customerStatus?: string }).customerStatus ?? "free",
+            stripeCustomerId: (u as { stripeCustomerId?: string | null }).stripeCustomerId ?? null,
             createdAt: u.createdAt,
             isAdministrator,
           };

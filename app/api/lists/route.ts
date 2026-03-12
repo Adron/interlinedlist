@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/session";
+import { isSubscriber } from "@/lib/subscription/is-subscriber";
 import { parseDSLSchema, validateDSLSchema } from "@/lib/lists/dsl-parser";
 import { getUserLists, validateParentRelationship } from "@/lib/lists/queries";
 import { trackAction } from "@/lib/analytics/track";
@@ -49,9 +50,9 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (!user.cleared) {
+    if (!isSubscriber(user.customerStatus)) {
       return NextResponse.json(
-        { error: "Your account is pending approval. Contact an administrator." },
+        { error: "Subscribe to create lists." },
         { status: 403 }
       );
     }

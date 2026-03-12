@@ -53,6 +53,8 @@ const userSelect = {
   isPrivateAccount: true,
   cleared: true,
   githubDefaultRepo: true,
+  customerStatus: true,
+  stripeCustomerId: true,
   createdAt: true,
 } as const;
 

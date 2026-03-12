@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
+import { isSubscriber } from '@/lib/subscription/is-subscriber';
 import ListBreadcrumbs from '@/components/lists/ListBreadcrumbs';
 import CreateListForm from './CreateListForm';
 import CreateListTabs from './CreateListTabs';
@@ -11,7 +12,7 @@ export default async function NewListPage() {
     redirect('/login');
   }
 
-  if (!user.cleared) {
+  if (!isSubscriber(user.customerStatus)) {
     redirect('/lists');
   }
 

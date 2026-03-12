@@ -14,6 +14,7 @@ export default function AddUserForm() {
     bio: '',
     emailVerified: false,
     isAdministrator: false,
+    customerStatus: 'free',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -38,6 +39,7 @@ export default function AddUserForm() {
           bio: formData.bio || undefined,
           emailVerified: formData.emailVerified,
           isAdministrator: formData.isAdministrator,
+          customerStatus: formData.customerStatus,
         }),
       });
 
@@ -174,6 +176,28 @@ export default function AddUserForm() {
                   Administrator
                 </label>
               </div>
+            </div>
+          </div>
+
+          <div className="row">
+            <div className="col-md-6 mb-3">
+              <label htmlFor="customerStatus" className="form-label">
+                Customer status
+              </label>
+              <select
+                className="form-select"
+                id="customerStatus"
+                value={formData.customerStatus}
+                onChange={(e) =>
+                  setFormData({ ...formData, customerStatus: e.target.value })
+                }
+                disabled={loading}
+              >
+                <option value="free">Free</option>
+                <option value="subscriber">Subscriber</option>
+                <option value="subscriber:monthly">Subscriber (Monthly)</option>
+                <option value="subscriber:annual">Subscriber (Annual)</option>
+              </select>
             </div>
           </div>
 
