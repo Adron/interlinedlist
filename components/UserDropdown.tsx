@@ -18,9 +18,10 @@ interface UserDropdownProps {
     displayName: string | null;
     avatar: string | null;
   };
+  isSubscriber?: boolean;
 }
 
-export default function UserDropdown({ user }: UserDropdownProps) {
+export default function UserDropdown({ user, isSubscriber = false }: UserDropdownProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoginAsOpen, setIsLoginAsOpen] = useState(false);
@@ -118,7 +119,7 @@ export default function UserDropdown({ user }: UserDropdownProps) {
         }}
         style={{ cursor: 'pointer', textDecoration: 'none' }}
       >
-        <span className="d-flex align-items-center">
+        <span className="d-flex align-items-center position-relative">
           {user.avatar ? (
             <img
               className="rounded-circle"
@@ -144,6 +145,15 @@ export default function UserDropdown({ user }: UserDropdownProps) {
               {initials}
             </div>
           )}
+          {isSubscriber && (
+            <span
+              className="position-absolute bottom-0 end-0 rounded-circle bg-primary d-flex align-items-center justify-content-center"
+              style={{ width: 14, height: 14 }}
+              title="Subscriber"
+            >
+              <i className="bx bx-badge-check text-white" style={{ fontSize: 10 }} aria-hidden />
+            </span>
+          )}
         </span>
       </a>
       <div
@@ -165,6 +175,15 @@ export default function UserDropdown({ user }: UserDropdownProps) {
           <i className="bx bx-cog align-middle me-2" style={{ fontSize: '18px' }}></i>
           <span className="align-middle">Settings</span>
         </a>
+
+        <Link
+          className="dropdown-item"
+          href="/subscription"
+          onClick={() => setIsOpen(false)}
+        >
+          <i className="bx bx-credit-card align-middle me-2" style={{ fontSize: '18px' }}></i>
+          <span className="align-middle">Subscription</span>
+        </Link>
 
         <Link
           className="dropdown-item"

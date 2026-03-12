@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
+import { isSubscriber } from '@/lib/subscription/is-subscriber';
 import { getLinkedIdentitiesForUser } from '@/lib/auth/linked-identities';
 import Link from 'next/link';
 import ProfileSettings from './ProfileSettings';
@@ -10,7 +11,9 @@ import MessageSettingsSection from './MessageSettingsSection';
 import SecuritySection from './SecuritySection';
 
 interface SettingsPageProps {
-  searchParams: Promise<{ error?: string; success?: string }> | { error?: string; success?: string };
+  searchParams:
+    | Promise<{ error?: string; success?: string }>
+    | { error?: string; success?: string };
 }
 
 export default async function SettingsPage({ searchParams }: SettingsPageProps) {
@@ -45,7 +48,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
       <div className="row g-4">
         {/* Column 1: Profile Settings */}
         <div className="col-lg-4 col-md-6 col-12 order-1 order-md-1">
-          <ProfileSettings user={user} />
+          <ProfileSettings user={user} isSubscriber={isSubscriber(user.customerStatus)} />
         </div>
 
         {/* Column 2: Permissions, Profile location, View preferences, Message settings */}
@@ -64,6 +67,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             <MessageSettingsSection
               defaultPubliclyVisible={user.defaultPubliclyVisible ?? false}
               showAdvancedPostSettings={user.showAdvancedPostSettings ?? false}
+              isSubscriber={isSubscriber(user.customerStatus)}
             />
           </div>
         </div>

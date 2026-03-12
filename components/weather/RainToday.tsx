@@ -20,12 +20,8 @@ function formatTimeLabel(isoString: string): string {
 }
 
 export default function RainToday({ hourly, onRefresh, refreshing }: RainTodayProps) {
-  // Show next 8 hours from current time: filter out past periods, then take 8
-  const startOfCurrentHour = new Date();
-  startOfCurrentHour.setMinutes(0, 0, 0);
-  const startOfHourMs = startOfCurrentHour.getTime();
-  const futurePeriods = hourly.filter((p) => new Date(p.startTime).getTime() >= startOfHourMs);
-  const periods = futurePeriods.slice(0, HOURS_TO_SHOW);
+  // Show next 8 hours from the start of the hourly data
+  const periods = hourly.slice(0, HOURS_TO_SHOW);
 
   if (periods.length === 0) return null;
 

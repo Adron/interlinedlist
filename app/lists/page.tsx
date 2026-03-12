@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
+import { isSubscriber } from '@/lib/subscription/is-subscriber';
 import { getUserLists, getUserListsWithProperties, getWatchedLists } from '@/lib/lists/queries';
 import Link from 'next/link';
 import DeleteListButton from '@/components/lists/DeleteListButton';
@@ -28,14 +29,19 @@ export default async function ListsPage() {
   return (
     <div className="container-fluid container-fluid-max py-4">
       <div className="row mb-4">
-        <div className="col-12 d-flex justify-content-end">
-          {user.cleared ? (
+        <div className="col-12 d-flex justify-content-end align-items-center gap-2">
+          {isSubscriber(user.customerStatus) ? (
             <Link href="/lists/new" className="btn btn-primary">
               <i className="bx bx-plus me-2"></i>
               Create New List
             </Link>
           ) : (
-            <span className="text-muted small align-self-center">Contact an administrator to create lists.</span>
+            <>
+              <span className="text-muted small">Subscribe to create lists.</span>
+              <Link href="/subscription" className="btn btn-outline-primary btn-sm">
+                Upgrade
+              </Link>
+            </>
           )}
         </div>
       </div>
@@ -46,12 +52,16 @@ export default async function ListsPage() {
             <i className="bx bx-list-ul fs-1 text-muted mb-3 d-block"></i>
             <h3 className="h5 mb-2">No lists yet</h3>
             <p className="text-muted mb-4">
-              {user.cleared ? 'Create your first list to get started!' : 'Contact an administrator to create lists.'}
+              {isSubscriber(user.customerStatus) ? 'Create your first list to get started!' : 'Subscribe to create lists.'}
             </p>
-            {user.cleared && (
+            {isSubscriber(user.customerStatus) ? (
               <Link href="/lists/new" className="btn btn-primary">
                 <i className="bx bx-plus me-2"></i>
                 Create Your First List
+              </Link>
+            ) : (
+              <Link href="/subscription" className="btn btn-outline-primary">
+                Upgrade to Create Lists
               </Link>
             )}
           </div>

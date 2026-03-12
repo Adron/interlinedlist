@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getCurrentUser } from '@/lib/auth/session';
+import { isSubscriber } from '@/lib/subscription/is-subscriber';
 import UserDropdown from './UserDropdown';
 import NavigationTitle from './NavigationTitle';
 
@@ -120,7 +121,7 @@ export default async function Navigation() {
                     </Link>
                   </div>
                 )}
-                <UserDropdown user={user} />
+                <UserDropdown user={user} isSubscriber={isSubscriber(user.customerStatus)} />
               </>
             ) : (
               <>

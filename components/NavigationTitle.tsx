@@ -20,6 +20,7 @@ function getPageTitle(pathname: string): string {
     'lists': 'Lists',
     'admin': 'Administration',
     'settings': 'Settings',
+    'subscription': 'Subscription',
     'help': 'Help',
     'login': 'Login',
     'register': 'Register',
