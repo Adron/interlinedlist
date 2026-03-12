@@ -39,8 +39,13 @@ export default async function SubscriptionPage({ searchParams }: SubscriptionPag
             customerStatus={user.customerStatus ?? 'free'}
             isSubscriber={isSubscriber(user.customerStatus)}
             subscriptionFeedback={params.subscription}
+<<<<<<< HEAD
             priceMonthly={process.env.NEXT_PUBLIC_STRIPE_PRICE_MONTHLY}
             priceAnnual={process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL}
+=======
+            priceMonthly={process.env.STRIPE_PRICE_MONTHLY}
+            priceAnnual={process.env.STRIPE_PRICE_ANNUAL}
+>>>>>>> 18ba233 (Initial integration is in place with the sandbox.)
             priceMonthlyLabel={process.env.NEXT_PUBLIC_STRIPE_PRICE_MONTHLY_LABEL ?? '$6.99/mo'}
             priceAnnualLabel={process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL_LABEL ?? '$60/yr'}
           />

@@ -1,4 +1,0 @@
-{"sessionId":"52f370","location":"subscription/page.tsx:24","message":"Server env labels","data":{"monthlyLabel":"$6.99/mo","annualLabel":"$60/yr"},"timestamp":1773309287353,"hypothesisId":"H2"}
-{"sessionId":"52f370","location":"SubscriptionActions.tsx:20","message":"Label values","data":{"priceMonthlyLabel":"$6.99/mo","priceAnnualLabel":"$60/yr","mLen":8,"aLen":6},"timestamp":1773309287362,"hypothesisId":"H1"}
-{"sessionId":"52f370","location":"SubscriptionActions.tsx:20","message":"Label values","data":{"priceMonthlyLabel":"$6.99/mo","priceAnnualLabel":"$60/yr","mLen":8,"aLen":6},"timestamp":1773309287574,"hypothesisId":"H1"}
-{"sessionId":"52f370","location":"SubscriptionActions.tsx:20","message":"Label values","data":{"priceMonthlyLabel":"$6.99/mo","priceAnnualLabel":"$60/yr","mLen":8,"aLen":6},"timestamp":1773309287574,"hypothesisId":"H1"}
