@@ -19,14 +19,24 @@ interface SubscriptionStatusSectionProps {
   customerStatus: string;
   isSubscriber: boolean;
   subscriptionFeedback?: string;
+  priceMonthly?: string;
+  priceAnnual?: string;
+  priceMonthlyLabel?: string;
+  priceAnnualLabel?: string;
 }
 
 export default function SubscriptionStatusSection({
   customerStatus,
   isSubscriber,
   subscriptionFeedback,
+  priceMonthly,
+  priceAnnual,
+  priceMonthlyLabel,
+  priceAnnualLabel,
 }: SubscriptionStatusSectionProps) {
   const displayStatus = formatCustomerStatus(customerStatus || 'free');
+  const finalMonthly = priceMonthly ?? process.env.NEXT_PUBLIC_STRIPE_PRICE_MONTHLY;
+  const finalAnnual = priceAnnual ?? process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL;
 
   return (
     <div className="card">
@@ -53,10 +63,10 @@ export default function SubscriptionStatusSection({
         </div>
         <SubscriptionActions
           isSubscriber={isSubscriber}
-          priceMonthly={process.env.NEXT_PUBLIC_STRIPE_PRICE_MONTHLY}
-          priceAnnual={process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL}
-          priceMonthlyLabel={process.env.NEXT_PUBLIC_STRIPE_PRICE_MONTHLY_LABEL}
-          priceAnnualLabel={process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL_LABEL}
+          priceMonthly={finalMonthly}
+          priceAnnual={finalAnnual}
+          priceMonthlyLabel={priceMonthlyLabel ?? process.env.NEXT_PUBLIC_STRIPE_PRICE_MONTHLY_LABEL}
+          priceAnnualLabel={priceAnnualLabel ?? process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL_LABEL}
         />
       </div>
     </div>

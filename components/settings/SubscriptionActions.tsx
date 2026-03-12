@@ -59,26 +59,68 @@ export default function SubscriptionActions({
     }
   };
 
+  const handleCancel = async () => {
+    setLoading('cancel');
+    try {
+      const res = await fetch('/api/stripe/create-portal-session', {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        window.location.href = data.url;
+      } else {
+        setLoading(null);
+        alert(data.error || 'Failed to open billing portal');
+      }
+    } catch (err) {
+      setLoading(null);
+      alert('Failed to open billing portal');
+    }
+  };
+
   if (isSubscriber) {
     return (
-      <button
-        type="button"
-        className="btn btn-outline-primary btn-sm"
-        onClick={handleManage}
-        disabled={loading !== null}
-      >
-        {loading === 'manage' ? (
-          <>
-            <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-            Opening...
-          </>
-        ) : (
-          <>
-            <i className="bx bx-cog me-1"></i>
-            Manage subscription
-          </>
-        )}
-      </button>
+      <div className="d-flex flex-column gap-2">
+        <button
+          type="button"
+          className="btn btn-outline-primary btn-sm align-self-start"
+          onClick={handleManage}
+          disabled={loading !== null}
+        >
+          {loading === 'manage' ? (
+            <>
+              <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+              Opening...
+            </>
+          ) : (
+            <>
+              <i className="bx bx-cog me-1"></i>
+              Manage subscription
+            </>
+          )}
+        </button>
+        <button
+          type="button"
+          className="btn btn-outline-secondary btn-sm align-self-start"
+          onClick={handleCancel}
+          disabled={loading !== null}
+        >
+          {loading === 'cancel' ? (
+            <>
+              <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+              Opening...
+            </>
+          ) : (
+            <>
+              <i className="bx bx-x-circle me-1"></i>
+              Cancel subscription
+            </>
+          )}
+        </button>
+        <small className="text-muted">
+          Cancel at end of billing period. No refund.
+        </small>
+      </div>
     );
   }
 

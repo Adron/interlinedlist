@@ -39,6 +39,10 @@ export default async function SubscriptionPage({ searchParams }: SubscriptionPag
             customerStatus={user.customerStatus ?? 'free'}
             isSubscriber={isSubscriber(user.customerStatus)}
             subscriptionFeedback={params.subscription}
+            priceMonthly={process.env.STRIPE_PRICE_MONTHLY}
+            priceAnnual={process.env.STRIPE_PRICE_ANNUAL}
+            priceMonthlyLabel={process.env.NEXT_PUBLIC_STRIPE_PRICE_MONTHLY_LABEL ?? '$6.99/mo'}
+            priceAnnualLabel={process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL_LABEL ?? '$60/yr'}
           />
         </div>
       </div>
