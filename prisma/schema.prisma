@@ -37,6 +37,8 @@ model User {
   isPrivateAccount          Boolean   @default(false)
   cleared                  Boolean   @default(false)
   githubDefaultRepo        String?
+  customerStatus           String?   @default("free")
+  stripeCustomerId         String?
   messages             Message[]
   lists                List[]
   organizations        UserOrganization[]

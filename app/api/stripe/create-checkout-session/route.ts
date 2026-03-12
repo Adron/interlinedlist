@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let stripeCustomerId = user.stripeCustomerId;
+    let stripeCustomerId: string | null = user.stripeCustomerId ?? null;
 
     if (!stripeCustomerId) {
       const customer = await stripe.customers.create({

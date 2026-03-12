@@ -6,11 +6,13 @@ import { useRouter } from 'next/navigation';
 interface MessageSettingsSectionProps {
   defaultPubliclyVisible: boolean | null;
   showAdvancedPostSettings: boolean | null;
+  isSubscriber?: boolean;
 }
 
 export default function MessageSettingsSection({ 
   defaultPubliclyVisible: initialDefaultPubliclyVisible,
   showAdvancedPostSettings: initialShowAdvancedPostSettings,
+  isSubscriber: _isSubscriber,
 }: MessageSettingsSectionProps) {
   const router = useRouter();
   const [formData, setFormData] = useState({
