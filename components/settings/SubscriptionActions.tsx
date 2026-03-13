@@ -64,6 +64,8 @@ export default function SubscriptionActions({
     try {
       const res = await fetch('/api/stripe/create-portal-session', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ flow: 'cancel' }),
       });
       const data = await res.json();
       if (res.ok && data.url) {
@@ -118,7 +120,7 @@ export default function SubscriptionActions({
           )}
         </button>
         <small className="text-muted">
-          Cancel at end of billing period. No refund.
+          Cancel opens Stripe billing. Complete the flow there to cancel. Access continues until the end of your billing period.
         </small>
       </div>
     );
@@ -131,6 +133,9 @@ export default function SubscriptionActions({
       </small>
     );
   }
+
+  const subscribeLabel = 'Subscribe (' + (priceMonthlyLabel ?? '$6.99/mo') + ')';
+  const annualLabel = 'Annual (' + (priceAnnualLabel ?? '$60/yr') + ')';
 
   return (
     <div className="d-flex flex-wrap gap-2">
@@ -149,7 +154,7 @@ export default function SubscriptionActions({
           ) : (
             <>
               <i className="bx bx-cart me-1"></i>
-              Subscribe ({priceMonthlyLabel})
+              {subscribeLabel}
             </>
           )}
         </button>
@@ -167,7 +172,7 @@ export default function SubscriptionActions({
               Redirecting...
             </>
           ) : (
-            Annual ({priceAnnualLabel})
+            <>{annualLabel}</>
           )}
         </button>
       )}

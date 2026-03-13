@@ -15,6 +15,12 @@ function formatCustomerStatus(status: string): string {
   }
 }
 
+function daysUntil(timestamp: number): number {
+  const now = Math.floor(Date.now() / 1000);
+  const diff = timestamp - now;
+  return Math.max(0, Math.ceil(diff / 86400));
+}
+
 interface SubscriptionStatusSectionProps {
   customerStatus: string;
   isSubscriber: boolean;
@@ -23,6 +29,8 @@ interface SubscriptionStatusSectionProps {
   priceAnnual?: string;
   priceMonthlyLabel?: string;
   priceAnnualLabel?: string;
+  cancelAtPeriodEnd?: boolean;
+  currentPeriodEnd?: number | null;
 }
 
 export default function SubscriptionStatusSection({
@@ -33,10 +41,14 @@ export default function SubscriptionStatusSection({
   priceAnnual,
   priceMonthlyLabel,
   priceAnnualLabel,
+  cancelAtPeriodEnd = false,
+  currentPeriodEnd = null,
 }: SubscriptionStatusSectionProps) {
   const displayStatus = formatCustomerStatus(customerStatus || 'free');
   const finalMonthly = priceMonthly ?? process.env.NEXT_PUBLIC_STRIPE_PRICE_MONTHLY;
   const finalAnnual = priceAnnual ?? process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL;
+  const daysRemaining =
+    cancelAtPeriodEnd && currentPeriodEnd ? daysUntil(currentPeriodEnd) : null;
 
   return (
     <div className="card">
@@ -57,6 +69,11 @@ export default function SubscriptionStatusSection({
         <div className="mb-3">
           <label className="form-label text-muted small mb-1">Customer status</label>
           <p className="form-control-plaintext mb-0 fw-medium">{displayStatus}</p>
+          {cancelAtPeriodEnd && daysRemaining !== null && (
+            <p className="form-control-plaintext mb-0 text-warning small">
+              Cancelling at end of period. {daysRemaining} day{daysRemaining !== 1 ? 's' : ''} of access remaining.
+            </p>
+          )}
           <small className="form-text text-muted">
             Status changes when you subscribe or cancel. Managed via billing.
           </small>

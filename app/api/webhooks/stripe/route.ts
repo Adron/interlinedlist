@@ -50,10 +50,20 @@ export async function POST(request: NextRequest) {
           const subscription = await stripe.subscriptions.retrieve(subscriptionId);
           const customerId = subscription.customer as string;
           const customerStatus = getCustomerStatusFromSubscription(subscription);
-          await prisma.user.updateMany({
+          let result = await prisma.user.updateMany({
             where: { stripeCustomerId: customerId },
             data: { customerStatus },
           });
+          if (result.count === 0) {
+            const customer = await stripe.customers.retrieve(customerId);
+            const email = (customer as Stripe.Customer).email;
+            if (email) {
+              result = await prisma.user.updateMany({
+                where: { email },
+                data: { stripeCustomerId: customerId, customerStatus },
+              });
+            }
+          }
         }
         break;
       }
@@ -63,24 +73,43 @@ export async function POST(request: NextRequest) {
         const customerId = subscription.customer as string;
         const customerStatus = getCustomerStatusFromSubscription(subscription);
 
-        await prisma.user.updateMany({
+        let result = await prisma.user.updateMany({
           where: { stripeCustomerId: customerId },
           data: { customerStatus },
         });
+        if (result.count === 0) {
+          const customer = await stripe.customers.retrieve(customerId);
+          const email = (customer as Stripe.Customer).email;
+          if (email) {
+            result = await prisma.user.updateMany({
+              where: { email },
+              data: { stripeCustomerId: customerId, customerStatus },
+            });
+          }
+        }
         break;
       }
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
 
-        await prisma.user.updateMany({
+        let result = await prisma.user.updateMany({
           where: { stripeCustomerId: customerId },
           data: { customerStatus: 'free' },
         });
+        if (result.count === 0) {
+          const customer = await stripe.customers.retrieve(customerId);
+          const email = (customer as Stripe.Customer).email;
+          if (email) {
+            result = await prisma.user.updateMany({
+              where: { email },
+              data: { stripeCustomerId: customerId, customerStatus: 'free' },
+            });
+          }
+        }
         break;
       }
       default:
-        // Unhandled event type
         break;
     }
 

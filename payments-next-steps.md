@@ -139,6 +139,20 @@ Set these in your production environment (e.g. Vercel, Railway, or your host's e
 
 ---
 
+## Local Development: Webhook Forwarding
+
+Stripe cannot reach `localhost`. For local testing, use the Stripe CLI to forward webhooks:
+
+```bash
+stripe listen --forward-to localhost:3000/api/webhooks/stripe
+```
+
+The CLI prints a webhook signing secret (e.g. `whsec_...`). Set `STRIPE_WEBHOOK_SECRET` in `.env.local` to this value. Restart your dev server after changing it.
+
+Events to listen for: `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`.
+
+---
+
 ## 8. Troubleshooting
 
 | Issue | Check |

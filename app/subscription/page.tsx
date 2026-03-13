@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
 import { isSubscriber } from '@/lib/subscription/is-subscriber';
+import { syncSubscriptionFromStripe } from '@/lib/subscription/sync-from-stripe';
 import Link from 'next/link';
 import SubscriptionStatusSection from '@/app/settings/SubscriptionStatusSection';
 
@@ -11,13 +12,25 @@ interface SubscriptionPageProps {
 }
 
 export default async function SubscriptionPage({ searchParams }: SubscriptionPageProps) {
-  const user = await getCurrentUser();
+  let user = await getCurrentUser();
 
   if (!user) {
     redirect('/login');
   }
 
   const params = (searchParams instanceof Promise ? await searchParams : searchParams) ?? {};
+
+  let cancelAtPeriodEnd = false;
+  let currentPeriodEnd: number | null = null;
+
+  if (user.stripeCustomerId) {
+    const syncResult = await syncSubscriptionFromStripe(user.stripeCustomerId);
+    if (syncResult !== null) {
+      user = { ...user, customerStatus: syncResult.customerStatus };
+      cancelAtPeriodEnd = syncResult.cancelAtPeriodEnd;
+      currentPeriodEnd = syncResult.currentPeriodEnd;
+    }
+  }
 
   return (
     <div className="container-fluid container-fluid-max py-4">
@@ -43,6 +56,8 @@ export default async function SubscriptionPage({ searchParams }: SubscriptionPag
             priceAnnual={process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL}
             priceMonthlyLabel={process.env.NEXT_PUBLIC_STRIPE_PRICE_MONTHLY_LABEL ?? '$6.99/mo'}
             priceAnnualLabel={process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL_LABEL ?? '$60/yr'}
+            cancelAtPeriodEnd={cancelAtPeriodEnd}
+            currentPeriodEnd={currentPeriodEnd}
           />
         </div>
       </div>
