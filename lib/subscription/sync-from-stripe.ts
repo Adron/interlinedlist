@@ -47,9 +47,13 @@ export async function syncSubscriptionFromStripe(
 
   if (result.count === 0) return null;
 
+  const periodEnd =
+    (activeSub as { current_period_end?: number })?.current_period_end ??
+    activeSub?.items?.data?.[0]?.current_period_end ??
+    null;
   return {
     customerStatus,
     cancelAtPeriodEnd: activeSub?.cancel_at_period_end ?? false,
-    currentPeriodEnd: activeSub?.current_period_end ?? null,
+    currentPeriodEnd: periodEnd,
   };
 }

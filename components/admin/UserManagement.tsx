@@ -12,7 +12,7 @@ interface User {
   bio: string | null;
   emailVerified: boolean;
   cleared?: boolean;
-  customerStatus?: string;
+  customerStatus?: string | null;
   stripeCustomerId?: string | null;
   createdAt: string;
   isAdministrator?: boolean;
