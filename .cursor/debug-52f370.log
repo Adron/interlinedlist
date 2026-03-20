@@ -1,2 +1,0 @@
-{"sessionId":"52f370","timestamp":1773376212434,"hypothesisId":"H-portal","location":"create-portal-session:entry","message":"API called","data":{"bodyKeys":[]}}
-{"sessionId":"52f370","timestamp":1773376212442,"hypothesisId":"H-portal","location":"create-portal-session:generic","message":"Generic portal (no flow requested)","data":{"flowRequested":false,"hasFlowData":false,"bodyKeys":[]}}
