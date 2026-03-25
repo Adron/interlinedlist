@@ -31,7 +31,7 @@ Documents can be public (viewable by anyone) or private (only you).
 2. Select the folder where you want the document (or leave at root)
 3. Click **New Document**
 4. Enter a title and start writing
-5. Content is saved automatically as you type
+5. Changes save automatically shortly after you pause typing (about a second), and about every eight seconds while you keep typing without a pause
 
 ### From a folder
 
@@ -49,7 +49,7 @@ Documents can be public (viewable by anyone) or private (only you).
 ## Editing Documents
 
 - Click any document to open the markdown editor
-- Edit in place; changes are saved automatically
+- Edit in place; the editor saves on its own after you pause, on a timer while you type continuously, when you switch tabs or leave the page, and when you change the **Public** toggle. There is no separate Save button; if a save fails, use **Retry** next to the error message
 - Use the toolbar for formatting (bold, italic, headings, lists, links)
 - Paste or drag images into the editor to upload them
 

@@ -14,6 +14,7 @@ interface ListWithProperties {
 
 interface ListsTreePaneProps {
   lists: ListWithProperties[];
+  canCreateDocuments?: boolean;
 }
 
 function TreeNodeItem({
@@ -99,7 +100,7 @@ function TreeNodeItem({
   );
 }
 
-export default function ListsTreePane({ lists }: ListsTreePaneProps) {
+export default function ListsTreePane({ lists, canCreateDocuments = false }: ListsTreePaneProps) {
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
@@ -195,7 +196,12 @@ export default function ListsTreePane({ lists }: ListsTreePaneProps) {
               </div>
             </div>
             <div className="card-body p-0">
-              <ListDataTable listId={selectedList.id} fields={fields} />
+              <ListDataTable
+                listId={selectedList.id}
+                listTitle={selectedList.title}
+                canCreateDocuments={canCreateDocuments}
+                fields={fields}
+              />
             </div>
           </div>
         ) : (

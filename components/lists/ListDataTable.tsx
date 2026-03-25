@@ -5,7 +5,10 @@ import Link from "next/link";
 import { ParsedField, FormData } from "@/lib/lists/dsl-types";
 import { validateFormData } from "@/lib/lists/dsl-validator";
 import { parseFieldValue, getFieldComponent, formatFieldValue } from "@/lib/lists/form-generator";
+import { formatListCellDisplay } from "@/lib/lists/row-value-display";
+import { buildRowMarkdownMarkdown, buildExportDocumentPaths } from "@/lib/lists/row-to-markdown";
 import { parseDateFromInput } from "@/lib/lists/date-utils";
+import CreateDocFromRowModal from "./CreateDocFromRowModal";
 
 interface ListDataRow {
   id: string;
@@ -68,7 +71,11 @@ function compareRowDataValues(
 
 interface ListDataTableProps {
   listId: string;
+  /** Used for row → document export headings and filenames */
+  listTitle: string;
   fields: ParsedField[];
+  /** When false, hide “create document from row” (e.g. non-subscribers). */
+  canCreateDocuments?: boolean;
   onEdit?: (rowId: string) => void;
   onAdd?: () => void;
   /** When set, fetch from this URL instead of /api/lists/[id]/data */
@@ -84,7 +91,9 @@ interface ListDataTableProps {
 
 export default function ListDataTable({
   listId,
+  listTitle,
   fields,
+  canCreateDocuments = false,
   onEdit,
   onAdd,
   dataApiUrl,
@@ -155,6 +164,23 @@ export default function ListDataTable({
   }, [listSource, githubRepo, fields]);
 
   const sortedFields = [...fieldsWithOptions].sort((a, b) => a.displayOrder - b.displayOrder);
+
+  const [docExport, setDocExport] = useState<{
+    markdown: string;
+    title: string;
+    relativePath: string;
+  } | null>(null);
+
+  const openCreateDocFromRow = (row: ListDataRow) => {
+    setDocExport({
+      markdown: buildRowMarkdownMarkdown({
+        listTitle,
+        fields: sortedFields,
+        rowData: row.rowData,
+      }),
+      ...buildExportDocumentPaths(listTitle, row.id),
+    });
+  };
 
   // When 4+ field columns, use form-only mode: no inline new row, no inline editing
   const useFormOnlyMode = sortedFields.length >= 4;
@@ -458,36 +484,6 @@ export default function ListDataTable({
     setNewRowErrors({});
   };
 
-  const formatValue = (field: ParsedField, value: any): string => {
-    if (value === null || value === undefined) {
-      return "";
-    }
-
-    switch (field.propertyType) {
-      case "boolean":
-        return value ? "Yes" : "No";
-      case "date":
-        if (typeof value === "string" || value instanceof Date) {
-          const d = value instanceof Date ? value : new Date(value);
-          return isNaN(d.getTime()) ? String(value) : d.toLocaleDateString();
-        }
-        return String(value);
-      case "datetime":
-        if (typeof value === "string" || value instanceof Date) {
-          const d = value instanceof Date ? value : new Date(value);
-          return isNaN(d.getTime()) ? String(value) : d.toLocaleString();
-        }
-        return String(value);
-      case "multiselect":
-        if (Array.isArray(value)) {
-          return value.join(", ");
-        }
-        return String(value);
-      default:
-        return String(value);
-    }
-  };
-
   const isUrlValue = (value: any): boolean => {
     if (value === null || value === undefined) return false;
     const s = String(value).trim();
@@ -495,7 +491,7 @@ export default function ListDataTable({
   };
 
   const renderCellContent = (field: ParsedField, value: any) => {
-    const formatted = formatValue(field, value);
+    const formatted = formatListCellDisplay(field, value);
     if (!formatted) return formatted;
     if (field.propertyType === "url" || isUrlValue(value)) {
       return (
@@ -777,6 +773,7 @@ export default function ListDataTable({
   };
 
   return (
+    <>
     <div className="card">
       <div className="card-header d-flex justify-content-between align-items-center">
         <h5 className="mb-0">List Data</h5>
@@ -850,6 +847,16 @@ export default function ListDataTable({
                                 >
                                   <i className="bx bx-edit"></i>
                                 </Link>
+                                {canCreateDocuments && (
+                                  <button
+                                    type="button"
+                                    className="btn btn-outline-primary btn-sm"
+                                    title="Create document from row"
+                                    onClick={() => openCreateDocFromRow(row)}
+                                  >
+                                    <i className="bx bx-file-blank"></i>
+                                  </button>
+                                )}
                                 {listSource !== 'github' && (
                                   <button
                                     className="btn btn-outline-danger"
@@ -861,13 +868,25 @@ export default function ListDataTable({
                                 )}
                               </>
                             ) : editingCell?.rowId === row.id ? (
-                              <Link
-                                href={`/lists/${listId}/edit/${row.id}`}
-                                className="btn btn-outline-secondary btn-sm"
-                                title="Edit in form"
-                              >
-                                <i className="bx bx-edit"></i>
-                              </Link>
+                              <>
+                                <Link
+                                  href={`/lists/${listId}/edit/${row.id}`}
+                                  className="btn btn-outline-secondary btn-sm"
+                                  title="Edit in form"
+                                >
+                                  <i className="bx bx-edit"></i>
+                                </Link>
+                                {canCreateDocuments && (
+                                  <button
+                                    type="button"
+                                    className="btn btn-outline-primary btn-sm"
+                                    title="Create document from row"
+                                    onClick={() => openCreateDocFromRow(row)}
+                                  >
+                                    <i className="bx bx-file-blank"></i>
+                                  </button>
+                                )}
+                              </>
                             ) : (
                               <>
                                 <button
@@ -884,6 +903,16 @@ export default function ListDataTable({
                                 >
                                   <i className="bx bx-edit"></i>
                                 </Link>
+                                {canCreateDocuments && (
+                                  <button
+                                    type="button"
+                                    className="btn btn-outline-primary btn-sm"
+                                    title="Create document from row"
+                                    onClick={() => openCreateDocFromRow(row)}
+                                  >
+                                    <i className="bx bx-file-blank"></i>
+                                  </button>
+                                )}
                                 {listSource !== 'github' && (
                                   <button
                                     className="btn btn-outline-danger"
@@ -967,5 +996,13 @@ export default function ListDataTable({
         )}
       </div>
     </div>
+    <CreateDocFromRowModal
+      open={docExport !== null}
+      onClose={() => setDocExport(null)}
+      markdown={docExport?.markdown ?? ""}
+      title={docExport?.title ?? ""}
+      relativePath={docExport?.relativePath ?? ""}
+    />
+    </>
   );
 }

@@ -2,7 +2,6 @@ import { redirect, notFound } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
 import { isSubscriber } from '@/lib/subscription/is-subscriber';
 import Link from 'next/link';
-import FolderTree from '@/components/documents/FolderTree';
 import DocumentList from '@/components/documents/DocumentList';
 import { getFolderById } from '@/lib/documents/queries';
 
@@ -25,7 +24,7 @@ export default async function FolderPage({
   }
 
   return (
-    <div className="container-fluid container-fluid-max py-4">
+    <>
       <div className="row mb-4">
         <div className="col-12">
           <nav aria-label="breadcrumb">
@@ -60,15 +59,8 @@ export default async function FolderPage({
         </div>
       </div>
 
-      <div className="row">
-        <div className="col-md-4 col-lg-3 mb-4">
-          <FolderTree />
-        </div>
-        <div className="col-md-8 col-lg-9">
-          <h5 className="h6 text-muted mb-3">Documents</h5>
-          <DocumentList documents={folder.documents} folderId={folder.id} />
-        </div>
-      </div>
-    </div>
+      <h5 className="h6 text-muted mb-3">Documents</h5>
+      <DocumentList documents={folder.documents} folderId={folder.id} />
+    </>
   );
 }

@@ -190,7 +190,12 @@ export default async function ListsPage() {
             </ListConnections>
           }
           datagridView={<ListsDataGrid lists={result.lists} />}
-          treeView={<ListsTreePane lists={resultWithProperties.lists} />}
+          treeView={
+            <ListsTreePane
+              lists={resultWithProperties.lists}
+              canCreateDocuments={isSubscriber(user.customerStatus)}
+            />
+          }
           erdView={<ListsERDDiagram lists={resultWithProperties.lists} />}
         />
       )}

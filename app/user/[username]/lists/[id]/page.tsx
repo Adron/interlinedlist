@@ -56,9 +56,11 @@ export default async function PublicListPage({ params }: PublicListPageProps) {
         <div className="col-12">
           <ListDataTable
             listId={listId}
+            listTitle={list.title}
             fields={properties}
             dataApiUrl={`/api/users/${encodeURIComponent(username)}/lists/${listId}/data`}
             readOnly
+            canCreateDocuments={false}
           />
         </div>
       </div>

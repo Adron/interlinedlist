@@ -28,22 +28,20 @@ export default async function NewDocumentInFolderPage({
   }
 
   return (
-    <div className="container-fluid container-fluid-max py-4">
-      <div className="row justify-content-center">
-        <div className="col-md-6">
-          <nav aria-label="breadcrumb" className="mb-3">
-            <ol className="breadcrumb">
-              <li className="breadcrumb-item">
-                <Link href="/documents">Documents</Link>
-              </li>
-              <li className="breadcrumb-item">
-                <Link href={`/documents/folders/${resolvedParams.id}`}>{folder.name}</Link>
-              </li>
-              <li className="breadcrumb-item active">New Document</li>
-            </ol>
-          </nav>
-          <CreateDocumentInFolderForm folderId={resolvedParams.id} />
-        </div>
+    <div className="row justify-content-center">
+      <div className="col-md-8 col-lg-6">
+        <nav aria-label="breadcrumb" className="mb-3">
+          <ol className="breadcrumb">
+            <li className="breadcrumb-item">
+              <Link href="/documents">Documents</Link>
+            </li>
+            <li className="breadcrumb-item">
+              <Link href={`/documents/folders/${resolvedParams.id}`}>{folder.name}</Link>
+            </li>
+            <li className="breadcrumb-item active">New Document</li>
+          </ol>
+        </nav>
+        <CreateDocumentInFolderForm folderId={resolvedParams.id} />
       </div>
     </div>
   );
