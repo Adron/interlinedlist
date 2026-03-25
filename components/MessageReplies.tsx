@@ -133,7 +133,7 @@ export default function MessageReplies({
                 <p className="mb-0 text-break" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                   {linkifyText(reply.content)}
                 </p>
-                <div className="mt-1">
+                <div className="mt-1 d-flex flex-wrap align-items-center gap-2">
                   <MessageDigButton
                     messageId={reply.id}
                     initialCount={reply.digCount ?? 0}
@@ -141,6 +141,11 @@ export default function MessageReplies({
                     isSignedIn={!!currentUserId}
                     compact
                   />
+                  {(reply.pushCount ?? 0) > 0 && (
+                    <span className="text-muted" style={{ fontSize: '0.75rem' }}>
+                      {reply.pushCount} {reply.pushCount === 1 ? 'push' : 'pushes'}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

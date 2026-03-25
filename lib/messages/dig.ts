@@ -124,3 +124,24 @@ export async function attachDugByMe<T extends { id: string }>(
   const dugSet = new Set(digs.map((d) => d.messageId));
   return messages.map((m) => ({ ...m, dugByMe: dugSet.has(m.id) }));
 }
+
+/**
+ * attachDugByMe for top-level messages plus nested pushedMessage (for embed dig state).
+ */
+export async function attachDugByMeIncludingPushed<T extends { id: string; pushedMessage?: { id: string } | null }>(
+  messages: T[],
+  viewerId: string | null | undefined
+): Promise<Array<T & { dugByMe: boolean }>> {
+  const withRoot = await attachDugByMe(messages, viewerId);
+  const out: Array<T & { dugByMe: boolean }> = [];
+  for (const m of withRoot) {
+    const pm = m.pushedMessage;
+    if (pm?.id) {
+      const [nested] = await attachDugByMe([pm], viewerId);
+      out.push({ ...m, pushedMessage: nested } as T & { dugByMe: boolean });
+    } else {
+      out.push(m as T & { dugByMe: boolean });
+    }
+  }
+  return out;
+}

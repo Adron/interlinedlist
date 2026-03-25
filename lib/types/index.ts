@@ -118,6 +118,11 @@ export interface Message {
   digCount?: number;
   /** Present when the current viewer has dug this message */
   dugByMe?: boolean;
+  /** Denormalized count of pushes (plain + commentary) targeting this message */
+  pushCount?: number;
+  pushedMessageId?: string | null;
+  /** Embedded source for push / quote rows */
+  pushedMessage?: Message | null;
 }
 
 /**

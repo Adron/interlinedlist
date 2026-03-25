@@ -98,16 +98,21 @@ model Message {
   createdAt                DateTime  @default(now())
   updatedAt                DateTime  @updatedAt
   digCount                 Int       @default(0)
+  pushCount                Int       @default(0)
+  pushedMessageId          String?
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   lists           List[]
   parent          Message?  @relation("MessageReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies         Message[] @relation("MessageReplies")
+  pushedMessage   Message?  @relation("MessagePushedSource", fields: [pushedMessageId], references: [id], onDelete: Restrict)
+  pushes          Message[] @relation("MessagePushedSource")
   digs            MessageDig[]
 
   @@index([createdAt])
   @@index([publiclyVisible])
   @@index([parentId])
   @@index([scheduledAt])
+  @@index([pushedMessageId])
   @@map("messages")
 }
 

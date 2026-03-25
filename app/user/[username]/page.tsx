@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/prisma';
-import { buildWallMessageWhereClause, getMessageUserSelect } from '@/lib/messages/queries';
-import { attachDugByMe } from '@/lib/messages/dig';
-import { LinkMetadata, CrossPostUrl } from '@/lib/types';
+import { buildWallMessageWhereClause, getMessageUserSelect, getPushedMessageInclude } from '@/lib/messages/queries';
+import { attachDugByMeIncludingPushed } from '@/lib/messages/dig';
+import { LinkMetadata, CrossPostUrl, Message } from '@/lib/types';
 import ProfileHeader from '@/components/ProfileHeader';
 import MessageList from '@/components/MessageList';
 import PublicListsTreeView from '@/components/PublicListsTreeView';
@@ -96,7 +96,7 @@ export default async function UserProfilePage({
     }
   }
 
-  const where = buildWallMessageWhereClause(profileUser.id, currentUser?.id ?? null);
+  const where = { ...buildWallMessageWhereClause(profileUser.id, currentUser?.id ?? null), parentId: null };
   const messagesPerPage = currentUser?.messagesPerPage ?? DEFAULT_MESSAGES_PER_PAGE;
 
   const [messages, total] = await Promise.all([
@@ -106,6 +106,7 @@ export default async function UserProfilePage({
         user: {
           select: getMessageUserSelect(),
         },
+        ...getPushedMessageInclude(),
       },
       orderBy: { createdAt: 'desc' },
       take: messagesPerPage,
@@ -113,16 +114,31 @@ export default async function UserProfilePage({
     prisma.message.count({ where }),
   ]);
 
-  const serializedMessages = messages.map((message) => ({
-    ...message,
-    createdAt: message.createdAt.toISOString(),
-    updatedAt: message.updatedAt.toISOString(),
-    scheduledAt: message.scheduledAt?.toISOString() ?? null,
-    linkMetadata: message.linkMetadata as LinkMetadata | null,
-    crossPostUrls: (Array.isArray(message.crossPostUrls) ? message.crossPostUrls : null) as CrossPostUrl[] | null,
-  }));
+  const serializedMessages = messages.map((message) => {
+    const pushed = message.pushedMessage;
+    return {
+      ...message,
+      createdAt: message.createdAt.toISOString(),
+      updatedAt: message.updatedAt.toISOString(),
+      scheduledAt: message.scheduledAt?.toISOString() ?? null,
+      linkMetadata: message.linkMetadata as LinkMetadata | null,
+      crossPostUrls: (Array.isArray(message.crossPostUrls) ? message.crossPostUrls : null) as CrossPostUrl[] | null,
+      ...(pushed && {
+        pushedMessage: {
+          ...pushed,
+          createdAt: pushed.createdAt.toISOString(),
+          updatedAt: pushed.updatedAt.toISOString(),
+          scheduledAt: pushed.scheduledAt?.toISOString() ?? null,
+          linkMetadata: pushed.linkMetadata as LinkMetadata | null,
+          imageUrls: Array.isArray(pushed.imageUrls) ? pushed.imageUrls : null,
+          videoUrls: Array.isArray(pushed.videoUrls) ? pushed.videoUrls : null,
+          crossPostUrls: (Array.isArray(pushed.crossPostUrls) ? pushed.crossPostUrls : null) as CrossPostUrl[] | null,
+        },
+      }),
+    };
+  });
 
-  const messagesWithDugs = await attachDugByMe(serializedMessages, currentUser?.id);
+  const messagesWithDugs = await attachDugByMeIncludingPushed(serializedMessages, currentUser?.id);
 
   // Fetch public lists to get the first root-level list for preview
   let firstListPreview = null;
@@ -201,7 +217,7 @@ export default async function UserProfilePage({
             followStatus={followStatus}
           />
           <MessageList
-            initialMessages={messagesWithDugs}
+            initialMessages={messagesWithDugs as unknown as Message[]}
             initialTotal={total}
             currentUserId={currentUser?.id}
             showPreviews={currentUser?.showPreviews ?? true}

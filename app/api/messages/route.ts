@@ -4,12 +4,13 @@ import { getCurrentUserOrSyncToken } from '@/lib/auth/sync-token';
 import { isSubscriber } from '@/lib/subscription/is-subscriber';
 import { detectLinks } from '@/lib/messages/link-detector';
 import { APP_URL } from '@/lib/config/app';
-import { buildMessageWhereClause } from '@/lib/messages/queries';
-import { attachDugByMe } from '@/lib/messages/dig';
+import { buildMessageWhereClause, getPushedMessageInclude } from '@/lib/messages/queries';
+import { attachDugByMeIncludingPushed } from '@/lib/messages/dig';
 import { postToMastodon } from '@/lib/mastodon/post-status';
 import { postToBluesky } from '@/lib/bluesky/post-status';
 import { postToLinkedIn } from '@/lib/linkedin/post-status';
 import { trackAction } from '@/lib/analytics/track';
+import { resolveCanonicalPushTargetId } from '@/lib/messages/push';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,13 +34,82 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { content, publiclyVisible, imageUrls, videoUrls, mastodonProviderIds, crossPostToBluesky, crossPostToLinkedIn, parentId, scheduledAt: scheduledAtRaw } = body;
+    const {
+      content,
+      publiclyVisible,
+      imageUrls,
+      videoUrls,
+      mastodonProviderIds,
+      crossPostToBluesky,
+      crossPostToLinkedIn,
+      parentId,
+      scheduledAt: scheduledAtRaw,
+      pushedMessageId: pushedMessageIdRaw,
+    } = body;
 
-    // Subscriber-only: cross-post, images, video, schedule
-    const hasCrossPost = (Array.isArray(mastodonProviderIds) && mastodonProviderIds.length > 0) || crossPostToBluesky === true || crossPostToLinkedIn === true;
-    const hasImages = imageUrls !== undefined && imageUrls !== null && Array.isArray(imageUrls) && imageUrls.length > 0;
-    const hasVideo = videoUrls !== undefined && videoUrls !== null && Array.isArray(videoUrls) && videoUrls.length > 0;
-    const hasSchedule = scheduledAtRaw !== undefined && scheduledAtRaw !== null && typeof scheduledAtRaw === 'string';
+    const userWithSettings = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { maxMessageLength: true, defaultPubliclyVisible: true },
+    });
+    const maxLength = userWithSettings?.maxMessageLength || 666;
+    const defaultPubliclyVisible = userWithSettings?.defaultPubliclyVisible ?? false;
+
+    const hasCrossPost =
+      (Array.isArray(mastodonProviderIds) && mastodonProviderIds.length > 0) ||
+      crossPostToBluesky === true ||
+      crossPostToLinkedIn === true;
+    const hasImages =
+      imageUrls !== undefined && imageUrls !== null && Array.isArray(imageUrls) && imageUrls.length > 0;
+    const hasVideo =
+      videoUrls !== undefined && videoUrls !== null && Array.isArray(videoUrls) && videoUrls.length > 0;
+    const hasSchedule =
+      scheduledAtRaw !== undefined && scheduledAtRaw !== null && typeof scheduledAtRaw === 'string';
+
+    const hasPush =
+      typeof pushedMessageIdRaw === 'string' && pushedMessageIdRaw.trim().length > 0;
+
+    if (parentId && typeof parentId === 'string' && parentId.trim() && hasPush) {
+      return NextResponse.json(
+        { error: 'Cannot reply and push in the same message' },
+        { status: 400 }
+      );
+    }
+
+    let canonicalPushTargetId: string | null = null;
+
+    if (hasPush) {
+      const resolved = await resolveCanonicalPushTargetId(pushedMessageIdRaw.trim());
+      if ('error' in resolved) {
+        if (resolved.error === 'not_found') {
+          return NextResponse.json({ error: 'Message to push was not found' }, { status: 404 });
+        }
+        if (resolved.error === 'not_public') {
+          return NextResponse.json(
+            { error: 'You can only push publicly visible messages' },
+            { status: 403 }
+          );
+        }
+        return NextResponse.json({ error: 'Invalid push target' }, { status: 400 });
+      }
+      canonicalPushTargetId = resolved.canonicalId;
+
+      if (hasSchedule) {
+        return NextResponse.json({ error: 'Push messages cannot be scheduled' }, { status: 400 });
+      }
+
+      const pushContentTrim = typeof content === 'string' ? content.trim() : '';
+      const isPlainPush = pushContentTrim.length === 0;
+      if (isPlainPush && (hasImages || hasVideo || hasCrossPost)) {
+        return NextResponse.json(
+          {
+            error:
+              'Plain Push Message does not support images, video, or cross-posting. Use Push Message & Add Commentary for media or cross-post (subscription required where applicable).',
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     if ((hasCrossPost || hasImages || hasVideo || hasSchedule) && !isSubscriber(user.customerStatus)) {
       return NextResponse.json(
         { error: 'Subscribe to unlock images, video, cross-posting, and scheduled posts.' },
@@ -47,32 +117,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate content
-    if (!content || typeof content !== 'string' || content.trim().length === 0) {
-      return NextResponse.json(
-        { error: 'Message content is required' },
-        { status: 400 }
-      );
+    let finalContent: string;
+    if (hasPush) {
+      const t = typeof content === 'string' ? content.trim() : '';
+      if (t.length === 0) {
+        finalContent = '';
+      } else {
+        finalContent = t;
+        if (finalContent.length > maxLength) {
+          return NextResponse.json(
+            { error: `Message exceeds maximum length of ${maxLength} characters` },
+            { status: 400 }
+          );
+        }
+      }
+    } else {
+      if (!content || typeof content !== 'string' || content.trim().length === 0) {
+        return NextResponse.json({ error: 'Message content is required' }, { status: 400 });
+      }
+      finalContent = content.trim();
+      if (finalContent.length > maxLength) {
+        return NextResponse.json(
+          { error: `Message exceeds maximum length of ${maxLength} characters` },
+          { status: 400 }
+        );
+      }
     }
 
-    // Get user's settings
-    const userWithSettings = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: { maxMessageLength: true, defaultPubliclyVisible: true },
-    });
-
-    const maxLength = userWithSettings?.maxMessageLength || 666;
-    const defaultPubliclyVisible = userWithSettings?.defaultPubliclyVisible ?? false;
-
-    if (content.length > maxLength) {
-      return NextResponse.json(
-        { error: `Message exceeds maximum length of ${maxLength} characters` },
-        { status: 400 }
-      );
-    }
-
-    // Use provided publiclyVisible, or fall back to user's default
-    const finalPubliclyVisible = publiclyVisible !== undefined ? Boolean(publiclyVisible) : defaultPubliclyVisible;
+    const finalPubliclyVisible =
+      publiclyVisible !== undefined ? Boolean(publiclyVisible) : defaultPubliclyVisible;
 
     // Validate imageUrls if provided (1-8 URLs)
     let finalImageUrls: string[] | undefined;
@@ -106,9 +179,14 @@ export async function POST(request: NextRequest) {
       finalVideoUrls = urls.length > 0 ? urls : undefined;
     }
 
-    // Parse and validate scheduledAt if provided
+    // Parse and validate scheduledAt if provided (pushes cannot be scheduled)
     let scheduledAt: Date | undefined;
-    if (scheduledAtRaw !== undefined && scheduledAtRaw !== null && typeof scheduledAtRaw === 'string') {
+    if (
+      !hasPush &&
+      scheduledAtRaw !== undefined &&
+      scheduledAtRaw !== null &&
+      typeof scheduledAtRaw === 'string'
+    ) {
       const parsed = new Date(scheduledAtRaw);
       if (isNaN(parsed.getTime())) {
         return NextResponse.json({ error: 'Invalid scheduledAt date' }, { status: 400 });
@@ -121,7 +199,7 @@ export async function POST(request: NextRequest) {
 
     // Reply: validate parent and visibility
     let parentMessage: { id: string; userId: string; publiclyVisible: boolean; crossPostUrls: unknown } | null = null;
-    if (parentId && typeof parentId === 'string' && parentId.trim()) {
+    if (!hasPush && parentId && typeof parentId === 'string' && parentId.trim()) {
       parentMessage = await prisma.message.findUnique({
         where: { id: parentId.trim() },
         select: { id: true, userId: true, publiclyVisible: true, crossPostUrls: true },
@@ -135,41 +213,60 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create message (or reply)
-    const isScheduled = !!scheduledAt && !parentMessage;
-    const message = await prisma.message.create({
-      data: {
-        content: content.trim(),
-        publiclyVisible: finalPubliclyVisible,
-        userId: user.id,
-        ...(parentMessage && { parentId: parentMessage.id }),
-        ...(finalImageUrls !== undefined && { imageUrls: finalImageUrls }),
-        ...(finalVideoUrls !== undefined && { videoUrls: finalVideoUrls }),
-        ...(scheduledAt && { scheduledAt }),
-        ...(isScheduled && {
-          scheduledCrossPostConfig: {
-            mastodonProviderIds: Array.isArray(mastodonProviderIds) ? mastodonProviderIds : [],
-            crossPostToBluesky: crossPostToBluesky === true,
-            crossPostToLinkedIn: crossPostToLinkedIn === true,
-          } as object,
-        }),
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            displayName: true,
-            avatar: true,
+    const isScheduled = !!scheduledAt && !parentMessage && !canonicalPushTargetId;
+
+    let message;
+    try {
+      message = await prisma.$transaction(async (tx) => {
+        const msg = await tx.message.create({
+          data: {
+            content: finalContent,
+            publiclyVisible: finalPubliclyVisible,
+            userId: user.id,
+            ...(parentMessage && { parentId: parentMessage.id }),
+            ...(canonicalPushTargetId && { pushedMessageId: canonicalPushTargetId }),
+            ...(finalImageUrls !== undefined && { imageUrls: finalImageUrls }),
+            ...(finalVideoUrls !== undefined && { videoUrls: finalVideoUrls }),
+            ...(scheduledAt && { scheduledAt }),
+            ...(isScheduled && {
+              scheduledCrossPostConfig: {
+                mastodonProviderIds: Array.isArray(mastodonProviderIds) ? mastodonProviderIds : [],
+                crossPostToBluesky: crossPostToBluesky === true,
+                crossPostToLinkedIn: crossPostToLinkedIn === true,
+              } as object,
+            }),
           },
-        },
-      },
-    });
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+                avatar: true,
+              },
+            },
+          },
+        });
+        if (canonicalPushTargetId) {
+          await tx.message.update({
+            where: { id: canonicalPushTargetId },
+            data: { pushCount: { increment: 1 } },
+          });
+        }
+        return msg;
+      });
+    } catch (error: unknown) {
+      const code = (error as { code?: string })?.code;
+      if (code === 'P2002') {
+        return NextResponse.json({ error: 'You already pushed this message' }, { status: 409 });
+      }
+      throw error;
+    }
 
     trackAction('message_post', { userId: user.id }).catch(() => {});
 
     // Detect links and trigger async metadata fetch (don't await)
-    const detectedLinks = detectLinks(content.trim());
+    const detectedLinks = finalContent ? detectLinks(finalContent) : [];
     if (detectedLinks.length > 0) {
       // Get base URL from request or use APP_URL
       const baseUrl = request.headers.get('host')
@@ -191,7 +288,11 @@ export async function POST(request: NextRequest) {
     // Cross-post to selected Mastodon accounts (skip for replies, skip for scheduled - cron will handle)
     const crossPostResults: Array<{ providerId: string; instanceName: string; success: boolean; url?: string; error?: string }> = [];
     const crossPostUrls: Array<{ platform: string; url: string; instanceName: string; statusId?: string; statusIds?: string[]; instanceUrl?: string; uri?: string; cid?: string; uris?: string[] }> = [];
-    const providerIds = !parentMessage && !isScheduled && Array.isArray(mastodonProviderIds)
+    const providerIds =
+      !parentMessage &&
+      !canonicalPushTargetId &&
+      !isScheduled &&
+      Array.isArray(mastodonProviderIds)
       ? mastodonProviderIds.filter((id: unknown) => typeof id === 'string')
       : [];
 
@@ -214,7 +315,7 @@ export async function POST(request: NextRequest) {
         const result = await postToMastodon(
           identity as { id: string; provider: string; providerUsername: string | null; providerData: { access_token: string; instance_url: string } | null },
           {
-            content: content.trim(),
+            content: finalContent,
             publiclyVisible: finalPubliclyVisible as boolean,
             imageUrls: finalImageUrls,
             videoUrls: finalVideoUrls,
@@ -234,8 +335,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Cross-post to Bluesky if enabled (skip for replies, skip for scheduled)
-    if (!parentMessage && !isScheduled && crossPostToBluesky === true) {
+    // Cross-post to Bluesky if enabled (skip for replies, pushes, scheduled)
+    if (!parentMessage && !canonicalPushTargetId && !isScheduled && crossPostToBluesky === true) {
       const blueskyIdentity = await prisma.linkedIdentity.findFirst({
         where: {
           userId: user.id,
@@ -251,7 +352,7 @@ export async function POST(request: NextRequest) {
 
       if (blueskyIdentity) {
         const result = await postToBluesky(blueskyIdentity as Parameters<typeof postToBluesky>[0], {
-          content: content.trim(),
+          content: finalContent,
           publiclyVisible: finalPubliclyVisible as boolean,
           imageUrls: finalImageUrls,
           videoUrls: finalVideoUrls,
@@ -277,8 +378,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Cross-post to LinkedIn if enabled (skip for replies, skip for scheduled)
-    if (!parentMessage && !isScheduled && crossPostToLinkedIn === true) {
+    // Cross-post to LinkedIn if enabled (skip for replies, pushes, scheduled)
+    if (!parentMessage && !canonicalPushTargetId && !isScheduled && crossPostToLinkedIn === true) {
       const linkedInIdentity = await prisma.linkedIdentity.findFirst({
         where: {
           userId: user.id,
@@ -295,7 +396,7 @@ export async function POST(request: NextRequest) {
 
       if (linkedInIdentity) {
         const result = await postToLinkedIn(linkedInIdentity as Parameters<typeof postToLinkedIn>[0], {
-          content: content.trim(),
+          content: finalContent,
           publiclyVisible: finalPubliclyVisible as boolean,
           imageUrls: finalImageUrls,
           videoUrls: finalVideoUrls,
@@ -362,7 +463,7 @@ export async function POST(request: NextRequest) {
               const result = await replyToMastodon(
                 replyingMastodon as Parameters<typeof replyToMastodon>[0],
                 cp as Parameters<typeof replyToMastodon>[1],
-                content.trim(),
+                finalContent,
                 finalPubliclyVisible
               );
               crossPostResults.push({
@@ -389,7 +490,7 @@ export async function POST(request: NextRequest) {
               const result = await replyToBluesky(
                 replyingBluesky as Parameters<typeof replyToBluesky>[0],
                 cp as Parameters<typeof replyToBluesky>[1],
-                content.trim(),
+                finalContent,
                 finalPubliclyVisible
               );
               crossPostResults.push({
@@ -472,6 +573,7 @@ export async function GET(request: NextRequest) {
             avatar: true,
           },
         },
+        ...getPushedMessageInclude(),
       },
       orderBy: {
         createdAt: 'desc',
@@ -483,7 +585,7 @@ export async function GET(request: NextRequest) {
     // Get total count for pagination
     const total = await prisma.message.count({ where });
 
-    const messagesWithDugs = await attachDugByMe(messages, user?.id);
+    const messagesWithDugs = await attachDugByMeIncludingPushed(messages, user?.id);
 
     return NextResponse.json(
       {

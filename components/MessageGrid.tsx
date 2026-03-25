@@ -62,12 +62,29 @@ export default function MessageGrid({
       if (response.ok) {
         const data = await response.json();
         // Ensure dates are serialized to ISO strings
-        const serializedMessages = (data.messages || []).map((message: any) => ({
-          ...message,
-          createdAt: typeof message.createdAt === 'string' 
-            ? message.createdAt 
-            : new Date(message.createdAt).toISOString(),
-        }));
+        const serializedMessages = (data.messages || []).map((message: any) => {
+          const pushed = message.pushedMessage;
+          return {
+            ...message,
+            createdAt:
+              typeof message.createdAt === 'string'
+                ? message.createdAt
+                : new Date(message.createdAt).toISOString(),
+            ...(pushed && {
+              pushedMessage: {
+                ...pushed,
+                createdAt:
+                  typeof pushed.createdAt === 'string'
+                    ? pushed.createdAt
+                    : new Date(pushed.createdAt).toISOString(),
+                updatedAt:
+                  typeof pushed.updatedAt === 'string'
+                    ? pushed.updatedAt
+                    : new Date(pushed.updatedAt).toISOString(),
+              },
+            }),
+          };
+        });
         setMessages(serializedMessages);
         setTotalMessages(data.pagination?.total || serializedMessages.length);
         setHasMore(data.pagination?.hasMore || false);

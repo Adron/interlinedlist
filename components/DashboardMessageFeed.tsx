@@ -1,7 +1,8 @@
 import { getCurrentUser } from '@/lib/auth/session';
 import { isSubscriber } from '@/lib/subscription/is-subscriber';
 import { prisma } from '@/lib/prisma';
-import { attachDugByMe } from '@/lib/messages/dig';
+import { attachDugByMeIncludingPushed } from '@/lib/messages/dig';
+import { getPushedMessageInclude } from '@/lib/messages/queries';
 import { LinkMetadata, CrossPostUrl, Message } from '@/lib/types';
 import MessageInput from './MessageInput';
 import MessageTable from './MessageTable';
@@ -42,6 +43,7 @@ export default async function DashboardMessageFeed() {
             avatar: true,
           },
         },
+        ...getPushedMessageInclude(),
       },
       orderBy: {
         createdAt: 'desc',
@@ -53,19 +55,34 @@ export default async function DashboardMessageFeed() {
     const total = await prisma.message.count({ where });
 
     // Serialize dates to strings for client components
-    const serializedMessages: Message[] = messages.map((message) => ({
-      ...message,
-      createdAt: message.createdAt.toISOString(),
-      updatedAt: message.updatedAt.toISOString(),
-      scheduledAt: message.scheduledAt?.toISOString() ?? null,
-      scheduledCrossPostConfig: message.scheduledCrossPostConfig as Message['scheduledCrossPostConfig'],
-      linkMetadata: message.linkMetadata as LinkMetadata | null,
-      imageUrls: (Array.isArray(message.imageUrls) ? message.imageUrls : null) as string[] | null,
-      videoUrls: (Array.isArray(message.videoUrls) ? message.videoUrls : null) as string[] | null,
-      crossPostUrls: (Array.isArray(message.crossPostUrls) ? message.crossPostUrls : null) as CrossPostUrl[] | null,
-    }));
+    const serializedMessages = messages.map((message) => {
+      const pushed = message.pushedMessage;
+      return {
+        ...message,
+        createdAt: message.createdAt.toISOString(),
+        updatedAt: message.updatedAt.toISOString(),
+        scheduledAt: message.scheduledAt?.toISOString() ?? null,
+        scheduledCrossPostConfig: message.scheduledCrossPostConfig as Message['scheduledCrossPostConfig'],
+        linkMetadata: message.linkMetadata as LinkMetadata | null,
+        imageUrls: (Array.isArray(message.imageUrls) ? message.imageUrls : null) as string[] | null,
+        videoUrls: (Array.isArray(message.videoUrls) ? message.videoUrls : null) as string[] | null,
+        crossPostUrls: (Array.isArray(message.crossPostUrls) ? message.crossPostUrls : null) as CrossPostUrl[] | null,
+        ...(pushed && {
+          pushedMessage: {
+            ...pushed,
+            createdAt: pushed.createdAt.toISOString(),
+            updatedAt: pushed.updatedAt.toISOString(),
+            scheduledAt: pushed.scheduledAt?.toISOString() ?? null,
+            linkMetadata: pushed.linkMetadata as LinkMetadata | null,
+            imageUrls: (Array.isArray(pushed.imageUrls) ? pushed.imageUrls : null) as string[] | null,
+            videoUrls: (Array.isArray(pushed.videoUrls) ? pushed.videoUrls : null) as string[] | null,
+            crossPostUrls: (Array.isArray(pushed.crossPostUrls) ? pushed.crossPostUrls : null) as CrossPostUrl[] | null,
+          } as Message,
+        }),
+      };
+    });
 
-    const messagesWithDugs = await attachDugByMe(serializedMessages, user?.id);
+    const messagesWithDugs = await attachDugByMeIncludingPushed(serializedMessages, user?.id);
 
     return (
       <>
@@ -80,7 +97,7 @@ export default async function DashboardMessageFeed() {
           </div>
         )}
         <MessageTable
-          initialMessages={messagesWithDugs}
+          initialMessages={messagesWithDugs as unknown as Message[]}
           initialTotal={total}
           currentUserId={user?.id}
           itemsPerPage={messagesPerPage}

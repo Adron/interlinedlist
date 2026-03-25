@@ -26,6 +26,112 @@ interface Message extends Omit<MessageType, 'user'> {
   user: MessageUser;
 }
 
+function PushedMessageEmbed({
+  source,
+  currentUserId,
+  showPreviews,
+}: {
+  source: NonNullable<MessageType['pushedMessage']>;
+  currentUserId?: string;
+  showPreviews: boolean;
+}) {
+  const u = source.user;
+  return (
+    <div
+      className="border rounded p-2 mt-2"
+      style={{ backgroundColor: 'var(--bs-tertiary-bg)', fontSize: '0.85rem' }}
+    >
+      <div className="d-flex align-items-start gap-2">
+        {u.avatar ? (
+          <Avatar src={u.avatar} alt={u.displayName || u.username} size={28} />
+        ) : (
+          <div
+            className="rounded-circle d-flex align-items-center justify-content-center"
+            style={{
+              width: 28,
+              height: 28,
+              backgroundColor: 'var(--bs-secondary)',
+              color: 'white',
+              fontSize: '0.7rem',
+              fontWeight: 'bold',
+              flexShrink: 0,
+            }}
+          >
+            {(u.displayName || u.username)[0].toUpperCase()}
+          </div>
+        )}
+        <div className="flex-grow-1" style={{ minWidth: 0 }}>
+          <div className="mb-1">
+            <Link href={`/user/${encodeURIComponent(u.username)}`} className="text-decoration-none text-body fw-bold">
+              {u.displayName || u.username}
+            </Link>
+            <span className="text-muted ms-1" style={{ fontSize: '0.75rem' }}>
+              @{u.username}
+            </span>
+            <span className="text-muted ms-2" style={{ fontSize: '0.7rem' }}>
+              · {formatDateTime(source.createdAt)}
+            </span>
+          </div>
+          <p className="mb-0 text-break" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+            {linkifyText(source.content)}
+          </p>
+          {source.imageUrls && Array.isArray(source.imageUrls) && source.imageUrls.length > 0 && (
+            <div className="d-flex flex-wrap gap-1 mt-2">
+              {source.imageUrls.map((url, i) => (
+                <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="d-block">
+                  <img
+                    src={url}
+                    alt=""
+                    style={{ maxWidth: 100, maxHeight: 100, objectFit: 'cover', borderRadius: 6 }}
+                  />
+                </a>
+              ))}
+            </div>
+          )}
+          {source.videoUrls && Array.isArray(source.videoUrls) && source.videoUrls.length > 0 && (
+            <div className="mt-2">
+              <video
+                src={source.videoUrls[0]}
+                controls
+                style={{ maxWidth: '100%', maxHeight: 240, borderRadius: 6 }}
+                preload="metadata"
+              />
+            </div>
+          )}
+          {showPreviews &&
+            (() => {
+              const detectedLinks = detectLinks(source.content);
+              if (detectedLinks.length === 0) return null;
+              const metadataMap = new Map<string, LinkMetadataItem>();
+              if (source.linkMetadata?.links) {
+                source.linkMetadata.links.forEach((link) => metadataMap.set(link.url, link));
+              }
+              const linkItems: LinkMetadataItem[] = detectedLinks.map((detected) => {
+                const existing = metadataMap.get(detected.url);
+                return existing ?? { url: detected.url, platform: detected.platform, fetchStatus: 'pending' as const };
+              });
+              return (
+                <div className="mt-2">
+                  {linkItems.map((link, index) => (
+                    <LinkMetadataCard key={`${link.url}-${index}`} link={link} messageId={source.id} />
+                  ))}
+                </div>
+              );
+            })()}
+          <div className="mt-2">
+            <MessageDigButton
+              messageId={source.id}
+              initialCount={source.digCount ?? 0}
+              initialDugByMe={source.dugByMe ?? false}
+              isSignedIn={!!currentUserId}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface MessageCardProps {
   message: Message;
   currentUserId?: string;
@@ -49,7 +155,40 @@ export default function MessageCard({
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [pushingPlain, setPushingPlain] = useState(false);
+  const [pushError, setPushError] = useState('');
   const isOwner = currentUserId === message.user.id;
+  const canPushHere = !!currentUserId && message.publiclyVisible;
+  const isPlainPushRow = !!message.pushedMessage && !message.content?.trim();
+
+  const handlePlainPush = async () => {
+    setPushError('');
+    setPushingPlain(true);
+    try {
+      const res = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pushedMessageId: message.id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setPushError(typeof data.error === 'string' ? data.error : 'Could not push message');
+        return;
+      }
+      window.dispatchEvent(new Event('messageAdded'));
+    } catch {
+      setPushError('Could not push message');
+    } finally {
+      setPushingPlain(false);
+    }
+  };
+
+  const handleQuotePush = () => {
+    setPushError('');
+    window.dispatchEvent(
+      new CustomEvent<{ messageId: string }>('interlined:quotePush', { detail: { messageId: message.id } })
+    );
+  };
 
   const handleDelete = async () => {
     if (!onDelete) return;
@@ -159,7 +298,7 @@ export default function MessageCard({
               </div>
               
               <div className="d-flex align-items-center gap-2">
-                {currentUserId && (
+                {currentUserId && message.content.trim() && (
                   <button
                     className="btn btn-sm btn-link text-primary p-0"
                     onClick={() => {
@@ -178,6 +317,33 @@ export default function MessageCard({
                   >
                     <i className="bx bx-list-plus"></i>
                   </button>
+                )}
+
+                {canPushHere && (
+                  <div className="d-flex align-items-center gap-1 flex-wrap justify-content-end">
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-link text-secondary p-0"
+                      onClick={handlePlainPush}
+                      disabled={pushingPlain}
+                      style={{ fontSize: '0.7rem' }}
+                      title="Push Message"
+                    >
+                      {pushingPlain ? '…' : 'Push Message'}
+                    </button>
+                    <span className="text-muted" style={{ fontSize: '0.65rem' }}>
+                      ·
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-link text-secondary p-0"
+                      onClick={handleQuotePush}
+                      style={{ fontSize: '0.7rem' }}
+                      title="Push Message & Add Commentary"
+                    >
+                      Push & Commentary
+                    </button>
+                  </div>
                 )}
                 
                 {isOwner && onDelete && (
@@ -215,10 +381,21 @@ export default function MessageCard({
                 )}
               </div>
             </div>
-            
+
+            {message.pushedMessage && (
+              <div className="text-muted small mb-1 d-flex align-items-center gap-1">
+                <i className="bx bx-share-alt" aria-hidden />
+                <span>
+                  {isPlainPushRow ? 'Push Message' : 'Push Message & Commentary'}
+                </span>
+              </div>
+            )}
+
+            {message.content.trim().length > 0 && (
             <p className="mb-0 text-break" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.9rem' }}>
               {linkifyText(message.content)}
             </p>
+            )}
 
             {/* Message images */}
             {message.imageUrls && Array.isArray(message.imageUrls) && message.imageUrls.length > 0 && (
@@ -267,7 +444,7 @@ export default function MessageCard({
             )}
 
             {/* Render link previews for all detected links (if showPreviews is enabled) */}
-            {showPreviews && (() => {
+            {showPreviews && message.content.trim().length > 0 && (() => {
               // Detect all links in the message
               const detectedLinks = detectLinks(message.content);
               
@@ -306,13 +483,32 @@ export default function MessageCard({
               );
             })()}
 
-            <div className="mt-2">
+            {message.pushedMessage && (
+              <PushedMessageEmbed
+                source={message.pushedMessage}
+                currentUserId={currentUserId}
+                showPreviews={showPreviews}
+              />
+            )}
+
+            {pushError && (
+              <div className="text-danger small mt-1" role="alert">
+                {pushError}
+              </div>
+            )}
+
+            <div className="mt-2 d-flex flex-wrap align-items-center gap-2">
               <MessageDigButton
                 messageId={message.id}
                 initialCount={message.digCount ?? 0}
                 initialDugByMe={message.dugByMe ?? false}
                 isSignedIn={!!currentUserId}
               />
+              {(message.pushCount ?? 0) > 0 && (
+                <span className="text-muted small">
+                  {message.pushCount} {message.pushCount === 1 ? 'push' : 'pushes'}
+                </span>
+              )}
             </div>
 
             {/* Replies - only for top-level messages */}

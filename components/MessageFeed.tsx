@@ -1,8 +1,9 @@
 import { getCurrentUser } from '@/lib/auth/session';
 import { isSubscriber } from '@/lib/subscription/is-subscriber';
 import { prisma } from '@/lib/prisma';
-import { attachDugByMe } from '@/lib/messages/dig';
-import { LinkMetadata, CrossPostUrl } from '@/lib/types';
+import { attachDugByMeIncludingPushed } from '@/lib/messages/dig';
+import { getPushedMessageInclude } from '@/lib/messages/queries';
+import { LinkMetadata, CrossPostUrl, Message } from '@/lib/types';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 
@@ -49,6 +50,7 @@ export default async function MessageFeed() {
             avatar: true,
           },
         },
+        ...getPushedMessageInclude(),
       },
       orderBy: {
         createdAt: 'desc',
@@ -60,16 +62,31 @@ export default async function MessageFeed() {
     const total = await prisma.message.count({ where });
 
     // Serialize dates to strings for client components
-    const serializedMessages = messages.map((message) => ({
-      ...message,
-      createdAt: message.createdAt.toISOString(),
-      updatedAt: message.updatedAt.toISOString(),
-      scheduledAt: message.scheduledAt?.toISOString() ?? null,
-      linkMetadata: message.linkMetadata as LinkMetadata | null,
-      crossPostUrls: (Array.isArray(message.crossPostUrls) ? message.crossPostUrls : null) as CrossPostUrl[] | null,
-    }));
+    const serializedMessages = messages.map((message) => {
+      const pushed = message.pushedMessage;
+      return {
+        ...message,
+        createdAt: message.createdAt.toISOString(),
+        updatedAt: message.updatedAt.toISOString(),
+        scheduledAt: message.scheduledAt?.toISOString() ?? null,
+        linkMetadata: message.linkMetadata as LinkMetadata | null,
+        crossPostUrls: (Array.isArray(message.crossPostUrls) ? message.crossPostUrls : null) as CrossPostUrl[] | null,
+        ...(pushed && {
+          pushedMessage: {
+            ...pushed,
+            createdAt: pushed.createdAt.toISOString(),
+            updatedAt: pushed.updatedAt.toISOString(),
+            scheduledAt: pushed.scheduledAt?.toISOString() ?? null,
+            linkMetadata: pushed.linkMetadata as LinkMetadata | null,
+            imageUrls: Array.isArray(pushed.imageUrls) ? pushed.imageUrls : null,
+            videoUrls: Array.isArray(pushed.videoUrls) ? pushed.videoUrls : null,
+            crossPostUrls: (Array.isArray(pushed.crossPostUrls) ? pushed.crossPostUrls : null) as CrossPostUrl[] | null,
+          },
+        }),
+      };
+    });
 
-    const messagesWithDugs = await attachDugByMe(serializedMessages, user?.id);
+    const messagesWithDugs = await attachDugByMeIncludingPushed(serializedMessages, user?.id);
 
     return (
       <>
@@ -84,7 +101,7 @@ export default async function MessageFeed() {
           </div>
         )}
         <MessageList
-          initialMessages={messagesWithDugs}
+          initialMessages={messagesWithDugs as unknown as Message[]}
           currentUserId={user?.id}
           initialTotal={total}
           showPreviews={user?.showPreviews ?? true}

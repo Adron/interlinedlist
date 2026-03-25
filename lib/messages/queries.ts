@@ -186,6 +186,17 @@ export function getMessageUserSelect(): Prisma.UserSelect {
   };
 }
 
+/** Nested source message for push / quote rows (one level). */
+export function getPushedMessageInclude(): Prisma.MessageInclude {
+  return {
+    pushedMessage: {
+      include: {
+        user: { select: getMessageUserSelect() },
+      },
+    },
+  };
+}
+
 /**
  * Serialize a single message's dates to ISO strings for client components
  */

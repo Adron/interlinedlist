@@ -740,6 +740,11 @@ export default function MessageTable({
                 const isSelected = selectedMessages.has(message.id);
                 const canSelect = isOwner && currentUserId;
                 const colSpan = currentUserId ? 5 : 3; // checkbox + date + content + visibility + actions (or date + content + visibility)
+                const rowText =
+                  (message as { pushedMessage?: unknown }).pushedMessage &&
+                  !String(message.content ?? '').trim()
+                    ? '(Push Message)'
+                    : message.content;
 
                 return (
                   <React.Fragment key={message.id}>
@@ -787,9 +792,9 @@ export default function MessageTable({
                           fontSize: '0.85rem'
                         }}
                       >
-                        {message.content.length > 100 
-                          ? linkifyText(message.content.substring(0, 100) + '...')
-                          : linkifyText(message.content)}
+                        {rowText.length > 100 
+                          ? linkifyText(rowText.substring(0, 100) + '...')
+                          : linkifyText(rowText)}
                       </div>
                       {message.imageUrls && Array.isArray(message.imageUrls) && message.imageUrls.length > 0 && (
                         <div className="d-flex flex-wrap gap-1 mt-1">
@@ -829,7 +834,7 @@ export default function MessageTable({
                       {/* Render link previews for all detected links (if showPreviews is enabled) */}
                       {localShowPreviews && (() => {
                         // Detect all links in the message
-                        const detectedLinks = detectLinks(message.content);
+                        const detectedLinks = detectLinks(rowText);
                         
                         if (detectedLinks.length === 0) {
                           return null;
@@ -889,7 +894,7 @@ export default function MessageTable({
                               }));
                               router.push('/lists/new');
                             }}
-                            disabled={isLoading}
+                            disabled={isLoading || !message.content.trim()}
                             title="Create list from this message"
                           >
                             <i className="bx bx-list-plus"></i>
