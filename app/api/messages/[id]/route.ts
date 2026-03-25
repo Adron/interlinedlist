@@ -5,6 +5,7 @@ import { getCurrentUserOrSyncToken } from '@/lib/auth/sync-token';
 import { deleteBlobsFromMessages } from '@/lib/blob';
 import { deletePostOnBluesky, deletePostOnLinkedIn, deletePostOnMastodon } from '@/lib/crosspost/delete-external';
 import { LinkMetadata } from '@/lib/types';
+import { attachDugByMe } from '@/lib/messages/dig';
 
 export const dynamic = 'force-dynamic';
 
@@ -69,7 +70,9 @@ export async function GET(
       linkMetadata: message.linkMetadata as LinkMetadata | null,
     };
 
-    return NextResponse.json(serializedMessage, { status: 200 });
+    const [withDug] = await attachDugByMe([serializedMessage], user?.id);
+
+    return NextResponse.json(withDug, { status: 200 });
   } catch (error) {
     console.error('Get message error:', error);
     return NextResponse.json(

@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/prisma';
 import { buildWallMessageWhereClause, getMessageUserSelect } from '@/lib/messages/queries';
+import { attachDugByMe } from '@/lib/messages/dig';
 import { LinkMetadata, CrossPostUrl } from '@/lib/types';
 import ProfileHeader from '@/components/ProfileHeader';
 import MessageList from '@/components/MessageList';
@@ -121,6 +122,8 @@ export default async function UserProfilePage({
     crossPostUrls: (Array.isArray(message.crossPostUrls) ? message.crossPostUrls : null) as CrossPostUrl[] | null,
   }));
 
+  const messagesWithDugs = await attachDugByMe(serializedMessages, currentUser?.id);
+
   // Fetch public lists to get the first root-level list for preview
   let firstListPreview = null;
   try {
@@ -198,7 +201,7 @@ export default async function UserProfilePage({
             followStatus={followStatus}
           />
           <MessageList
-            initialMessages={serializedMessages}
+            initialMessages={messagesWithDugs}
             initialTotal={total}
             currentUserId={currentUser?.id}
             showPreviews={currentUser?.showPreviews ?? true}

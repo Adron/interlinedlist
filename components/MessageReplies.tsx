@@ -7,6 +7,7 @@ import CrossPostErrorToast from './CrossPostErrorToast';
 import { formatDateTime } from '@/lib/utils/relativeTime';
 import { linkifyText } from '@/lib/messages/linkify';
 import ReplyInput from './ReplyInput';
+import MessageDigButton from './MessageDigButton';
 import type { Message } from '@/lib/types';
 
 interface ReplyWithCount extends Message {
@@ -132,6 +133,15 @@ export default function MessageReplies({
                 <p className="mb-0 text-break" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                   {linkifyText(reply.content)}
                 </p>
+                <div className="mt-1">
+                  <MessageDigButton
+                    messageId={reply.id}
+                    initialCount={reply.digCount ?? 0}
+                    initialDugByMe={reply.dugByMe ?? false}
+                    isSignedIn={!!currentUserId}
+                    compact
+                  />
+                </div>
               </div>
             </div>
           </div>

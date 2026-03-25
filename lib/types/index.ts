@@ -114,6 +114,10 @@ export interface Message {
   parentId?: string | null;
   parent?: Message | null;
   replies?: Message[];
+  /** Denormalized count of digs (I Dig!) */
+  digCount?: number;
+  /** Present when the current viewer has dug this message */
+  dugByMe?: boolean;
 }
 
 /**

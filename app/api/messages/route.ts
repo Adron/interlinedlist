@@ -5,6 +5,7 @@ import { isSubscriber } from '@/lib/subscription/is-subscriber';
 import { detectLinks } from '@/lib/messages/link-detector';
 import { APP_URL } from '@/lib/config/app';
 import { buildMessageWhereClause } from '@/lib/messages/queries';
+import { attachDugByMe } from '@/lib/messages/dig';
 import { postToMastodon } from '@/lib/mastodon/post-status';
 import { postToBluesky } from '@/lib/bluesky/post-status';
 import { postToLinkedIn } from '@/lib/linkedin/post-status';
@@ -482,9 +483,11 @@ export async function GET(request: NextRequest) {
     // Get total count for pagination
     const total = await prisma.message.count({ where });
 
+    const messagesWithDugs = await attachDugByMe(messages, user?.id);
+
     return NextResponse.json(
       {
-        messages,
+        messages: messagesWithDugs,
         pagination: {
           total,
           limit,

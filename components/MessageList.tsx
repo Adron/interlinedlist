@@ -16,6 +16,8 @@ interface Message {
   publiclyVisible: boolean;
   createdAt: string;
   user: MessageUser;
+  digCount?: number;
+  dugByMe?: boolean;
 }
 
 interface MessageListProps {

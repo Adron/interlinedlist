@@ -80,6 +80,8 @@ Endpoints that support **Bearer** are documented as “Session or Bearer”. All
 | GET  | `/api/messages/[id]` | Session or Bearer | Get one message by ID. |
 | DELETE | `/api/messages/[id]` | Session or Bearer | Delete a message (own only). |
 | GET  | `/api/messages/[id]/replies` | Session | Get replies to a message. |
+| POST | `/api/messages/[id]/dig` | Session | Add **I Dig!** (idempotent). Returns `{ digCount, dugByMe }`. |
+| DELETE | `/api/messages/[id]/dig` | Session | Remove your dig. Returns `{ digCount, dugByMe }`. |
 | POST | `/api/messages/[id]/metadata` | Session | Trigger link metadata fetch for the message. |
 | POST | `/api/messages/images/upload` | Session | Upload an image (FormData `file`). Returns `{ url }`. Images resized to max 1200×1200, 1.4 MB. |
 | POST | `/api/messages/videos/upload` | Session | Upload a video (FormData `file`). Returns `{ url }`. Max 3 MB; formats: MP4, WebM, QuickTime, AVI. |

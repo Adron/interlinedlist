@@ -13,6 +13,7 @@ import { detectLinks } from '@/lib/messages/link-detector';
 import { extractListNameFromMessage } from '@/lib/utils/message-extractor';
 import ScheduledPostIndicator from './ScheduledPostIndicator';
 import CrossPostPlatformIcons from './scheduled/CrossPostPlatformIcons';
+import MessageDigButton from './MessageDigButton';
 
 interface MessageUser {
   id: string;
@@ -304,6 +305,15 @@ export default function MessageCard({
                 </div>
               );
             })()}
+
+            <div className="mt-2">
+              <MessageDigButton
+                messageId={message.id}
+                initialCount={message.digCount ?? 0}
+                initialDugByMe={message.dugByMe ?? false}
+                isSignedIn={!!currentUserId}
+              />
+            </div>
 
             {/* Replies - only for top-level messages */}
             {!message.parentId && (

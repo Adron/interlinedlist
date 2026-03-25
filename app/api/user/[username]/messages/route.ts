@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth/session';
-import { buildWallMessageWhereClause } from '@/lib/messages/queries';
-import { getMessageUserSelect } from '@/lib/messages/queries';
+import { buildWallMessageWhereClause, getMessageUserSelect } from '@/lib/messages/queries';
+import { attachDugByMe } from '@/lib/messages/dig';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,9 +44,11 @@ export async function GET(
 
     const total = await prisma.message.count({ where });
 
+    const messagesWithDugs = await attachDugByMe(messages, currentUser?.id);
+
     return NextResponse.json(
       {
-        messages,
+        messages: messagesWithDugs,
         pagination: {
           total,
           limit,

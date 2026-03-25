@@ -1,6 +1,7 @@
 import { getCurrentUser } from '@/lib/auth/session';
 import { isSubscriber } from '@/lib/subscription/is-subscriber';
 import { prisma } from '@/lib/prisma';
+import { attachDugByMe } from '@/lib/messages/dig';
 import { LinkMetadata, CrossPostUrl, Message } from '@/lib/types';
 import MessageInput from './MessageInput';
 import MessageTable from './MessageTable';
@@ -64,6 +65,8 @@ export default async function DashboardMessageFeed() {
       crossPostUrls: (Array.isArray(message.crossPostUrls) ? message.crossPostUrls : null) as CrossPostUrl[] | null,
     }));
 
+    const messagesWithDugs = await attachDugByMe(serializedMessages, user?.id);
+
     return (
       <>
         {user && user.emailVerified && (
@@ -77,7 +80,7 @@ export default async function DashboardMessageFeed() {
           </div>
         )}
         <MessageTable
-          initialMessages={serializedMessages}
+          initialMessages={messagesWithDugs}
           initialTotal={total}
           currentUserId={user?.id}
           itemsPerPage={messagesPerPage}

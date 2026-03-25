@@ -11,15 +11,23 @@ Prisma schema defines the following models.
 - Preferences: `theme`, `maxMessageLength`, `defaultPubliclyVisible`, `messagesPerPage`, `viewingPreference`, `showPreviews`, `showAdvancedPostSettings`
 - Security: `emailVerified`, `emailVerificationToken`, `passwordResetToken`, `isPrivateAccount`
 - Location: `latitude`, `longitude`
-- Relations: `messages`, `lists`, `organizations`, `followers`, `following`, `linkedIdentities`, `listWatchers`
+- Relations: `messages`, `lists`, `organizations`, `followers`, `following`, `linkedIdentities`, `listWatchers`, `messageDigs`
 
 ### Message
 
 - `content`, `publiclyVisible`
+- `digCount` (integer, default 0): denormalized count of **I Dig!** reactions (kept in sync with `message_digs` rows)
 - `linkMetadata` (JSONB): Open Graph, oEmbed metadata for links
 - `imageUrls`, `videoUrls` (JSONB): Media URLs
 - `user` → User
 - `lists` → List[] (many-to-many)
+- `digs` → MessageDig[] (who dug this message)
+
+### MessageDig
+
+- Junction: `userId` → User, `messageId` → Message
+- Unique on `[userId, messageId]` (one dig per user per message)
+- Cascade delete when user or message is removed
 
 ### List
 

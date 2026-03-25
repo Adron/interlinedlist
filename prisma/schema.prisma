@@ -51,6 +51,7 @@ model User {
   documents            Document[]
   syncTokens           SyncToken[]
   sessions             Session[]
+  messageDigs          MessageDig[]
 
   @@map("users")
 }
@@ -96,16 +97,32 @@ model Message {
   scheduledCrossPostConfig Json?
   createdAt                DateTime  @default(now())
   updatedAt                DateTime  @updatedAt
+  digCount                 Int       @default(0)
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   lists           List[]
   parent          Message?  @relation("MessageReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies         Message[] @relation("MessageReplies")
+  digs            MessageDig[]
 
   @@index([createdAt])
   @@index([publiclyVisible])
   @@index([parentId])
   @@index([scheduledAt])
   @@map("messages")
+}
+
+model MessageDig {
+  id        String   @id @default(uuid())
+  userId    String
+  messageId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, messageId])
+  @@index([messageId])
+  @@map("message_digs")
 }
 
 model List {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth/session';
 import { serializeMessages } from '@/lib/messages/queries';
+import { attachDugByMe } from '@/lib/messages/dig';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,9 +59,11 @@ export async function GET(
       replyCount: replies[i]?._count?.replies ?? 0,
     }));
 
+    const repliesWithDugs = await attachDugByMe(withReplyCount, user?.id);
+
     return NextResponse.json(
       {
-        replies: withReplyCount,
+        replies: repliesWithDugs,
         total: replies.length,
       },
       { status: 200 }
