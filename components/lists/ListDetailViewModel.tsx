@@ -15,6 +15,7 @@ interface ListDetailViewModelProps {
   fields: ParsedField[];
   listSource?: 'local' | 'github';
   githubRepo?: string;
+  canCreateDocuments?: boolean;
 }
 
 export default function ListDetailViewModel({
@@ -25,6 +26,7 @@ export default function ListDetailViewModel({
   fields,
   listSource,
   githubRepo,
+  canCreateDocuments = false,
 }: ListDetailViewModelProps) {
   const router = useRouter();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -62,6 +64,8 @@ export default function ListDetailViewModel({
         <div className="col-12">
           <ListDataTable
             listId={listId}
+            listTitle={listTitle}
+            canCreateDocuments={canCreateDocuments}
             fields={fields}
             refreshTrigger={refreshTrigger}
             listSource={listSource}

@@ -1,5 +1,6 @@
 import { redirect, notFound } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
+import { isSubscriber } from '@/lib/subscription/is-subscriber';
 import { getListWithAncestorChain, getListProperties } from '@/lib/lists/queries';
 import ListBreadcrumbs from '@/components/lists/ListBreadcrumbs';
 import ListChildLinks from '@/components/lists/ListChildLinks';
@@ -155,6 +156,7 @@ export default async function ListDetailPage({ params, searchParams }: ListDetai
             fields={properties}
             listSource={isGitHubList ? 'github' : 'local'}
             githubRepo={githubRepo ?? undefined}
+            canCreateDocuments={isSubscriber(user.customerStatus)}
           />
         </>
       )}
