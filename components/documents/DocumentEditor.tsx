@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
+import { useDocumentsTreeRefresh } from '@/components/documents/DocumentsTreeContext';
 import '@uiw/react-md-editor/markdown-editor.css';
 
 const MDEditor = dynamic(() => import('@uiw/react-md-editor'), { ssr: false });
@@ -30,6 +31,7 @@ export default function DocumentEditor({
   initialContent,
   initialIsPublic,
 }: DocumentEditorProps) {
+  const { requestTreeRefresh } = useDocumentsTreeRefresh();
   const [title, setTitle] = useState(initialTitle);
   const [content, setContent] = useState(initialContent);
   const [isPublic, setIsPublic] = useState(initialIsPublic);
@@ -110,6 +112,7 @@ export default function DocumentEditor({
           lastSavedRef.current = { ...snapshot };
           clearAllTimers();
           setSaveStatus('saved');
+          requestTreeRefresh();
           window.setTimeout(() => {
             setSaveStatus((s) => (s === 'saved' ? 'idle' : s));
           }, SAVED_STATUS_MS);
@@ -148,7 +151,7 @@ export default function DocumentEditor({
         }
       }
     },
-    [documentId, clearAllTimers]
+    [documentId, clearAllTimers, requestTreeRefresh]
   );
 
   const scheduleAutosave = useCallback(() => {

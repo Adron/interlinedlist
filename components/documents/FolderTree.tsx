@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useDocumentsTreeRefresh } from '@/components/documents/DocumentsTreeContext';
 
 interface Folder {
   id: string;
@@ -12,37 +14,68 @@ interface Folder {
 }
 
 export default function FolderTree() {
+  const pathname = usePathname();
+  const { refreshVersion } = useDocumentsTreeRefresh();
+
   const [folders, setFolders] = useState<Folder[]>([]);
-  const [rootDocuments, setRootDocuments] = useState<{ id: string; title: string; relativePath: string }[]>([]);
+  const [rootDocuments, setRootDocuments] = useState<
+    { id: string; title: string; relativePath: string }[]
+  >([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [foldersRes, docsRes] = await Promise.all([
-        fetch('/api/documents/folders'),
-        fetch('/api/documents'),
-      ]);
-      if (foldersRes.ok) {
-        const data = await foldersRes.json();
-        setFolders(data.folders || []);
-        setExpanded(new Set((data.folders || []).map((f: Folder) => f.id)));
-      }
-      if (docsRes.ok) {
-        const data = await docsRes.json();
-        setRootDocuments(data.documents || []);
-      }
-    } catch (err) {
-      console.error('Failed to fetch documents:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const hasCompletedInitialLoadRef = useRef(false);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    const useFullLoading = !hasCompletedInitialLoadRef.current;
+
+    let cancelled = false;
+
+    const run = async () => {
+      if (useFullLoading) {
+        setLoading(true);
+      } else {
+        setRefreshing(true);
+      }
+      try {
+        const [foldersRes, docsRes] = await Promise.all([
+          fetch('/api/documents/folders'),
+          fetch('/api/documents'),
+        ]);
+        if (cancelled) return;
+        if (foldersRes.ok) {
+          const data = await foldersRes.json();
+          const nextFolders: Folder[] = data.folders || [];
+          setFolders(nextFolders);
+          if (useFullLoading) {
+            setExpanded(new Set(nextFolders.map((f) => f.id)));
+          }
+        }
+        if (docsRes.ok) {
+          const data = await docsRes.json();
+          if (!cancelled) {
+            setRootDocuments(data.documents || []);
+          }
+        }
+        if (!cancelled) {
+          hasCompletedInitialLoadRef.current = true;
+        }
+      } catch (err) {
+        console.error('Failed to fetch documents:', err);
+      } finally {
+        if (useFullLoading) {
+          setLoading(false);
+        }
+        setRefreshing(false);
+      }
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname, refreshVersion]);
 
   const toggle = (id: string) => {
     setExpanded((prev) => {
@@ -55,16 +88,22 @@ export default function FolderTree() {
 
   if (loading) {
     return (
-      <div className="text-muted small">
-        <i className="bx bx-loader-alt bx-spin me-2"></i>
-        Loading...
+      <div className="card">
+        <div className="card-body">
+          <h6 className="card-title mb-3">
+            <i className="bx bx-folder me-2"></i>
+            Documents
+          </h6>
+          <p className="text-muted small mb-0">Loading…</p>
+        </div>
       </div>
     );
   }
 
   function renderFolder(folder: Folder) {
     const isExp = expanded.has(folder.id);
-    const hasChildren = (folder.children?.length ?? 0) > 0 || (folder.documents?.length ?? 0) > 0;
+    const hasChildren =
+      (folder.children?.length ?? 0) > 0 || (folder.documents?.length ?? 0) > 0;
 
     return (
       <div key={folder.id} className="mb-1">
@@ -112,10 +151,17 @@ export default function FolderTree() {
   return (
     <div className="card">
       <div className="card-body">
-        <h6 className="card-title mb-3">
-          <i className="bx bx-folder me-2"></i>
-          Documents
-        </h6>
+        <div className="d-flex align-items-center justify-content-between mb-3">
+          <h6 className="card-title mb-0">
+            <i className="bx bx-folder me-2"></i>
+            Documents
+          </h6>
+          {refreshing && (
+            <span className="small text-muted" aria-live="polite">
+              Updating…
+            </span>
+          )}
+        </div>
         {folders.map(renderFolder)}
         {rootDocuments.length > 0 && (
           <div className="mt-2">
