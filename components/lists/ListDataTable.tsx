@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import { ParsedField, FormData } from "@/lib/lists/dsl-types";
 import { validateFormData } from "@/lib/lists/dsl-validator";
@@ -12,6 +12,58 @@ interface ListDataRow {
   rowData: Record<string, any>;
   createdAt: string;
   updatedAt?: string;
+}
+
+/** Client-side row sort: nulls last; uses field type for dates/numbers. */
+function compareRowDataValues(
+  a: unknown,
+  b: unknown,
+  field: ParsedField | undefined,
+  order: "asc" | "desc"
+): number {
+  const dir = order === "asc" ? 1 : -1;
+  if (a == null && b == null) return 0;
+  if (a == null) return 1;
+  if (b == null) return -1;
+
+  const type = field?.propertyType;
+
+  if (type === "number") {
+    const na = Number(a);
+    const nb = Number(b);
+    if (isNaN(na) && isNaN(nb)) return 0;
+    if (isNaN(na)) return 1;
+    if (isNaN(nb)) return -1;
+    const cmp = na < nb ? -1 : na > nb ? 1 : 0;
+    return cmp * dir;
+  }
+
+  if (type === "boolean") {
+    if (Boolean(a) === Boolean(b)) return 0;
+    return (Boolean(a) ? 1 : -1) * dir;
+  }
+
+  if (type === "date" || type === "datetime") {
+    const ta =
+      a instanceof Date ? a.getTime() : new Date(String(a)).getTime();
+    const tb =
+      b instanceof Date ? b.getTime() : new Date(String(b)).getTime();
+    if (isNaN(ta) && isNaN(tb)) return 0;
+    if (isNaN(ta)) return 1;
+    if (isNaN(tb)) return -1;
+    const cmp = ta < tb ? -1 : ta > tb ? 1 : 0;
+    return cmp * dir;
+  }
+
+  if (type === "multiselect") {
+    const sa = Array.isArray(a) ? a.join("\0") : String(a);
+    const sb = Array.isArray(b) ? b.join("\0") : String(b);
+    return sa.localeCompare(sb, undefined, { numeric: true }) * dir;
+  }
+
+  return (
+    String(a).localeCompare(String(b), undefined, { numeric: true }) * dir
+  );
 }
 
 interface ListDataTableProps {
@@ -124,12 +176,6 @@ export default function ListDataTable({
         }
       });
 
-      // Add sort
-      if (sortField) {
-        params.append("sort", sortField);
-        params.append("order", sortOrder);
-      }
-
       const url = dataApiUrl ?? `/api/lists/${listId}/data`;
       const response = await fetch(`${url}?${params.toString()}`);
 
@@ -149,7 +195,26 @@ export default function ListDataTable({
 
   useEffect(() => {
     fetchData();
-  }, [listId, pagination.offset, filters, sortField, sortOrder, refreshTrigger]);
+  }, [listId, pagination.offset, filters, refreshTrigger]);
+
+  const sortFieldMeta = useMemo(
+    () => sortedFields.find((f) => f.propertyKey === sortField),
+    [sortedFields, sortField]
+  );
+
+  const displayRows = useMemo(() => {
+    if (!sortField) return rows;
+    const copy = [...rows];
+    copy.sort((a, b) =>
+      compareRowDataValues(
+        a.rowData[sortField],
+        b.rowData[sortField],
+        sortFieldMeta,
+        sortOrder
+      )
+    );
+    return copy;
+  }, [rows, sortField, sortOrder, sortFieldMeta]);
 
   const handleFilterChange = (fieldKey: string, value: string) => {
     setFilters((prev) => ({
@@ -166,7 +231,6 @@ export default function ListDataTable({
       setSortField(fieldKey);
       setSortOrder("asc");
     }
-    setPagination((prev) => ({ ...prev, offset: 0 }));
   };
 
   const handleDelete = async (rowId: string) => {
@@ -403,9 +467,15 @@ export default function ListDataTable({
       case "boolean":
         return value ? "Yes" : "No";
       case "date":
+        if (typeof value === "string" || value instanceof Date) {
+          const d = value instanceof Date ? value : new Date(value);
+          return isNaN(d.getTime()) ? String(value) : d.toLocaleDateString();
+        }
+        return String(value);
       case "datetime":
-        if (typeof value === "string") {
-          return new Date(value).toLocaleString();
+        if (typeof value === "string" || value instanceof Date) {
+          const d = value instanceof Date ? value : new Date(value);
+          return isNaN(d.getTime()) ? String(value) : d.toLocaleString();
         }
         return String(value);
       case "multiselect":
@@ -765,7 +835,7 @@ export default function ListDataTable({
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((row) => (
+                  {displayRows.map((row) => (
                     <tr key={row.id}>
                       {sortedFields.map((field) => renderEditableCell(row, field))}
                       {!readOnly && (
