@@ -144,8 +144,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const finalPubliclyVisible =
-      publiclyVisible !== undefined ? Boolean(publiclyVisible) : defaultPubliclyVisible;
+    if (canonicalPushTargetId && publiclyVisible === false) {
+      return NextResponse.json(
+        { error: 'Push messages must be public' },
+        { status: 400 }
+      );
+    }
+
+    const finalPubliclyVisible = canonicalPushTargetId
+      ? true
+      : publiclyVisible !== undefined
+        ? Boolean(publiclyVisible)
+        : defaultPubliclyVisible;
 
     // Validate imageUrls if provided (1-8 URLs)
     let finalImageUrls: string[] | undefined;

@@ -194,6 +194,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
       const ce = e as CustomEvent<{ messageId: string }>;
       if (ce.detail?.messageId) {
         setQuotePushedMessageId(ce.detail.messageId);
+        setPubliclyVisible(true);
         setScheduledAt(null);
         setShowScheduleModal(false);
         setTimeout(() => textareaRef.current?.focus(), 0);
@@ -202,6 +203,12 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
     window.addEventListener('interlined:quotePush', handler as EventListener);
     return () => window.removeEventListener('interlined:quotePush', handler as EventListener);
   }, []);
+
+  useEffect(() => {
+    if (quotePushedMessageId) {
+      setPubliclyVisible(true);
+    }
+  }, [quotePushedMessageId]);
 
   const toggleMastodon = (id: string) => {
     setSelectedMastodonIds((prev) => {
@@ -249,7 +256,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
         },
         body: JSON.stringify({
           content: content.trim(),
-          publiclyVisible,
+          publiclyVisible: quotePushedMessageId ? true : publiclyVisible,
           ...(quotePushedMessageId && { pushedMessageId: quotePushedMessageId }),
           ...(imageUrls.length > 0 && { imageUrls }),
           ...(videoUrls.length > 0 && { videoUrls }),
@@ -355,11 +362,17 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
         <form onSubmit={handleSubmit}>
           {quotePushedMessageId && (
             <div className="alert alert-secondary py-2 px-3 mb-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
-              <span className="small mb-0">Push Message & Add Commentary — add your note below.</span>
+              <span className="small mb-0">
+                Push Message & Add Commentary — add your note below. This post will be{' '}
+                <strong>public</strong>.
+              </span>
               <button
                 type="button"
                 className="btn btn-sm btn-outline-secondary"
-                onClick={() => setQuotePushedMessageId(null)}
+                onClick={() => {
+                  setQuotePushedMessageId(null);
+                  setPubliclyVisible(defaultPubliclyVisible);
+                }}
               >
                 Cancel
               </button>
@@ -581,11 +594,17 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                   className="form-check-input"
                   type="checkbox"
                   id="publiclyVisible"
-                  checked={publiclyVisible}
-                  onChange={(e) => setPubliclyVisible(e.target.checked)}
+                  checked={quotePushedMessageId ? true : publiclyVisible}
+                  onChange={(e) => {
+                    if (!quotePushedMessageId) setPubliclyVisible(e.target.checked);
+                  }}
+                  disabled={!!quotePushedMessageId}
                 />
                 <label className="form-check-label small" htmlFor="publiclyVisible">
                   Public
+                  {quotePushedMessageId && (
+                    <span className="text-muted fw-normal ms-1">(required for pushes)</span>
+                  )}
                 </label>
               </div>
             </div>
