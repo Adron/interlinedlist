@@ -13,7 +13,10 @@ import { detectLinks } from '@/lib/messages/link-detector';
 import { extractListNameFromMessage } from '@/lib/utils/message-extractor';
 import ScheduledPostIndicator from './ScheduledPostIndicator';
 import CrossPostPlatformIcons from './scheduled/CrossPostPlatformIcons';
-import MessageDigButton from './MessageDigButton';
+import MessageDigButton, {
+  messageActionLinkClass,
+  MESSAGE_ACTION_TEXT_STYLE,
+} from './MessageDigButton';
 
 interface MessageUser {
   id: string;
@@ -157,6 +160,7 @@ export default function MessageCard({
   const [isHovered, setIsHovered] = useState(false);
   const [pushingPlain, setPushingPlain] = useState(false);
   const [pushError, setPushError] = useState('');
+  const [replyComposeOpen, setReplyComposeOpen] = useState(false);
   const isOwner = currentUserId === message.user.id;
   const canPushHere = !!currentUserId && message.publiclyVisible;
   const isPlainPushRow = !!message.pushedMessage && !message.content?.trim();
@@ -319,33 +323,6 @@ export default function MessageCard({
                   </button>
                 )}
 
-                {canPushHere && (
-                  <div className="d-flex align-items-center gap-1 flex-wrap justify-content-end">
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-link text-secondary p-0"
-                      onClick={handlePlainPush}
-                      disabled={pushingPlain}
-                      style={{ fontSize: '0.7rem' }}
-                      title="Push Message"
-                    >
-                      {pushingPlain ? '…' : 'Push Message'}
-                    </button>
-                    <span className="text-muted" style={{ fontSize: '0.65rem' }}>
-                      ·
-                    </span>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-link text-secondary p-0"
-                      onClick={handleQuotePush}
-                      style={{ fontSize: '0.7rem' }}
-                      title="Push Message & Add Commentary"
-                    >
-                      Push & Commentary
-                    </button>
-                  </div>
-                )}
-                
                 {isOwner && onDelete && (
                   <div className="position-relative">
                     {!showDeleteConfirm ? (
@@ -497,19 +474,98 @@ export default function MessageCard({
               </div>
             )}
 
-            <div className="mt-2 d-flex flex-wrap align-items-center gap-2">
-              <MessageDigButton
-                messageId={message.id}
-                initialCount={message.digCount ?? 0}
-                initialDugByMe={message.dugByMe ?? false}
-                isSignedIn={!!currentUserId}
-              />
-              {(message.pushCount ?? 0) > 0 && (
-                <span className="text-muted small">
-                  {message.pushCount} {message.pushCount === 1 ? 'push' : 'pushes'}
-                </span>
-              )}
-            </div>
+            {/* Reply, I Dig!, Push — text actions (same style as Reply) */}
+            {!message.parentId && (
+              <div
+                className="mt-2 d-flex flex-wrap align-items-baseline column-gap-1 row-gap-1"
+                style={MESSAGE_ACTION_TEXT_STYLE}
+              >
+                {currentUserId && (
+                  <button
+                    type="button"
+                    className={messageActionLinkClass}
+                    style={MESSAGE_ACTION_TEXT_STYLE}
+                    onClick={() => setReplyComposeOpen((o) => !o)}
+                  >
+                    {replyComposeOpen ? 'Cancel' : 'Reply'}
+                  </button>
+                )}
+                {currentUserId && (
+                  <span className="text-muted user-select-none" aria-hidden>
+                    ·
+                  </span>
+                )}
+                <MessageDigButton
+                  messageId={message.id}
+                  initialCount={message.digCount ?? 0}
+                  initialDugByMe={message.dugByMe ?? false}
+                  isSignedIn={!!currentUserId}
+                />
+                {(message.pushCount ?? 0) > 0 && (
+                  <>
+                    <span className="text-muted user-select-none" aria-hidden>
+                      ·
+                    </span>
+                    <span className="text-muted">
+                      {message.pushCount} {message.pushCount === 1 ? 'push' : 'pushes'}
+                    </span>
+                  </>
+                )}
+                {canPushHere && (
+                  <>
+                    <span className="text-muted user-select-none" aria-hidden>
+                      ·
+                    </span>
+                    <button
+                      type="button"
+                      className={messageActionLinkClass}
+                      style={MESSAGE_ACTION_TEXT_STYLE}
+                      onClick={handlePlainPush}
+                      disabled={pushingPlain}
+                      title="Push Message"
+                    >
+                      {pushingPlain ? '…' : 'Push Message'}
+                    </button>
+                    <span className="text-muted user-select-none" aria-hidden>
+                      ·
+                    </span>
+                    <button
+                      type="button"
+                      className={messageActionLinkClass}
+                      style={MESSAGE_ACTION_TEXT_STYLE}
+                      onClick={handleQuotePush}
+                      title="Push Message & Add Commentary"
+                    >
+                      Push & Commentary
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+
+            {message.parentId && (
+              <div
+                className="mt-2 d-flex flex-wrap align-items-baseline column-gap-1 row-gap-1"
+                style={MESSAGE_ACTION_TEXT_STYLE}
+              >
+                <MessageDigButton
+                  messageId={message.id}
+                  initialCount={message.digCount ?? 0}
+                  initialDugByMe={message.dugByMe ?? false}
+                  isSignedIn={!!currentUserId}
+                />
+                {(message.pushCount ?? 0) > 0 && (
+                  <>
+                    <span className="text-muted user-select-none" aria-hidden>
+                      ·
+                    </span>
+                    <span className="text-muted">
+                      {message.pushCount} {message.pushCount === 1 ? 'push' : 'pushes'}
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
 
             {/* Replies - only for top-level messages */}
             {!message.parentId && (
@@ -517,6 +573,9 @@ export default function MessageCard({
                 parentId={message.id}
                 currentUserId={currentUserId}
                 showReplyInput={!!currentUserId}
+                replyComposeOpen={replyComposeOpen}
+                onReplyComposeOpenChange={setReplyComposeOpen}
+                hideReplyComposeTrigger
               />
             )}
           </div>

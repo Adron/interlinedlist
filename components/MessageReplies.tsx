@@ -21,6 +21,11 @@ interface MessageRepliesProps {
   onReplyAdded?: () => void;
   showReplyInput?: boolean;
   className?: string;
+  /** Parent renders Reply in the message toolbar; pass open state here */
+  replyComposeOpen?: boolean;
+  onReplyComposeOpenChange?: (open: boolean) => void;
+  /** Hide the inline "Reply" text control (used with toolbar Reply in MessageCard) */
+  hideReplyComposeTrigger?: boolean;
 }
 
 export default function MessageReplies({
@@ -30,10 +35,13 @@ export default function MessageReplies({
   onReplyAdded,
   showReplyInput = true,
   className = '',
+  replyComposeOpen = false,
+  onReplyComposeOpenChange,
+  hideReplyComposeTrigger = false,
 }: MessageRepliesProps) {
   const [replies, setReplies] = useState<ReplyWithCount[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showInput, setShowInput] = useState(false);
+  const [internalShowInput, setInternalShowInput] = useState(false);
   const [crossPostErrors, setCrossPostErrors] = useState<Array<{ instanceName: string; error?: string }>>([]);
 
   const fetchReplies = async () => {
@@ -58,9 +66,25 @@ export default function MessageReplies({
   const totalNested = replies.reduce((sum, r) => sum + (r.replyCount ?? 0), 0);
   const hasMoreReplies = totalNested > 0;
 
+  const composeOpen = hideReplyComposeTrigger ? replyComposeOpen : internalShowInput;
+  const closeCompose = () => {
+    if (hideReplyComposeTrigger) {
+      onReplyComposeOpenChange?.(false);
+    } else {
+      setInternalShowInput(false);
+    }
+  };
+  const openCompose = () => {
+    if (hideReplyComposeTrigger) {
+      onReplyComposeOpenChange?.(true);
+    } else {
+      setInternalShowInput(true);
+    }
+  };
+
   const handleReplySubmitted = () => {
     fetchReplies();
-    setShowInput(false);
+    closeCompose();
     onReplyAdded?.();
   };
 
@@ -76,7 +100,13 @@ export default function MessageReplies({
     );
   }
 
-  if (totalReplies === 0 && !showReplyInput) {
+  const canReply = !!(showReplyInput && currentUserId);
+  const showReplyForm = canReply && composeOpen;
+  const shouldRenderBlock =
+    totalReplies > 0 ||
+    hasMoreReplies ||
+    (canReply && (!hideReplyComposeTrigger || showReplyForm));
+  if (!shouldRenderBlock) {
     return null;
   }
 
@@ -133,7 +163,7 @@ export default function MessageReplies({
                 <p className="mb-0 text-break" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                   {linkifyText(reply.content)}
                 </p>
-                <div className="mt-1 d-flex flex-wrap align-items-center gap-2">
+                <div className="mt-1 d-flex flex-wrap align-items-baseline column-gap-1 row-gap-1">
                   <MessageDigButton
                     messageId={reply.id}
                     initialCount={reply.digCount ?? 0}
@@ -142,9 +172,14 @@ export default function MessageReplies({
                     compact
                   />
                   {(reply.pushCount ?? 0) > 0 && (
-                    <span className="text-muted" style={{ fontSize: '0.75rem' }}>
-                      {reply.pushCount} {reply.pushCount === 1 ? 'push' : 'pushes'}
-                    </span>
+                    <>
+                      <span className="text-muted user-select-none" aria-hidden>
+                        ·
+                      </span>
+                      <span className="text-muted" style={{ fontSize: '0.75rem' }}>
+                        {reply.pushCount} {reply.pushCount === 1 ? 'push' : 'pushes'}
+                      </span>
+                    </>
                   )}
                 </div>
               </div>
@@ -165,9 +200,9 @@ export default function MessageReplies({
         </div>
       )}
 
-      {showReplyInput && currentUserId && (
+      {canReply && (showReplyForm || !hideReplyComposeTrigger) && (
         <div className="mt-2">
-          {showInput ? (
+          {showReplyForm ? (
             <ReplyInput
               parentId={parentId}
               defaultPubliclyVisible={defaultPubliclyVisible}
@@ -178,7 +213,7 @@ export default function MessageReplies({
             <button
               type="button"
               className="btn btn-sm btn-link text-muted p-0"
-              onClick={() => setShowInput(true)}
+              onClick={openCompose}
               style={{ fontSize: '0.8rem' }}
             >
               Reply

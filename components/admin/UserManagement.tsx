@@ -42,6 +42,11 @@ export default function UserManagement({ initialUsers, initialTotal, currentUser
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
   const [bulkError, setBulkError] = useState<string | null>(null);
   const [selectAllLoading, setSelectAllLoading] = useState(false);
+  const [passwordModalUser, setPasswordModalUser] = useState<User | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
   const itemsPerPage = 10;
 
   const allInDbSelected = total > 0 && selectedIds.size === total;
@@ -182,6 +187,53 @@ export default function UserManagement({ initialUsers, initialTotal, currentUser
     setEditingUser(null);
     setEditFormData({});
     setSaveError(null);
+  };
+
+  const openPasswordModal = (user: User) => {
+    setPasswordModalUser(user);
+    setNewPassword('');
+    setConfirmPassword('');
+    setPasswordError(null);
+  };
+
+  const closePasswordModal = () => {
+    setPasswordModalUser(null);
+    setNewPassword('');
+    setConfirmPassword('');
+    setPasswordError(null);
+  };
+
+  const handlePasswordSave = async () => {
+    if (!passwordModalUser) return;
+    setPasswordError(null);
+
+    if (newPassword.length < 8) {
+      setPasswordError('Password must be at least 8 characters.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords do not match.');
+      return;
+    }
+
+    setPasswordSaving(true);
+    try {
+      const response = await fetch(`/api/admin/users/${passwordModalUser.id}/password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: newPassword }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setPasswordError(typeof data.error === 'string' ? data.error : 'Failed to update password');
+        return;
+      }
+      closePasswordModal();
+    } catch {
+      setPasswordError('Failed to update password');
+    } finally {
+      setPasswordSaving(false);
+    }
   };
 
   const handleSave = async () => {
@@ -580,6 +632,14 @@ export default function UserManagement({ initialUsers, initialTotal, currentUser
                           >
                             <i className="bx bx-edit"></i>
                           </button>
+                          <button
+                            type="button"
+                            className="btn btn-outline-secondary"
+                            onClick={() => openPasswordModal(user)}
+                            title="Set password"
+                          >
+                            <i className="bx bx-key"></i>
+                          </button>
                           {currentUserId !== user.id && (
                             <button
                               className="btn btn-outline-danger"
@@ -915,6 +975,105 @@ export default function UserManagement({ initialUsers, initialTotal, currentUser
                     </>
                   ) : (
                     'Save Changes'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Set password modal */}
+      {passwordModalUser && (
+        <div
+          className="modal fade show"
+          style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}
+          tabIndex={-1}
+          role="dialog"
+          aria-labelledby="setPasswordModalLabel"
+        >
+          <div className="modal-dialog modal-dialog-centered" role="document">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title" id="setPasswordModalLabel">
+                  Set password
+                </h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={closePasswordModal}
+                  aria-label="Close"
+                  disabled={passwordSaving}
+                />
+              </div>
+              <div className="modal-body">
+                {passwordError && (
+                  <div className="alert alert-danger" role="alert">
+                    {passwordError}
+                  </div>
+                )}
+                <p className="text-muted small mb-3">
+                  Set a new password for <strong>{passwordModalUser.email}</strong>. Existing sign-in sessions for
+                  this user will be ended.
+                </p>
+                <div className="mb-3">
+                  <label htmlFor="adminNewPassword" className="form-label">
+                    New password <span className="text-danger">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    className="form-control"
+                    id="adminNewPassword"
+                    autoComplete="new-password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    minLength={8}
+                    disabled={passwordSaving}
+                  />
+                  <div className="form-text">At least 8 characters.</div>
+                </div>
+                <div className="mb-0">
+                  <label htmlFor="adminConfirmPassword" className="form-label">
+                    Confirm password <span className="text-danger">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    className="form-control"
+                    id="adminConfirmPassword"
+                    autoComplete="new-password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    minLength={8}
+                    disabled={passwordSaving}
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={closePasswordModal}
+                  disabled={passwordSaving}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handlePasswordSave}
+                  disabled={passwordSaving}
+                >
+                  {passwordSaving ? (
+                    <>
+                      <span
+                        className="spinner-border spinner-border-sm me-2"
+                        role="status"
+                        aria-hidden="true"
+                      />
+                      Saving…
+                    </>
+                  ) : (
+                    'Update password'
                   )}
                 </button>
               </div>
