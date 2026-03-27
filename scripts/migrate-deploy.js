@@ -4,9 +4,9 @@
  * Migration deploy script for production (Vercel, etc.).
  * Uses direct connection for Neon (avoids P1002 advisory lock timeout with pooler).
  * Retries on P1002 (advisory lock timeout).
- * When Prisma reports P3018 because the DB already has objects the migration adds
- * (e.g. after `prisma db push`), clears the failed record with
- * `migrate resolve --rolled-back <name>` and retries deploy.
+ * Recovers from:
+ * - P3009: a migration is marked failed in `_prisma_migrations` — resolve --rolled-back, redeploy.
+ * - P3018 + duplicate/already exists: same resolve path when re-apply is safe (idempotent SQL).
  *
  * Use: npm run db:migrate:deploy or in vercel-build
  *
@@ -18,8 +18,10 @@ const { spawnSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
-/** Prisma prints: Migration name: 20260326120000_add_user_notifications */
+/** P3018 apply failure: Migration name: 20260326120000_add_user_notifications */
 const MIGRATION_NAME_RE = /Migration name:\s*(\S+)/m;
+/** P3009 blocked deploy: The `20260326120000_add_user_notifications` migration started at ... failed */
+const P3009_MIGRATION_RE = /The `([^`]+)` migration/m;
 
 /**
  * Postgres: duplicate column / relation / object — typical when schema was applied outside migrate.
@@ -42,7 +44,9 @@ function runPrisma(args) {
 }
 
 function extractFailedMigrationName(output) {
-  const m = output.match(MIGRATION_NAME_RE);
+  let m = output.match(MIGRATION_NAME_RE);
+  if (m) return m[1].trim();
+  m = output.match(P3009_MIGRATION_RE);
   return m ? m[1].trim() : null;
 }
 
@@ -123,17 +127,27 @@ for (;;) {
   }
 
   const migrationName = extractFailedMigrationName(out);
-  const canAutoResolve =
+  const isP3009Blocked = out.includes('P3009');
+
+  const canResolveP3009 =
+    isP3009Blocked &&
+    migrationName &&
+    !rolledBackMigrations.has(migrationName) &&
+    resolveCount < maxAutoResolves;
+
+  const canResolveP3018Duplicate =
     migrationName &&
     !rolledBackMigrations.has(migrationName) &&
     isRecoverableAlreadyExistsFailure(out) &&
     resolveCount < maxAutoResolves;
 
-  if (canAutoResolve) {
+  if (canResolveP3009 || canResolveP3018Duplicate) {
     resolveCount += 1;
+    const reason = isP3009Blocked
+      ? 'P3009 (failed migration recorded in database; will re-apply migration SQL)'
+      : 'P3018 + object already exists (re-apply must be idempotent: IF NOT EXISTS, etc.)';
     console.warn(
-      `[migrate-deploy] P3018 + object already exists for "${migrationName}". ` +
-        `Running migrate resolve --rolled-back, then retrying deploy (ensure migration SQL is idempotent: IF NOT EXISTS, etc.).`
+      `[migrate-deploy] ${reason} for "${migrationName}". Running migrate resolve --rolled-back, then retrying deploy.`
     );
     const resolveResult = runPrisma(['migrate', 'resolve', '--rolled-back', migrationName]);
     if (resolveResult.status !== 0) {
