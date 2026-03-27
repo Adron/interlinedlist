@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { attachDugByMeIncludingPushed } from '@/lib/messages/dig';
 import { getMessageUserSelect } from '@/lib/messages/queries';
 import { serializeMessageForClient } from '@/lib/messages/serialize-message-client';
+import type { Message } from '@/lib/types';
 
 const messageInclude = {
   user: {
@@ -37,7 +38,7 @@ function visibilityWhereForId(messageId: string, viewerId: string | undefined) {
 export async function getMessageThreadChain(
   focalId: string,
   viewerId: string | undefined
-) {
+): Promise<Message[] | null> {
   const reversed: ThreadMessageRow[] = [];
 
   let currentId: string | null = focalId;
@@ -68,5 +69,5 @@ export async function getMessageThreadChain(
     serializeMessageForClient(m as unknown as Parameters<typeof serializeMessageForClient>[0])
   );
 
-  return attachDugByMeIncludingPushed(serialized, viewerId);
+  return (await attachDugByMeIncludingPushed(serialized, viewerId)) as Message[];
 }

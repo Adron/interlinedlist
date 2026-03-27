@@ -113,6 +113,7 @@ export async function postToBluesky(
     const { splitTextForPlatform } = await import('@/lib/crosspost/text-splitter');
     const { distributeMedia } = await import('@/lib/crosspost/media-distributor');
     const { getThreadPostText } = await import('@/lib/crosspost/thread-text');
+    const { buildBlueskyLinkFacets } = await import('@/lib/bluesky/richtext-facets');
 
     const { clientId } = getBlueskyConfig();
     const metadata = await OAuthClient.fetchMetadata({
@@ -180,10 +181,13 @@ export async function postToBluesky(
         }
       }
 
+      const linkFacets = buildBlueskyLinkFacets(text);
+
       const record: Record<string, unknown> = {
         $type: 'app.bsky.feed.post',
         text,
         createdAt: new Date().toISOString(),
+        ...(linkFacets.length > 0 ? { facets: linkFacets } : {}),
       };
 
       if (embedImages.length > 0) {

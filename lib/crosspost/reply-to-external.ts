@@ -227,13 +227,17 @@ export async function replyToBluesky(
 
     let firstPostRkey: string | undefined;
 
+    const { buildBlueskyLinkFacets } = await import('@/lib/bluesky/richtext-facets');
+
     for (let i = 0; i < textChunks.length; i++) {
       const text = (textChunks[i] ?? '').trim() || '.';
+      const linkFacets = buildBlueskyLinkFacets(text);
 
       const record: Record<string, unknown> = {
         $type: 'app.bsky.feed.post',
         text,
         createdAt: new Date().toISOString(),
+        ...(linkFacets.length > 0 ? { facets: linkFacets } : {}),
         reply: {
           parent: { uri: parentUri, cid: parentCid },
           root: { uri: rootUri, cid: rootCid },
