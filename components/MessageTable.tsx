@@ -740,6 +740,13 @@ export default function MessageTable({
                 const isSelected = selectedMessages.has(message.id);
                 const canSelect = isOwner && currentUserId;
                 const colSpan = currentUserId ? 5 : 3; // checkbox + date + content + visibility + actions (or date + content + visibility)
+                const hasPushedEmbed = !!(message as { pushedMessage?: unknown }).pushedMessage;
+                const contentTrim = String(message.content ?? '').trim();
+                const rowText = hasPushedEmbed
+                  ? contentTrim.length === 0
+                    ? '(Pushed)'
+                    : `(Pushed with Commentary) ${message.content}`
+                  : message.content;
 
                 return (
                   <React.Fragment key={message.id}>
@@ -787,9 +794,9 @@ export default function MessageTable({
                           fontSize: '0.85rem'
                         }}
                       >
-                        {message.content.length > 100 
-                          ? linkifyText(message.content.substring(0, 100) + '...')
-                          : linkifyText(message.content)}
+                        {rowText.length > 100 
+                          ? linkifyText(rowText.substring(0, 100) + '...')
+                          : linkifyText(rowText)}
                       </div>
                       {message.imageUrls && Array.isArray(message.imageUrls) && message.imageUrls.length > 0 && (
                         <div className="d-flex flex-wrap gap-1 mt-1">
@@ -829,7 +836,7 @@ export default function MessageTable({
                       {/* Render link previews for all detected links (if showPreviews is enabled) */}
                       {localShowPreviews && (() => {
                         // Detect all links in the message
-                        const detectedLinks = detectLinks(message.content);
+                        const detectedLinks = detectLinks(rowText);
                         
                         if (detectedLinks.length === 0) {
                           return null;
@@ -889,24 +896,53 @@ export default function MessageTable({
                               }));
                               router.push('/lists/new');
                             }}
-                            disabled={isLoading}
+                            disabled={isLoading || !message.content.trim()}
                             title="Create list from this message"
                           >
                             <i className="bx bx-list-plus"></i>
                           </button>
-                          <button
-                            className="btn btn-sm btn-link text-danger p-0"
-                            onClick={async () => {
-                              if (isOwner && window.confirm('Are you sure you want to delete this message?')) {
-                                await handleDelete(message.id);
-                              }
-                            }}
-                            disabled={isLoading || !isOwner}
-                            title={isOwner ? "Delete message" : "You can only delete your own messages"}
-                            style={{ opacity: isOwner ? 1 : 0.5 }}
-                          >
-                            <i className="bx bx-trash"></i>
-                          </button>
+                          {(() => {
+                            const isPushRow = !!message.pushedMessage && !message.parentId;
+                            const isPlainPushRow = isPushRow && !message.content?.trim();
+                            if (isPushRow) {
+                              return (
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-link text-danger p-0"
+                                  onClick={async () => {
+                                    if (!isOwner) return;
+                                    const confirmMsg = isPlainPushRow
+                                      ? 'Unpush this message? It will be removed from your feed and the original push count will go down.'
+                                      : 'Unpush? Your comment will be removed, and the original push count will go down.';
+                                    if (window.confirm(confirmMsg)) {
+                                      await handleDelete(message.id);
+                                    }
+                                  }}
+                                  disabled={isLoading || !isOwner}
+                                  title={isOwner ? 'Unpush' : 'You can only unpush your own messages'}
+                                  style={{ fontSize: '0.75rem', opacity: isOwner ? 1 : 0.5 }}
+                                >
+                                  Unpush
+                                </button>
+                              );
+                            }
+                            return (
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-link text-danger p-0"
+                                onClick={async () => {
+                                  if (isOwner && window.confirm('Are you sure you want to delete this message?')) {
+                                    await handleDelete(message.id);
+                                  }
+                                }}
+                                disabled={isLoading || !isOwner}
+                                title={isOwner ? 'Delete message' : 'You can only delete your own messages'}
+                                style={{ opacity: isOwner ? 1 : 0.5 }}
+                              >
+                                <i className="bx bx-trash"></i>
+                              </button>
+                            );
+                          })()}
                         </div>
                       </td>
                     )}

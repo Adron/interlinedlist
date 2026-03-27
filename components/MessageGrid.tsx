@@ -16,6 +16,8 @@ interface Message {
   publiclyVisible: boolean;
   createdAt: string;
   user: MessageUser;
+  parentId?: string | null;
+  pushedMessage?: Message | null;
 }
 
 interface MessageGridProps {
@@ -62,12 +64,29 @@ export default function MessageGrid({
       if (response.ok) {
         const data = await response.json();
         // Ensure dates are serialized to ISO strings
-        const serializedMessages = (data.messages || []).map((message: any) => ({
-          ...message,
-          createdAt: typeof message.createdAt === 'string' 
-            ? message.createdAt 
-            : new Date(message.createdAt).toISOString(),
-        }));
+        const serializedMessages = (data.messages || []).map((message: any) => {
+          const pushed = message.pushedMessage;
+          return {
+            ...message,
+            createdAt:
+              typeof message.createdAt === 'string'
+                ? message.createdAt
+                : new Date(message.createdAt).toISOString(),
+            ...(pushed && {
+              pushedMessage: {
+                ...pushed,
+                createdAt:
+                  typeof pushed.createdAt === 'string'
+                    ? pushed.createdAt
+                    : new Date(pushed.createdAt).toISOString(),
+                updatedAt:
+                  typeof pushed.updatedAt === 'string'
+                    ? pushed.updatedAt
+                    : new Date(pushed.updatedAt).toISOString(),
+              },
+            }),
+          };
+        });
         setMessages(serializedMessages);
         setTotalMessages(data.pagination?.total || serializedMessages.length);
         setHasMore(data.pagination?.hasMore || false);
@@ -102,27 +121,34 @@ export default function MessageGrid({
     }
   }, [currentPage, fetchMessages]);
 
-  const handleDelete = useCallback((deletedMessageId: string) => {
-    setMessages((prevMessages) => {
-      const updated = prevMessages.filter((msg) => msg.id !== deletedMessageId);
-      // If current page becomes empty and not on first page, go to previous page
-      if (updated.length === 0 && currentPage > 1) {
-        setCurrentPage(currentPage - 1);
-      } else {
-        // Refresh current page to maintain pagination
-        lastFetchedPage.current = null; // Reset to allow refetch
-        fetchMessages(currentPage);
+  const handleDelete = useCallback(
+    async (deletedMessageId: string) => {
+      const response = await fetch(`/api/messages/${deletedMessageId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(typeof data.error === 'string' ? data.error : 'Failed to delete message');
       }
-      return updated;
-    });
-    setTotalMessages((prev) => Math.max(0, prev - 1));
-    // Remove from selection if selected
-    setSelectedMessages((prev) => {
-      const updated = new Set(prev);
-      updated.delete(deletedMessageId);
-      return updated;
-    });
-  }, [currentPage, fetchMessages]);
+      setMessages((prevMessages) => {
+        const updated = prevMessages.filter((msg) => msg.id !== deletedMessageId);
+        if (updated.length === 0 && currentPage > 1) {
+          setCurrentPage(currentPage - 1);
+        } else {
+          lastFetchedPage.current = null;
+          fetchMessages(currentPage);
+        }
+        return updated;
+      });
+      setTotalMessages((prev) => Math.max(0, prev - 1));
+      setSelectedMessages((prev) => {
+        const updated = new Set(prev);
+        updated.delete(deletedMessageId);
+        return updated;
+      });
+    },
+    [currentPage, fetchMessages]
+  );
 
   const handleSelectChange = useCallback((messageId: string, selected: boolean) => {
     // Only allow selecting messages that belong to the current user

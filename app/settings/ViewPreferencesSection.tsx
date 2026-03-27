@@ -1,25 +1,42 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface ViewPreferencesSectionProps {
   messagesPerPage: number;
   viewingPreference: string;
   showPreviews: boolean;
+  notificationTrayLimit: number;
 }
 
 export default function ViewPreferencesSection({ 
   messagesPerPage: initialMessagesPerPage,
   viewingPreference: initialViewingPreference,
   showPreviews: initialShowPreviews,
+  notificationTrayLimit: initialNotificationTrayLimit,
 }: ViewPreferencesSectionProps) {
   const router = useRouter();
   const [formData, setFormData] = useState({
     messagesPerPage: initialMessagesPerPage || 20,
     viewingPreference: initialViewingPreference || 'all_messages',
     showPreviews: initialShowPreviews ?? true,
+    notificationTrayLimit: initialNotificationTrayLimit ?? 20,
   });
+
+  useEffect(() => {
+    setFormData({
+      messagesPerPage: initialMessagesPerPage || 20,
+      viewingPreference: initialViewingPreference || 'all_messages',
+      showPreviews: initialShowPreviews ?? true,
+      notificationTrayLimit: initialNotificationTrayLimit ?? 20,
+    });
+  }, [
+    initialMessagesPerPage,
+    initialViewingPreference,
+    initialShowPreviews,
+    initialNotificationTrayLimit,
+  ]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -38,6 +55,13 @@ export default function ViewPreferencesSection({
       return;
     }
 
+    const trayNum = parseInt(String(formData.notificationTrayLimit), 10);
+    if (isNaN(trayNum) || trayNum < 10 || trayNum > 40) {
+      setError('Notifications shown in the tray must be between 10 and 40');
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch('/api/user/update', {
         method: 'PATCH',
@@ -48,6 +72,7 @@ export default function ViewPreferencesSection({
           messagesPerPage: messagesPerPageNum,
           viewingPreference: formData.viewingPreference,
           showPreviews: formData.showPreviews,
+          notificationTrayLimit: trayNum,
         }),
       });
 
@@ -123,6 +148,64 @@ export default function ViewPreferencesSection({
             </div>
             <small className="form-text text-muted">
               Number of messages to display per page (10-30)
+            </small>
+          </div>
+
+          {/* Notification tray limit */}
+          <div className="mb-4">
+            <label htmlFor="notificationTrayLimit" className="form-label">
+              Notifications in tray
+            </label>
+            <div className="d-flex align-items-center gap-2">
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-secondary"
+                onClick={() => {
+                  if (formData.notificationTrayLimit > 10) {
+                    setFormData({
+                      ...formData,
+                      notificationTrayLimit: formData.notificationTrayLimit - 1,
+                    });
+                  }
+                }}
+                disabled={formData.notificationTrayLimit <= 10 || loading}
+              >
+                <i className="bx bx-minus"></i>
+              </button>
+              <input
+                type="number"
+                id="notificationTrayLimit"
+                className="form-control text-center"
+                style={{ maxWidth: '80px' }}
+                min="10"
+                max="40"
+                value={formData.notificationTrayLimit}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value, 10);
+                  if (!isNaN(value) && value >= 10 && value <= 40) {
+                    setFormData({ ...formData, notificationTrayLimit: value });
+                  }
+                }}
+                disabled={loading}
+              />
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-secondary"
+                onClick={() => {
+                  if (formData.notificationTrayLimit < 40) {
+                    setFormData({
+                      ...formData,
+                      notificationTrayLimit: formData.notificationTrayLimit + 1,
+                    });
+                  }
+                }}
+                disabled={formData.notificationTrayLimit >= 40 || loading}
+              >
+                <i className="bx bx-plus"></i>
+              </button>
+            </div>
+            <small className="form-text text-muted">
+              Max unread notifications listed in the top bar bell (10–40)
             </small>
           </div>
 

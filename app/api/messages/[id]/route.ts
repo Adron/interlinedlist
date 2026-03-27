@@ -5,7 +5,11 @@ import { getCurrentUserOrSyncToken } from '@/lib/auth/sync-token';
 import { deleteBlobsFromMessages } from '@/lib/blob';
 import { deletePostOnBluesky, deletePostOnLinkedIn, deletePostOnMastodon } from '@/lib/crosspost/delete-external';
 import { LinkMetadata } from '@/lib/types';
-import { attachDugByMe } from '@/lib/messages/dig';
+import { attachDugByMeIncludingPushed } from '@/lib/messages/dig';
+import { getPushedMessageInclude } from '@/lib/messages/queries';
+import { serializeMessageForClient } from '@/lib/messages/serialize-message-client';
+import { applyPushCountDecrementsForDeletedMessages } from '@/lib/messages/push';
+import { Prisma } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,6 +56,7 @@ export async function GET(
             avatar: true,
           },
         },
+        ...getPushedMessageInclude(),
       },
     });
 
@@ -62,15 +67,11 @@ export async function GET(
       );
     }
 
-    // Serialize dates and linkMetadata
-    const serializedMessage = {
-      ...message,
-      createdAt: message.createdAt.toISOString(),
-      updatedAt: message.updatedAt.toISOString(),
-      linkMetadata: message.linkMetadata as LinkMetadata | null,
-    };
+    const serializedMessage = serializeMessageForClient(
+      message as Parameters<typeof serializeMessageForClient>[0]
+    );
 
-    const [withDug] = await attachDugByMe([serializedMessage], user?.id);
+    const [withDug] = await attachDugByMeIncludingPushed([serializedMessage], user?.id);
 
     return NextResponse.json(withDug, { status: 200 });
   } catch (error) {
@@ -249,12 +250,20 @@ export async function DELETE(
       imageUrls: unknown;
       videoUrls: unknown;
       crossPostUrls: unknown;
+      pushedMessageId: string | null;
     }> = [];
     let idsToProcess = [messageId];
     while (idsToProcess.length > 0) {
       const batch = await prisma.message.findMany({
         where: { id: { in: idsToProcess } },
-        select: { id: true, userId: true, imageUrls: true, videoUrls: true, crossPostUrls: true },
+        select: {
+          id: true,
+          userId: true,
+          imageUrls: true,
+          videoUrls: true,
+          crossPostUrls: true,
+          pushedMessageId: true,
+        },
       });
       allMessages.push(...batch);
       const childIds = await prisma.message.findMany({
@@ -334,10 +343,28 @@ export async function DELETE(
     // Delete blob assets for message and all descendants
     await deleteBlobsFromMessages(allMessages);
 
-    // Delete the message (cascade will delete descendants)
-    await prisma.message.delete({
-      where: { id: messageId },
-    });
+    try {
+      await prisma.$transaction(async (tx) => {
+        await applyPushCountDecrementsForDeletedMessages(tx, allMessages);
+        await tx.message.delete({
+          where: { id: messageId },
+        });
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        (error.code === 'P2003' || error.code === 'P2014')
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              'This message cannot be deleted while other posts still push it. Remove those pushes first.',
+          },
+          { status: 409 }
+        );
+      }
+      throw error;
+    }
 
     return NextResponse.json(
       { message: 'Message deleted successfully' },

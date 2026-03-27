@@ -39,6 +39,7 @@ model User {
   githubDefaultRepo        String?
   customerStatus           String?   @default("free")
   stripeCustomerId         String?
+  notificationTrayLimit    Int       @default(20)
   messages             Message[]
   lists                List[]
   organizations        UserOrganization[]
@@ -52,6 +53,7 @@ model User {
   syncTokens           SyncToken[]
   sessions             Session[]
   messageDigs          MessageDig[]
+  notifications        UserNotification[]
 
   @@map("users")
 }
@@ -98,16 +100,21 @@ model Message {
   createdAt                DateTime  @default(now())
   updatedAt                DateTime  @updatedAt
   digCount                 Int       @default(0)
+  pushCount                Int       @default(0)
+  pushedMessageId          String?
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   lists           List[]
   parent          Message?  @relation("MessageReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies         Message[] @relation("MessageReplies")
+  pushedMessage   Message?  @relation("MessagePushedSource", fields: [pushedMessageId], references: [id], onDelete: Restrict)
+  pushes          Message[] @relation("MessagePushedSource")
   digs            MessageDig[]
 
   @@index([createdAt])
   @@index([publiclyVisible])
   @@index([parentId])
   @@index([scheduledAt])
+  @@index([pushedMessageId])
   @@map("messages")
 }
 
@@ -123,6 +130,24 @@ model MessageDig {
   @@unique([userId, messageId])
   @@index([messageId])
   @@map("message_digs")
+}
+
+model UserNotification {
+  id         String    @id @default(uuid())
+  userId     String
+  title      String
+  body       String    @db.Text
+  actionUrl  String?
+  type       String?
+  metadata   Json?
+  createdAt  DateTime  @default(now())
+  readAt     DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+  @@index([userId, createdAt])
+  @@map("user_notifications")
 }
 
 model List {

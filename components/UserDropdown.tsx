@@ -178,6 +178,15 @@ export default function UserDropdown({ user, isSubscriber = false }: UserDropdow
 
         <Link
           className="dropdown-item"
+          href="/notifications"
+          onClick={() => setIsOpen(false)}
+        >
+          <i className="bx bx-bell align-middle me-2" style={{ fontSize: '18px' }}></i>
+          <span className="align-middle">Notifications</span>
+        </Link>
+
+        <Link
+          className="dropdown-item"
           href="/subscription"
           onClick={() => setIsOpen(false)}
         >

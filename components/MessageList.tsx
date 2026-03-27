@@ -2,22 +2,34 @@
 
 import { useState, useEffect } from 'react';
 import MessageCard from './MessageCard';
+import type { Message } from '@/lib/types';
 
-interface MessageUser {
-  id: string;
-  username: string;
-  displayName: string | null;
-  avatar: string | null;
-}
-
-interface Message {
-  id: string;
-  content: string;
-  publiclyVisible: boolean;
-  createdAt: string;
-  user: MessageUser;
-  digCount?: number;
-  dugByMe?: boolean;
+function normalizeMessageFromApi(m: Record<string, unknown>): Message {
+  const pushed = m.pushedMessage as Record<string, unknown> | null | undefined;
+  return {
+    ...(m as unknown as Message),
+    createdAt:
+      typeof m.createdAt === 'string' ? m.createdAt : new Date(m.createdAt as string).toISOString(),
+    ...(pushed && {
+      pushedMessage: {
+        ...(pushed as object),
+        createdAt:
+          typeof pushed.createdAt === 'string'
+            ? pushed.createdAt
+            : new Date(pushed.createdAt as string).toISOString(),
+        updatedAt:
+          typeof pushed.updatedAt === 'string'
+            ? pushed.updatedAt
+            : new Date(pushed.updatedAt as string).toISOString(),
+        ...(pushed.scheduledAt != null && {
+          scheduledAt:
+            typeof pushed.scheduledAt === 'string'
+              ? pushed.scheduledAt
+              : new Date(pushed.scheduledAt as string).toISOString(),
+        }),
+      } as Message,
+    }),
+  };
 }
 
 interface MessageListProps {
@@ -89,10 +101,7 @@ export default function MessageList({ initialMessages, currentUserId, initialTot
       if (response.ok) {
         const data = await response.json();
         const list = data.messages || [];
-        setMessages(list.map((m: any) => ({
-          ...m,
-          createdAt: typeof m.createdAt === 'string' ? m.createdAt : new Date(m.createdAt).toISOString(),
-        })));
+        setMessages(list.map((m: Record<string, unknown>) => normalizeMessageFromApi(m)));
         setCurrentOffset(list.length);
         setHasMore(data.pagination?.hasMore ?? false);
       }
@@ -132,12 +141,9 @@ export default function MessageList({ initialMessages, currentUserId, initialTot
       const response = await fetch(`${baseUrl}?limit=${messagesPerPage}&offset=${currentOffset}`);
       if (response.ok) {
         const data = await response.json();
-        const newMessages = (data.messages || []).map((message: any) => ({
-          ...message,
-          createdAt: typeof message.createdAt === 'string' 
-            ? message.createdAt 
-            : new Date(message.createdAt).toISOString(),
-        }));
+        const newMessages = (data.messages || []).map((message: Record<string, unknown>) =>
+          normalizeMessageFromApi(message)
+        );
         
         if (newMessages.length > 0) {
           setMessages((prev) => [...prev, ...newMessages]);

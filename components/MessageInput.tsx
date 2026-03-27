@@ -135,6 +135,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const imageUrlsWhenModalOpenedRef = useRef<string[]>([]);
   const videoUrlsWhenModalOpenedRef = useRef<string[]>([]);
+  const [quotePushedMessageId, setQuotePushedMessageId] = useState<string | null>(null);
 
   // Create/revoke object URLs for pending file previews
   useEffect(() => {
@@ -188,6 +189,27 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const ce = e as CustomEvent<{ messageId: string }>;
+      if (ce.detail?.messageId) {
+        setQuotePushedMessageId(ce.detail.messageId);
+        setPubliclyVisible(true);
+        setScheduledAt(null);
+        setShowScheduleModal(false);
+        setTimeout(() => textareaRef.current?.focus(), 0);
+      }
+    };
+    window.addEventListener('interlined:quotePush', handler as EventListener);
+    return () => window.removeEventListener('interlined:quotePush', handler as EventListener);
+  }, []);
+
+  useEffect(() => {
+    if (quotePushedMessageId) {
+      setPubliclyVisible(true);
+    }
+  }, [quotePushedMessageId]);
+
   const toggleMastodon = (id: string) => {
     setSelectedMastodonIds((prev) => {
       const next = new Set(prev);
@@ -234,13 +256,16 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
         },
         body: JSON.stringify({
           content: content.trim(),
-          publiclyVisible,
+          publiclyVisible: quotePushedMessageId ? true : publiclyVisible,
+          ...(quotePushedMessageId && { pushedMessageId: quotePushedMessageId }),
           ...(imageUrls.length > 0 && { imageUrls }),
           ...(videoUrls.length > 0 && { videoUrls }),
           ...(selectedMastodonIds.size > 0 && { mastodonProviderIds: Array.from(selectedMastodonIds) }),
           ...(crossPostToBluesky && { crossPostToBluesky: true }),
           ...(crossPostToLinkedIn && { crossPostToLinkedIn: true }),
-          ...(scheduledAt && scheduledAt > new Date() && { scheduledAt: scheduledAt.toISOString() }),
+          ...(scheduledAt && scheduledAt > new Date() && !quotePushedMessageId && {
+            scheduledAt: scheduledAt.toISOString(),
+          }),
         }),
       });
 
@@ -268,6 +293,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
       setCrossPostToLinkedIn(false);
       setScheduledAt(null);
       setShowScheduleModal(false);
+      setQuotePushedMessageId(null);
       setError('');
       setLoading(false); // Reset loading state so button is enabled for next post
       
@@ -334,6 +360,24 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
     <div className="card mb-3">
       <div className="card-body">
         <form onSubmit={handleSubmit}>
+          {quotePushedMessageId && (
+            <div className="alert alert-secondary py-2 px-3 mb-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <span className="small mb-0">
+                Push Message & Add Comment — add your note below. This post will be{' '}
+                <strong>public</strong>.
+              </span>
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-secondary"
+                onClick={() => {
+                  setQuotePushedMessageId(null);
+                  setPubliclyVisible(defaultPubliclyVisible);
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
           <div className="mb-3">
             <textarea
               ref={textareaRef}
@@ -550,11 +594,17 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                   className="form-check-input"
                   type="checkbox"
                   id="publiclyVisible"
-                  checked={publiclyVisible}
-                  onChange={(e) => setPubliclyVisible(e.target.checked)}
+                  checked={quotePushedMessageId ? true : publiclyVisible}
+                  onChange={(e) => {
+                    if (!quotePushedMessageId) setPubliclyVisible(e.target.checked);
+                  }}
+                  disabled={!!quotePushedMessageId}
                 />
                 <label className="form-check-label small" htmlFor="publiclyVisible">
                   Public
+                  {quotePushedMessageId && (
+                    <span className="text-muted fw-normal ms-1">(required for pushes)</span>
+                  )}
                 </label>
               </div>
             </div>

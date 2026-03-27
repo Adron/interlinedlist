@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth/session';
 import { canViewerDigMessage, digMessage, undigMessage } from '@/lib/messages/dig';
+import { notifyMessageDig } from '@/lib/notifications/message-engagement';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,6 +30,13 @@ export async function POST(
     }
 
     const result = await digMessage(currentUser.id, messageId);
+    if (result.isNewDig && result.digCreatedAt) {
+      notifyMessageDig({
+        sourceMessageId: messageId,
+        diggerId: currentUser.id,
+        digCreatedAt: result.digCreatedAt,
+      }).catch((err) => console.error('notifyMessageDig:', err));
+    }
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
     console.error('Dig message error:', error);
