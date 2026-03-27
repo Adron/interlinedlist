@@ -7,6 +7,7 @@ import { deletePostOnBluesky, deletePostOnLinkedIn, deletePostOnMastodon } from 
 import { LinkMetadata } from '@/lib/types';
 import { attachDugByMeIncludingPushed } from '@/lib/messages/dig';
 import { getPushedMessageInclude } from '@/lib/messages/queries';
+import { serializeMessageForClient } from '@/lib/messages/serialize-message-client';
 import { applyPushCountDecrementsForDeletedMessages } from '@/lib/messages/push';
 import { Prisma } from '@prisma/client';
 
@@ -66,23 +67,9 @@ export async function GET(
       );
     }
 
-    const pushed = message.pushedMessage;
-    const serializedMessage = {
-      ...message,
-      createdAt: message.createdAt.toISOString(),
-      updatedAt: message.updatedAt.toISOString(),
-      scheduledAt: message.scheduledAt?.toISOString() ?? null,
-      linkMetadata: message.linkMetadata as LinkMetadata | null,
-      ...(pushed && {
-        pushedMessage: {
-          ...pushed,
-          createdAt: pushed.createdAt.toISOString(),
-          updatedAt: pushed.updatedAt.toISOString(),
-          scheduledAt: pushed.scheduledAt?.toISOString() ?? null,
-          linkMetadata: pushed.linkMetadata as LinkMetadata | null,
-        },
-      }),
-    };
+    const serializedMessage = serializeMessageForClient(
+      message as Parameters<typeof serializeMessageForClient>[0]
+    );
 
     const [withDug] = await attachDugByMeIncludingPushed([serializedMessage], user?.id);
 

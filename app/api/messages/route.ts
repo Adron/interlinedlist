@@ -11,6 +11,7 @@ import { postToBluesky } from '@/lib/bluesky/post-status';
 import { postToLinkedIn } from '@/lib/linkedin/post-status';
 import { trackAction } from '@/lib/analytics/track';
 import { resolveCanonicalPushTargetId } from '@/lib/messages/push';
+import { notifyMessagePush } from '@/lib/notifications/message-engagement';
 
 export const dynamic = 'force-dynamic';
 
@@ -103,7 +104,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             error:
-              'Plain Push Message does not support images, video, or cross-posting. Use Push Message & Add Commentary for media or cross-post (subscription required where applicable).',
+              'Plain Push Message does not support images, video, or cross-posting. Use Push Message & Add Comment for media or cross-post (subscription required where applicable).',
           },
           { status: 400 }
         );
@@ -274,6 +275,15 @@ export async function POST(request: NextRequest) {
     }
 
     trackAction('message_post', { userId: user.id }).catch(() => {});
+
+    if (canonicalPushTargetId && message.createdAt) {
+      notifyMessagePush({
+        sourceMessageId: canonicalPushTargetId,
+        pusherId: user.id,
+        pushMessageCreatedAt: message.createdAt,
+        pushContent: finalContent,
+      }).catch((err) => console.error('notifyMessagePush:', err));
+    }
 
     // Detect links and trigger async metadata fetch (don't await)
     const detectedLinks = finalContent ? detectLinks(finalContent) : [];

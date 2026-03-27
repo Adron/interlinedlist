@@ -740,11 +740,13 @@ export default function MessageTable({
                 const isSelected = selectedMessages.has(message.id);
                 const canSelect = isOwner && currentUserId;
                 const colSpan = currentUserId ? 5 : 3; // checkbox + date + content + visibility + actions (or date + content + visibility)
-                const rowText =
-                  (message as { pushedMessage?: unknown }).pushedMessage &&
-                  !String(message.content ?? '').trim()
-                    ? '(Push Message)'
-                    : message.content;
+                const hasPushedEmbed = !!(message as { pushedMessage?: unknown }).pushedMessage;
+                const contentTrim = String(message.content ?? '').trim();
+                const rowText = hasPushedEmbed
+                  ? contentTrim.length === 0
+                    ? '(Pushed)'
+                    : `(Pushed with Commentary) ${message.content}`
+                  : message.content;
 
                 return (
                   <React.Fragment key={message.id}>
@@ -899,19 +901,48 @@ export default function MessageTable({
                           >
                             <i className="bx bx-list-plus"></i>
                           </button>
-                          <button
-                            className="btn btn-sm btn-link text-danger p-0"
-                            onClick={async () => {
-                              if (isOwner && window.confirm('Are you sure you want to delete this message?')) {
-                                await handleDelete(message.id);
-                              }
-                            }}
-                            disabled={isLoading || !isOwner}
-                            title={isOwner ? "Delete message" : "You can only delete your own messages"}
-                            style={{ opacity: isOwner ? 1 : 0.5 }}
-                          >
-                            <i className="bx bx-trash"></i>
-                          </button>
+                          {(() => {
+                            const isPushRow = !!message.pushedMessage && !message.parentId;
+                            const isPlainPushRow = isPushRow && !message.content?.trim();
+                            if (isPushRow) {
+                              return (
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-link text-danger p-0"
+                                  onClick={async () => {
+                                    if (!isOwner) return;
+                                    const confirmMsg = isPlainPushRow
+                                      ? 'Unpush this message? It will be removed from your feed and the original push count will go down.'
+                                      : 'Unpush? Your comment will be removed, and the original push count will go down.';
+                                    if (window.confirm(confirmMsg)) {
+                                      await handleDelete(message.id);
+                                    }
+                                  }}
+                                  disabled={isLoading || !isOwner}
+                                  title={isOwner ? 'Unpush' : 'You can only unpush your own messages'}
+                                  style={{ fontSize: '0.75rem', opacity: isOwner ? 1 : 0.5 }}
+                                >
+                                  Unpush
+                                </button>
+                              );
+                            }
+                            return (
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-link text-danger p-0"
+                                onClick={async () => {
+                                  if (isOwner && window.confirm('Are you sure you want to delete this message?')) {
+                                    await handleDelete(message.id);
+                                  }
+                                }}
+                                disabled={isLoading || !isOwner}
+                                title={isOwner ? 'Delete message' : 'You can only delete your own messages'}
+                                style={{ opacity: isOwner ? 1 : 0.5 }}
+                              >
+                                <i className="bx bx-trash"></i>
+                              </button>
+                            );
+                          })()}
                         </div>
                       </td>
                     )}

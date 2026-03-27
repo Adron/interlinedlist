@@ -39,6 +39,7 @@ model User {
   githubDefaultRepo        String?
   customerStatus           String?   @default("free")
   stripeCustomerId         String?
+  notificationTrayLimit    Int       @default(20)
   messages             Message[]
   lists                List[]
   organizations        UserOrganization[]
@@ -52,6 +53,7 @@ model User {
   syncTokens           SyncToken[]
   sessions             Session[]
   messageDigs          MessageDig[]
+  notifications        UserNotification[]
 
   @@map("users")
 }
@@ -128,6 +130,24 @@ model MessageDig {
   @@unique([userId, messageId])
   @@index([messageId])
   @@map("message_digs")
+}
+
+model UserNotification {
+  id         String    @id @default(uuid())
+  userId     String
+  title      String
+  body       String    @db.Text
+  actionUrl  String?
+  type       String?
+  metadata   Json?
+  createdAt  DateTime  @default(now())
+  readAt     DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+  @@index([userId, createdAt])
+  @@map("user_notifications")
 }
 
 model List {

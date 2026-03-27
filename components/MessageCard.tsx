@@ -157,6 +157,7 @@ export default function MessageCard({
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showUnpushConfirm, setShowUnpushConfirm] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [pushingPlain, setPushingPlain] = useState(false);
   const [pushError, setPushError] = useState('');
@@ -164,6 +165,11 @@ export default function MessageCard({
   const isOwner = currentUserId === message.user.id;
   const canPushHere = !!currentUserId && message.publiclyVisible;
   const isPlainPushRow = !!message.pushedMessage && !message.content?.trim();
+  const isOwnPushRow =
+    isOwner &&
+    !!onDelete &&
+    !!message.pushedMessage &&
+    !message.parentId;
 
   const handlePlainPush = async () => {
     setPushError('');
@@ -196,11 +202,12 @@ export default function MessageCard({
 
   const handleDelete = async () => {
     if (!onDelete) return;
-    
+
     setIsDeleting(true);
     try {
       await onDelete(message.id);
       setShowDeleteConfirm(false);
+      setShowUnpushConfirm(false);
     } catch (error) {
       console.error('Failed to delete message:', error);
     } finally {
@@ -323,7 +330,7 @@ export default function MessageCard({
                   </button>
                 )}
 
-                {isOwner && onDelete && (
+                {isOwner && onDelete && !message.pushedMessage && (
                   <div className="position-relative">
                     {!showDeleteConfirm ? (
                       <button
@@ -361,9 +368,9 @@ export default function MessageCard({
 
             {message.pushedMessage && (
               <div className="text-muted small mb-1 d-flex align-items-center gap-1">
-                <i className="bx bx-share-alt" aria-hidden />
+                <i className="bx bx-up-arrow-alt" aria-hidden />
                 <span>
-                  {isPlainPushRow ? 'Push Message' : 'Push Message & Commentary'}
+                  {isPlainPushRow ? 'Pushed' : 'Pushed with Commentary'}
                 </span>
               </div>
             )}
@@ -534,10 +541,54 @@ export default function MessageCard({
                       className={messageActionLinkClass}
                       style={MESSAGE_ACTION_TEXT_STYLE}
                       onClick={handleQuotePush}
-                      title="Push Message & Add Commentary"
+                      title="Push Message & Add Comment"
                     >
-                      Push & Commentary
+                      Push & Comment
                     </button>
+                  </>
+                )}
+                {isOwnPushRow && (
+                  <>
+                    <span className="text-muted user-select-none" aria-hidden>
+                      ·
+                    </span>
+                    {!showUnpushConfirm ? (
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-link text-danger p-0 align-baseline text-decoration-none"
+                        style={MESSAGE_ACTION_TEXT_STYLE}
+                        onClick={() => setShowUnpushConfirm(true)}
+                        title="Remove this push from your feed"
+                      >
+                        Unpush
+                      </button>
+                    ) : (
+                      <span className="d-inline-flex flex-wrap align-items-center gap-1 w-100">
+                        <span className="text-muted" style={{ fontSize: '0.75rem' }}>
+                          {isPlainPushRow
+                            ? 'Unpush? This removes the share from your feed and lowers the push count on the original.'
+                            : 'Unpush? Your comment will be removed, and the push count on the original will go down.'}
+                        </span>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-danger"
+                          onClick={handleDelete}
+                          disabled={isDeleting}
+                          style={{ fontSize: '0.7rem', padding: '0.2rem 0.4rem' }}
+                        >
+                          {isDeleting ? '…' : 'Unpush'}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-secondary"
+                          onClick={() => setShowUnpushConfirm(false)}
+                          disabled={isDeleting}
+                          style={{ fontSize: '0.7rem', padding: '0.2rem 0.4rem' }}
+                        >
+                          Cancel
+                        </button>
+                      </span>
+                    )}
                   </>
                 )}
               </div>

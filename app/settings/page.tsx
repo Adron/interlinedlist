@@ -63,6 +63,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
               messagesPerPage={user.messagesPerPage ?? 20}
               viewingPreference={user.viewingPreference ?? 'all_messages'}
               showPreviews={user.showPreviews ?? true}
+              notificationTrayLimit={user.notificationTrayLimit ?? 20}
             />
             <MessageSettingsSection
               defaultPubliclyVisible={user.defaultPubliclyVisible ?? false}

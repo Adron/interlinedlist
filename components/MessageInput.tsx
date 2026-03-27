@@ -363,7 +363,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
           {quotePushedMessageId && (
             <div className="alert alert-secondary py-2 px-3 mb-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
               <span className="small mb-0">
-                Push Message & Add Commentary — add your note below. This post will be{' '}
+                Push Message & Add Comment — add your note below. This post will be{' '}
                 <strong>public</strong>.
               </span>
               <button

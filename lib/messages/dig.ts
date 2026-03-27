@@ -43,18 +43,36 @@ export async function canViewerDigMessage(
   return !!viaWall;
 }
 
-export type DigMutationResult = { digCount: number; dugByMe: boolean };
+export type DigMutationResult = {
+  digCount: number;
+  dugByMe: boolean;
+  /** True only when a new MessageDig row was inserted (not duplicate). */
+  isNewDig: boolean;
+  /** Set when `isNewDig` is true (for notifications). */
+  digCreatedAt?: Date;
+};
 
 export async function digMessage(userId: string, messageId: string): Promise<DigMutationResult> {
   return prisma.$transaction(async (tx) => {
     try {
-      await tx.messageDig.create({
+      const dig = await tx.messageDig.create({
         data: { userId, messageId },
+        select: { createdAt: true },
       });
       await tx.message.update({
         where: { id: messageId },
         data: { digCount: { increment: 1 } },
       });
+      const msg = await tx.message.findUnique({
+        where: { id: messageId },
+        select: { digCount: true },
+      });
+      return {
+        digCount: msg?.digCount ?? 0,
+        dugByMe: true,
+        isNewDig: true,
+        digCreatedAt: dig.createdAt,
+      };
     } catch (e: unknown) {
       const code = (e as { code?: string })?.code;
       if (code === 'P2002') {
@@ -62,15 +80,10 @@ export async function digMessage(userId: string, messageId: string): Promise<Dig
           where: { id: messageId },
           select: { digCount: true },
         });
-        return { digCount: msg?.digCount ?? 0, dugByMe: true };
+        return { digCount: msg?.digCount ?? 0, dugByMe: true, isNewDig: false };
       }
       throw e;
     }
-    const msg = await tx.message.findUnique({
-      where: { id: messageId },
-      select: { digCount: true },
-    });
-    return { digCount: msg?.digCount ?? 0, dugByMe: true };
   });
 }
 
@@ -100,7 +113,7 @@ export async function undigMessage(
       });
       msg = { digCount: 0 };
     }
-    return { digCount: msg?.digCount ?? 0, dugByMe: false };
+    return { digCount: msg?.digCount ?? 0, dugByMe: false, isNewDig: false };
   });
 }
 

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getCurrentUser } from '@/lib/auth/session';
 import { isSubscriber } from '@/lib/subscription/is-subscriber';
 import UserDropdown from './UserDropdown';
+import NotificationsBell from './NotificationsBell';
 import NavigationTitle from './NavigationTitle';
 
 export default async function Navigation() {
@@ -121,6 +122,7 @@ export default async function Navigation() {
                     </Link>
                   </div>
                 )}
+                <NotificationsBell />
                 <UserDropdown user={user} isSubscriber={isSubscriber(user.customerStatus)} />
               </>
             ) : (

@@ -33,6 +33,7 @@ export async function PATCH(request: NextRequest) {
       longitude,
       isPrivateAccount,
       githubDefaultRepo,
+      notificationTrayLimit,
     } = body;
 
     // Validate maxMessageLength if provided
@@ -52,6 +53,16 @@ export async function PATCH(request: NextRequest) {
       if (isNaN(messagesPerPageNum) || messagesPerPageNum < 10 || messagesPerPageNum > 30) {
         return NextResponse.json(
           { error: 'messagesPerPage must be an integer between 10 and 30' },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (notificationTrayLimit !== undefined) {
+      const n = parseInt(notificationTrayLimit, 10);
+      if (isNaN(n) || n < 10 || n > 40) {
+        return NextResponse.json(
+          { error: 'notificationTrayLimit must be an integer between 10 and 40' },
           { status: 400 }
         );
       }
@@ -120,6 +131,9 @@ export async function PATCH(request: NextRequest) {
       ...(githubDefaultRepo !== undefined && {
         githubDefaultRepo: githubDefaultRepo === null || githubDefaultRepo === '' ? null : String(githubDefaultRepo).trim(),
       }),
+      ...(notificationTrayLimit !== undefined && {
+        notificationTrayLimit: parseInt(notificationTrayLimit, 10),
+      }),
     };
     
     try {
@@ -147,6 +161,7 @@ export async function PATCH(request: NextRequest) {
           githubDefaultRepo: true,
           customerStatus: true,
           stripeCustomerId: true,
+          notificationTrayLimit: true,
           createdAt: true,
         },
       });
@@ -167,6 +182,9 @@ export async function PATCH(request: NextRequest) {
           ...(showAdvancedPostSettings !== undefined && { showAdvancedPostSettings: Boolean(showAdvancedPostSettings) }),
           ...(latitude !== undefined && { latitude: latitude === null ? null : (typeof latitude === 'number' ? latitude : parseFloat(latitude)) }),
           ...(longitude !== undefined && { longitude: longitude === null ? null : (typeof longitude === 'number' ? longitude : parseFloat(longitude)) }),
+          ...(notificationTrayLimit !== undefined && {
+            notificationTrayLimit: parseInt(notificationTrayLimit, 10),
+          }),
         };
 
         try {
@@ -190,6 +208,7 @@ export async function PATCH(request: NextRequest) {
               showAdvancedPostSettings: true,
               latitude: true,
               longitude: true,
+              notificationTrayLimit: true,
               createdAt: true,
             },
           });

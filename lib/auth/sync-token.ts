@@ -67,6 +67,8 @@ export async function getCurrentUserOrSyncToken(
             githubDefaultRepo: (u as { githubDefaultRepo?: string | null }).githubDefaultRepo ?? null,
             customerStatus: (u as { customerStatus?: string | null }).customerStatus ?? null,
             stripeCustomerId: (u as { stripeCustomerId?: string | null }).stripeCustomerId ?? null,
+            notificationTrayLimit:
+              (u as { notificationTrayLimit?: number }).notificationTrayLimit ?? 20,
             createdAt: u.createdAt,
             isAdministrator,
           };

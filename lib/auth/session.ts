@@ -55,6 +55,7 @@ const userSelect = {
   githubDefaultRepo: true,
   customerStatus: true,
   stripeCustomerId: true,
+  notificationTrayLimit: true,
   createdAt: true,
 } as const;
 
