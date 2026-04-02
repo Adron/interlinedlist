@@ -18,6 +18,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import ELK from 'elkjs/lib/elk.bundled.js';
+import GitHubIssuesListMark from './GitHubIssuesListMark';
 
 interface ListProperty {
   propertyKey: string;
@@ -102,7 +103,7 @@ function ListTableNode({ data }: { data: ListERDNodeData }) {
         }}
       >
         <span style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-          {isGitHub && <i className="bx bxl-github" style={{ fontSize: '16px', flexShrink: 0 }} />}
+          {isGitHub && <GitHubIssuesListMark variant="onDark" showLabel />}
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{data.label}</span>
         </span>
         <button

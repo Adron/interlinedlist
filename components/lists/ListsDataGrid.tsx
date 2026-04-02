@@ -3,6 +3,7 @@
 import { useState, useMemo, type ReactNode } from 'react';
 import Link from 'next/link';
 import DeleteListButton from './DeleteListButton';
+import GitHubIssuesListMark from './GitHubIssuesListMark';
 
 interface ListForGrid {
   id: string;
@@ -207,12 +208,16 @@ export default function ListsDataGrid({ lists }: ListsDataGridProps) {
               paginated.map((list) => (
                 <tr key={list.id}>
                   <td className="align-middle overflow-hidden">
-                    <Link href={`/lists/${list.id}`} className="fw-medium text-decoration-none text-truncate d-block" style={{ maxWidth: '100%' }}>
-                      {list.title}
-                      {list.source === 'github' && (
-                        <i className="bx bxl-github ms-1 text-muted" style={{ fontSize: '0.85rem' }} title="GitHub-backed" />
-                      )}
-                    </Link>
+                    <div className="d-flex align-items-center gap-2 flex-wrap min-w-0">
+                      <Link
+                        href={`/lists/${list.id}`}
+                        className="fw-medium text-decoration-none text-truncate"
+                        style={{ maxWidth: '100%', minWidth: 0 }}
+                      >
+                        {list.title}
+                      </Link>
+                      {list.source === 'github' && <GitHubIssuesListMark showLabel />}
+                    </div>
                   </td>
                   <td className="align-middle overflow-hidden" style={{ maxWidth: 0 }}>
                     <span className="text-muted text-truncate d-block" style={{ maxWidth: '100%' }} title={list.description || ''}>

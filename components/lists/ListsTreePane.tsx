@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { buildListTree, listPropertiesToParsedFields } from '@/lib/lists/tree-utils';
 import ListDataTable from './ListDataTable';
+import GitHubIssuesListMark from './GitHubIssuesListMark';
 
 interface ListWithProperties {
   id: string;
@@ -61,12 +62,12 @@ function TreeNodeItem({
         )}
         <button
           type="button"
-          className="btn btn-link btn-sm p-0 text-start flex-grow-1 text-decoration-none"
+          className="btn btn-link btn-sm p-0 text-start flex-grow-1 text-decoration-none d-inline-flex align-items-center gap-1 flex-wrap"
           onClick={() => onSelect(node.list.id)}
         >
           <span className={isSelected ? 'text-white' : ''}>{node.list.title}</span>
           {(node.list as { source?: string }).source === 'github' && (
-            <i className="bx bxl-github ms-1 text-muted" style={{ fontSize: '0.8rem' }} title="GitHub-backed" />
+            <GitHubIssuesListMark variant={isSelected ? 'onDark' : 'default'} />
           )}
         </button>
         <a
@@ -177,7 +178,12 @@ export default function ListsTreePane({ lists, canCreateDocuments = false }: Lis
         {selectedList ? (
           <div className="card h-100 d-flex flex-column lists-tree-flex-min">
             <div className="card-header py-2 d-flex justify-content-between align-items-center flex-shrink-0">
-              <h6 className="mb-0">{selectedList.title}</h6>
+              <h6 className="mb-0 d-flex align-items-center gap-2 flex-wrap">
+                <span>{selectedList.title}</span>
+                {(selectedList as { source?: string }).source === 'github' && (
+                  <GitHubIssuesListMark showLabel />
+                )}
+              </h6>
               <div className="d-flex gap-1">
                 <a
                   href={(selectedList as { source?: string }).source === 'github'

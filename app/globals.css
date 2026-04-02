@@ -335,3 +335,64 @@ textarea:focus {
     min-height: calc(100dvh - 12rem);
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/* GitHub issues–backed list marker (GitHubIssuesListMark) */
+/* -------------------------------------------------------------------------- */
+
+.github-issues-list-mark__icon {
+  font-size: 1.05rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+[data-bs-theme='light'] .github-issues-list-mark:not(.github-issues-list-mark--on-dark) .github-issues-list-mark__icon {
+  color: #24292f;
+}
+
+[data-bs-theme='dark'] .github-issues-list-mark:not(.github-issues-list-mark--on-dark) .github-issues-list-mark__icon {
+  color: #e6edf3;
+}
+
+.github-issues-list-mark--with-label {
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  line-height: 1;
+}
+
+[data-bs-theme='light'] .github-issues-list-mark--with-label:not(.github-issues-list-mark--on-dark) {
+  background: rgba(36, 41, 47, 0.09);
+  border: 1px solid rgba(36, 41, 47, 0.22);
+}
+
+[data-bs-theme='dark'] .github-issues-list-mark--with-label:not(.github-issues-list-mark--on-dark) {
+  background: rgba(230, 237, 243, 0.1);
+  border: 1px solid rgba(230, 237, 243, 0.28);
+}
+
+.github-issues-list-mark--with-label .github-issues-list-mark__label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+[data-bs-theme='light'] .github-issues-list-mark:not(.github-issues-list-mark--on-dark) .github-issues-list-mark__label {
+  color: #24292f;
+}
+
+[data-bs-theme='dark'] .github-issues-list-mark:not(.github-issues-list-mark--on-dark) .github-issues-list-mark__label {
+  color: #e6edf3;
+}
+
+.github-issues-list-mark--on-dark .github-issues-list-mark__icon,
+.github-issues-list-mark--on-dark .github-issues-list-mark__label {
+  color: #ffffff;
+}
+
+.github-issues-list-mark--on-dark.github-issues-list-mark--with-label {
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+}
