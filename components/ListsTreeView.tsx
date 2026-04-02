@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { List } from '@/lib/types';
 import { buildListTree, TreeNode } from '@/lib/lists/tree-utils';
 import DeleteListButton from '@/components/lists/DeleteListButton';
 import GitHubIssuesListMark from '@/components/lists/GitHubIssuesListMark';
+import ListVisibilityMark from '@/components/lists/ListVisibilityMark';
 
 interface TreeNodeComponentProps {
   node: TreeNode;
@@ -51,6 +52,10 @@ function TreeNodeComponent({ node, level, expandedNodes, onToggle, onDelete }: T
               {(node.list as { source?: string }).source === 'github' && (
                 <GitHubIssuesListMark className="flex-shrink-0" />
               )}
+              <ListVisibilityMark
+                isPublic={Boolean((node.list as { isPublic?: boolean }).isPublic)}
+                className="flex-shrink-0"
+              />
             </div>
           ) : (
             <div className="d-flex align-items-center gap-1" style={{ minWidth: 0, flex: 1 }}>
@@ -69,6 +74,10 @@ function TreeNodeComponent({ node, level, expandedNodes, onToggle, onDelete }: T
               {(node.list as { source?: string }).source === 'github' && (
                 <GitHubIssuesListMark className="flex-shrink-0" />
               )}
+              <ListVisibilityMark
+                isPublic={Boolean((node.list as { isPublic?: boolean }).isPublic)}
+                className="flex-shrink-0"
+              />
             </div>
           )}
         </div>

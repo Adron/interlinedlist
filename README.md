@@ -214,7 +214,8 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - `npm run restore` - Restore local database from latest backup in ~/Downloads/BACKUP/
 - `npm run test-data:seed` - Seed test accounts and messages into the database
 - `node scripts/seed-initial-data.js` - Seed initial data ("The Public" organization and seed user)
-- `npm run cli:build` - Build the Document Sync CLI for all platforms and copy to `public/downloads/`
+- `npm run cli:build` - Build the Document Sync CLI for all platforms and copy to `public/downloads/` (quiet; same as `deploy-all-production` with `--binaries-only`)
+- `npm run deploy-all-production` - Build all CLI binaries, install under `public/downloads/` for docs/static URLs, print next steps for commit and deploy
 - `npm run cli:test` - Run CLI unit tests
 - `npm run cli:test-local` - Run CLI integration tests against a local dev server
 
@@ -452,8 +453,7 @@ interlinedlist/
 │   │   ├── api/                  # API reference docs
 │   │   ├── application-design/   # App structure and component docs
 │   │   └── architecture/         # Tech stack and data model docs
-│   ├── help/                     # In-app help content (markdown)
-│   ├── tooling/                  # CLI and local testing docs
+│   ├── help/                     # In-app help (incl. tooling.md, local-testing.md)
 │   └── admin/                    # Admin feature docs
 ├── DSL/                          # Domain Specific Language for Lists
 │   ├── docs/                     # DSL documentation
@@ -708,8 +708,7 @@ interlinedlist/
 
 - **`documentation/`**: Project documentation (markdown)
   - `app-api-arch/`: Architecture, API reference, and application design docs
-  - `help/`: In-app help content rendered by the `/help/` pages
-  - `tooling/`: CLI download, installation, and local testing guides
+  - `help/`: In-app help content rendered by the `/help/` pages (includes **Tooling (CLI)** and **Local Testing (CLI)** as `tooling.md` and `local-testing.md`)
   - `admin/`: Admin feature documentation
 
 ## Database

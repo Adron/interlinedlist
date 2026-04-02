@@ -4,6 +4,7 @@ import { useState, useMemo, type ReactNode } from 'react';
 import Link from 'next/link';
 import DeleteListButton from './DeleteListButton';
 import GitHubIssuesListMark from './GitHubIssuesListMark';
+import ListVisibilityMark from './ListVisibilityMark';
 
 interface ListForGrid {
   id: string;
@@ -14,6 +15,7 @@ interface ListForGrid {
   parent?: { id: string; title: string } | null;
   children?: { id: string; title: string }[];
   source?: string;
+  isPublic?: boolean;
 }
 
 interface ListsDataGridProps {
@@ -217,6 +219,7 @@ export default function ListsDataGrid({ lists }: ListsDataGridProps) {
                         {list.title}
                       </Link>
                       {list.source === 'github' && <GitHubIssuesListMark showLabel />}
+                      <ListVisibilityMark isPublic={Boolean(list.isPublic)} showLabel />
                     </div>
                   </td>
                   <td className="align-middle overflow-hidden" style={{ maxWidth: 0 }}>

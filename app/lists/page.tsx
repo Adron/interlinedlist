@@ -13,6 +13,7 @@ import WatchedListsDataGrid from '@/components/lists/WatchedListsDataGrid';
 import ParentLink from '@/components/lists/ParentLink';
 import ChildLink from '@/components/lists/ChildLink';
 import GitHubIssuesListMark from '@/components/lists/GitHubIssuesListMark';
+import ListVisibilityMark from '@/components/lists/ListVisibilityMark';
 
 export default async function ListsPage() {
   const user = await getCurrentUser();
@@ -115,6 +116,7 @@ export default async function ListsPage() {
                             {(list as { source?: string }).source === 'github' && (
                               <GitHubIssuesListMark showLabel />
                             )}
+                            <ListVisibilityMark isPublic={Boolean((list as { isPublic?: boolean }).isPublic)} showLabel />
                           </h5>
                           {list.parentId && (
                             <span

@@ -20,7 +20,8 @@
     "test-data:seed": "dotenv -e .env.local -- node test-data/seed-test-accounts.js",
     "cli:test": "make -C cli test",
     "cli:test-local": "node scripts/cli-test-local.js",
-    "cli:build": "make -C cli all && mkdir -p public/downloads/darwin-arm64 public/downloads/darwin-amd64 public/downloads/linux-arm64 public/downloads/linux-amd64 public/downloads/windows && cp cli/dist/il-sync-darwin-arm64 public/downloads/darwin-arm64/il-sync && cp cli/dist/il-sync-darwin-amd64 public/downloads/darwin-amd64/il-sync && cp cli/dist/il-sync-linux-arm64 public/downloads/linux-arm64/il-sync && cp cli/dist/il-sync-linux-amd64 public/downloads/linux-amd64/il-sync && cp cli/dist/il-sync-windows-amd64.exe public/downloads/windows/il-sync.exe"
+    "cli:build": "node scripts/deploy-all-production.js --binaries-only",
+    "deploy-all-production": "node scripts/deploy-all-production.js"
   },
   "dependencies": {
     "@atproto/oauth-client-node": "^0.3.16",

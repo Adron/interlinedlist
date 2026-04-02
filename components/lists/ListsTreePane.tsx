@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { buildListTree, listPropertiesToParsedFields } from '@/lib/lists/tree-utils';
 import ListDataTable from './ListDataTable';
 import GitHubIssuesListMark from './GitHubIssuesListMark';
+import ListVisibilityMark from './ListVisibilityMark';
 
 interface ListWithProperties {
   id: string;
@@ -38,6 +39,8 @@ function TreeNodeItem({
   const hasChildren = node.children.length > 0;
   const isExpanded = expandedIds.has(node.list.id);
   const isSelected = selectedListId === node.list.id;
+  const rowList = listMap.get(node.list.id);
+  const isPublic = Boolean(rowList?.isPublic);
 
   return (
     <li className="list-unstyled">
@@ -69,6 +72,7 @@ function TreeNodeItem({
           {(node.list as { source?: string }).source === 'github' && (
             <GitHubIssuesListMark variant={isSelected ? 'onDark' : 'default'} />
           )}
+          <ListVisibilityMark isPublic={isPublic} variant={isSelected ? 'onDark' : 'default'} />
         </button>
         <a
           href={(node.list as { source?: string }).source === 'github'
@@ -183,6 +187,7 @@ export default function ListsTreePane({ lists, canCreateDocuments = false }: Lis
                 {(selectedList as { source?: string }).source === 'github' && (
                   <GitHubIssuesListMark showLabel />
                 )}
+                <ListVisibilityMark isPublic={Boolean(selectedList.isPublic)} showLabel />
               </h6>
               <div className="d-flex gap-1">
                 <a
@@ -207,6 +212,9 @@ export default function ListsTreePane({ lists, canCreateDocuments = false }: Lis
                 listTitle={selectedList.title}
                 canCreateDocuments={canCreateDocuments}
                 fields={fields}
+                listIsPublic={Boolean(selectedList.isPublic)}
+                listSource={(selectedList as { source?: string }).source === 'github' ? 'github' : 'local'}
+                githubRepo={(selectedList as { githubRepo?: string | null }).githubRepo ?? undefined}
               />
             </div>
           </div>

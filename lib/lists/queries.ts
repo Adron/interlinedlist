@@ -442,6 +442,8 @@ export async function getWatchedLists(
     parent: w.list.parent,
     role: (w.role || "watcher") as string,
     owner: w.list.user,
+    isPublic: w.list.isPublic,
+    source: w.list.source,
   }));
 
   const total = await prisma.listWatcher.count({

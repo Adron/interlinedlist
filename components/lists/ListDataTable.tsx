@@ -10,6 +10,7 @@ import { buildRowMarkdownMarkdown, buildExportDocumentPaths } from "@/lib/lists/
 import { parseDateFromInput } from "@/lib/lists/date-utils";
 import CreateDocFromRowModal from "./CreateDocFromRowModal";
 import GitHubIssuesListMark from "./GitHubIssuesListMark";
+import ListVisibilityMark from "./ListVisibilityMark";
 
 interface ListDataRow {
   id: string;
@@ -88,6 +89,8 @@ interface ListDataTableProps {
   /** For GitHub lists: fetch labels/assignees options from repo */
   listSource?: 'local' | 'github';
   githubRepo?: string;
+  /** When set, show public/private marker in the table card header */
+  listIsPublic?: boolean;
 }
 
 export default function ListDataTable({
@@ -102,6 +105,7 @@ export default function ListDataTable({
   refreshTrigger = 0,
   listSource,
   githubRepo,
+  listIsPublic,
 }: ListDataTableProps) {
   const [rows, setRows] = useState<ListDataRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -793,6 +797,9 @@ export default function ListDataTable({
               </span>
               <GitHubIssuesListMark showLabel />
             </>
+          )}
+          {typeof listIsPublic === "boolean" && (
+            <ListVisibilityMark isPublic={listIsPublic} showLabel />
           )}
         </h5>
       </div>

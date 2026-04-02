@@ -169,6 +169,8 @@ export default async function UserProfilePage({
           firstListPreview = {
             listId: firstList.id,
             listTitle: firstList.title,
+            isPublic: Boolean((firstList as { isPublic?: boolean }).isPublic),
+            source: (firstList as { source?: string }).source,
             fields: firstTwoFields,
             items: dataResult.rows.map(row => ({
               id: row.id,
@@ -201,6 +203,8 @@ export default async function UserProfilePage({
               fields={firstListPreview.fields}
               items={firstListPreview.items}
               ownerUsername={username}
+              isPublic={firstListPreview.isPublic}
+              source={firstListPreview.source}
             />
           )}
         </div>

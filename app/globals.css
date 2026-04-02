@@ -396,3 +396,90 @@ textarea:focus {
   padding: 0.15rem 0.45rem;
   border-radius: 999px;
 }
+
+/* -------------------------------------------------------------------------- */
+/* List public / private marker (ListVisibilityMark) */
+/* -------------------------------------------------------------------------- */
+
+.list-visibility-mark__icon {
+  font-size: 1.05rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+[data-bs-theme='light'] .list-visibility-mark--public:not(.list-visibility-mark--on-dark) .list-visibility-mark__icon {
+  color: #146c43;
+}
+
+[data-bs-theme='light'] .list-visibility-mark--private:not(.list-visibility-mark--on-dark) .list-visibility-mark__icon {
+  color: #495057;
+}
+
+[data-bs-theme='dark'] .list-visibility-mark--public:not(.list-visibility-mark--on-dark) .list-visibility-mark__icon {
+  color: #75b798;
+}
+
+[data-bs-theme='dark'] .list-visibility-mark--private:not(.list-visibility-mark--on-dark) .list-visibility-mark__icon {
+  color: #adb5bd;
+}
+
+.list-visibility-mark--with-label {
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  line-height: 1;
+}
+
+[data-bs-theme='light'] .list-visibility-mark--public.list-visibility-mark--with-label:not(.list-visibility-mark--on-dark) {
+  background: rgba(20, 108, 67, 0.1);
+  border: 1px solid rgba(20, 108, 67, 0.28);
+}
+
+[data-bs-theme='light'] .list-visibility-mark--private.list-visibility-mark--with-label:not(.list-visibility-mark--on-dark) {
+  background: rgba(73, 80, 87, 0.08);
+  border: 1px solid rgba(73, 80, 87, 0.22);
+}
+
+[data-bs-theme='dark'] .list-visibility-mark--public.list-visibility-mark--with-label:not(.list-visibility-mark--on-dark) {
+  background: rgba(117, 183, 152, 0.12);
+  border: 1px solid rgba(117, 183, 152, 0.35);
+}
+
+[data-bs-theme='dark'] .list-visibility-mark--private.list-visibility-mark--with-label:not(.list-visibility-mark--on-dark) {
+  background: rgba(173, 181, 189, 0.1);
+  border: 1px solid rgba(173, 181, 189, 0.28);
+}
+
+.list-visibility-mark--with-label .list-visibility-mark__label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+[data-bs-theme='light'] .list-visibility-mark--public:not(.list-visibility-mark--on-dark) .list-visibility-mark__label {
+  color: #146c43;
+}
+
+[data-bs-theme='light'] .list-visibility-mark--private:not(.list-visibility-mark--on-dark) .list-visibility-mark__label {
+  color: #495057;
+}
+
+[data-bs-theme='dark'] .list-visibility-mark--public:not(.list-visibility-mark--on-dark) .list-visibility-mark__label {
+  color: #75b798;
+}
+
+[data-bs-theme='dark'] .list-visibility-mark--private:not(.list-visibility-mark--on-dark) .list-visibility-mark__label {
+  color: #adb5bd;
+}
+
+.list-visibility-mark--on-dark .list-visibility-mark__icon,
+.list-visibility-mark--on-dark .list-visibility-mark__label {
+  color: #ffffff;
+}
+
+.list-visibility-mark--on-dark.list-visibility-mark--with-label {
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+}

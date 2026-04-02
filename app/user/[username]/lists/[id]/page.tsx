@@ -61,6 +61,7 @@ export default async function PublicListPage({ params }: PublicListPageProps) {
             dataApiUrl={`/api/users/${encodeURIComponent(username)}/lists/${listId}/data`}
             readOnly
             canCreateDocuments={false}
+            listIsPublic
           />
         </div>
       </div>
