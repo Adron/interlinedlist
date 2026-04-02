@@ -1,14 +1,20 @@
+import { unstable_noStore as noStore } from 'next/cache';
 import { redirect, notFound } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
 import Link from 'next/link';
 import DocumentEditor from '@/components/documents/DocumentEditor';
 import { getDocumentById } from '@/lib/documents/queries';
 
+/** Avoid serving a stale RSC payload for this route after edits (client nav back must re-fetch). */
+export const dynamic = 'force-dynamic';
+
 export default async function DocumentPage({
   params,
 }: {
   params: Promise<{ id: string }> | { id: string };
 }) {
+  noStore();
+
   const user = await getCurrentUser();
 
   if (!user) {

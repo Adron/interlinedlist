@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
+import { useRouter } from 'next/navigation';
 import { useDocumentsTreeRefresh } from '@/components/documents/DocumentsTreeContext';
 import '@uiw/react-md-editor/markdown-editor.css';
 
@@ -31,6 +32,7 @@ export default function DocumentEditor({
   initialContent,
   initialIsPublic,
 }: DocumentEditorProps) {
+  const router = useRouter();
   const { requestTreeRefresh } = useDocumentsTreeRefresh();
   const [title, setTitle] = useState(initialTitle);
   const [content, setContent] = useState(initialContent);
@@ -113,6 +115,8 @@ export default function DocumentEditor({
           clearAllTimers();
           setSaveStatus('saved');
           requestTreeRefresh();
+          // Invalidate App Router client cache for this route so client nav back loads saved content.
+          router.refresh();
           window.setTimeout(() => {
             setSaveStatus((s) => (s === 'saved' ? 'idle' : s));
           }, SAVED_STATUS_MS);
@@ -151,7 +155,7 @@ export default function DocumentEditor({
         }
       }
     },
-    [documentId, clearAllTimers, requestTreeRefresh]
+    [documentId, clearAllTimers, requestTreeRefresh, router]
   );
 
   const scheduleAutosave = useCallback(() => {
