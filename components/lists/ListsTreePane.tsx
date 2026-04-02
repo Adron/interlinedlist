@@ -3,6 +3,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { buildListTree, listPropertiesToParsedFields } from '@/lib/lists/tree-utils';
 import ListDataTable from './ListDataTable';
+import GitHubIssuesListMark from './GitHubIssuesListMark';
+import ListVisibilityMark from './ListVisibilityMark';
 
 interface ListWithProperties {
   id: string;
@@ -37,6 +39,8 @@ function TreeNodeItem({
   const hasChildren = node.children.length > 0;
   const isExpanded = expandedIds.has(node.list.id);
   const isSelected = selectedListId === node.list.id;
+  const rowList = listMap.get(node.list.id);
+  const isPublic = Boolean(rowList?.isPublic);
 
   return (
     <li className="list-unstyled">
@@ -61,13 +65,14 @@ function TreeNodeItem({
         )}
         <button
           type="button"
-          className="btn btn-link btn-sm p-0 text-start flex-grow-1 text-decoration-none"
+          className="btn btn-link btn-sm p-0 text-start flex-grow-1 text-decoration-none d-inline-flex align-items-center gap-1 flex-wrap"
           onClick={() => onSelect(node.list.id)}
         >
           <span className={isSelected ? 'text-white' : ''}>{node.list.title}</span>
           {(node.list as { source?: string }).source === 'github' && (
-            <i className="bx bxl-github ms-1 text-muted" style={{ fontSize: '0.8rem' }} title="GitHub-backed" />
+            <GitHubIssuesListMark variant={isSelected ? 'onDark' : 'default'} />
           )}
+          <ListVisibilityMark isPublic={isPublic} variant={isSelected ? 'onDark' : 'default'} />
         </button>
         <a
           href={(node.list as { source?: string }).source === 'github'
@@ -81,7 +86,7 @@ function TreeNodeItem({
         </a>
       </div>
       {hasChildren && isExpanded && (
-        <ul className="list-unstyled mb-0">
+        <ul className="list-unstyled lists-tree-nested">
           {node.children.map((child) => (
             <TreeNodeItem
               key={child.list.id}
@@ -149,13 +154,13 @@ export default function ListsTreePane({ lists, canCreateDocuments = false }: Lis
   }
 
   return (
-    <div className="row" style={{ minHeight: '400px' }}>
-      <div className="col-md-4 col-lg-3">
-        <div className="card h-100">
-          <div className="card-header py-2">
+    <div className="row g-3 lists-tree-pane-row">
+      <div className="col-md-4 col-lg-3 d-flex flex-column lists-tree-flex-min">
+        <div className="card h-100 d-flex flex-column lists-tree-flex-min">
+          <div className="card-header py-2 flex-shrink-0">
             <h6 className="mb-0">Lists</h6>
           </div>
-          <div className="card-body p-0 overflow-auto" style={{ maxHeight: '500px' }}>
+          <div className="card-body flex-grow-1 lists-tree-flex-min lists-tree-pane-scroll p-0">
             <ul className="list-unstyled mb-0 py-2">
               {tree.map((node) => (
                 <TreeNodeItem
@@ -173,11 +178,17 @@ export default function ListsTreePane({ lists, canCreateDocuments = false }: Lis
           </div>
         </div>
       </div>
-      <div className="col-md-8 col-lg-9">
+      <div className="col-md-8 col-lg-9 d-flex flex-column lists-tree-flex-min">
         {selectedList ? (
-          <div className="card">
-            <div className="card-header py-2 d-flex justify-content-between align-items-center">
-              <h6 className="mb-0">{selectedList.title}</h6>
+          <div className="card h-100 d-flex flex-column lists-tree-flex-min">
+            <div className="card-header py-2 d-flex justify-content-between align-items-center flex-shrink-0">
+              <h6 className="mb-0 d-flex align-items-center gap-2 flex-wrap">
+                <span>{selectedList.title}</span>
+                {(selectedList as { source?: string }).source === 'github' && (
+                  <GitHubIssuesListMark showLabel />
+                )}
+                <ListVisibilityMark isPublic={Boolean(selectedList.isPublic)} showLabel />
+              </h6>
               <div className="d-flex gap-1">
                 <a
                   href={(selectedList as { source?: string }).source === 'github'
@@ -195,17 +206,20 @@ export default function ListsTreePane({ lists, canCreateDocuments = false }: Lis
                 </a>
               </div>
             </div>
-            <div className="card-body p-0">
+            <div className="card-body flex-grow-1 lists-tree-flex-min overflow-auto p-0">
               <ListDataTable
                 listId={selectedList.id}
                 listTitle={selectedList.title}
                 canCreateDocuments={canCreateDocuments}
                 fields={fields}
+                listIsPublic={Boolean(selectedList.isPublic)}
+                listSource={(selectedList as { source?: string }).source === 'github' ? 'github' : 'local'}
+                githubRepo={(selectedList as { githubRepo?: string | null }).githubRepo ?? undefined}
               />
             </div>
           </div>
         ) : (
-          <div className="card">
+          <div className="card h-100">
             <div className="card-body text-center py-5 text-muted">
               <i className="bx bx-table fs-1 mb-3 d-block" />
               <p className="mb-0">Select a list to view its data.</p>

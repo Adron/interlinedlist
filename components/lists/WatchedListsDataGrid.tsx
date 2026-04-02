@@ -2,6 +2,8 @@
 
 import { useState, useMemo, type ReactNode } from 'react';
 import Link from 'next/link';
+import GitHubIssuesListMark from './GitHubIssuesListMark';
+import ListVisibilityMark from './ListVisibilityMark';
 
 interface WatchedListForGrid {
   id: string;
@@ -16,6 +18,8 @@ interface WatchedListForGrid {
     username: string;
     displayName: string | null;
   };
+  isPublic?: boolean;
+  source?: string;
 }
 
 interface WatchedListsDataGridProps {
@@ -211,13 +215,17 @@ export default function WatchedListsDataGrid({ lists }: WatchedListsDataGridProp
                 paginated.map((list) => (
                   <tr key={list.id}>
                     <td className="align-middle overflow-hidden">
-                      <Link
-                        href={`/user/${encodeURIComponent(list.owner.username)}/lists/${list.id}`}
-                        className="fw-medium text-decoration-none text-truncate d-block"
-                        style={{ maxWidth: '100%' }}
-                      >
-                        {list.title}
-                      </Link>
+                      <div className="d-flex align-items-center gap-2 flex-wrap min-w-0">
+                        <Link
+                          href={`/user/${encodeURIComponent(list.owner.username)}/lists/${list.id}`}
+                          className="fw-medium text-decoration-none text-truncate"
+                          style={{ maxWidth: '100%', minWidth: 0 }}
+                        >
+                          {list.title}
+                        </Link>
+                        {list.source === 'github' && <GitHubIssuesListMark showLabel />}
+                        <ListVisibilityMark isPublic={Boolean(list.isPublic)} showLabel />
+                      </div>
                     </td>
                     <td className="align-middle overflow-hidden">
                       <Link

@@ -12,6 +12,8 @@ import ListsERDDiagram from '@/components/lists/ListsERDDiagram';
 import WatchedListsDataGrid from '@/components/lists/WatchedListsDataGrid';
 import ParentLink from '@/components/lists/ParentLink';
 import ChildLink from '@/components/lists/ChildLink';
+import GitHubIssuesListMark from '@/components/lists/GitHubIssuesListMark';
+import ListVisibilityMark from '@/components/lists/ListVisibilityMark';
 
 export default async function ListsPage() {
   const user = await getCurrentUser();
@@ -109,11 +111,12 @@ export default async function ListsPage() {
                       )}
                       <div className="card-body d-flex flex-column">
                         <div className="d-flex align-items-start justify-content-between mb-2">
-                          <h5 className="card-title mb-0 flex-grow-1">
-                            {list.title}
+                          <h5 className="card-title mb-0 flex-grow-1 d-flex align-items-center flex-wrap gap-2">
+                            <span>{list.title}</span>
                             {(list as { source?: string }).source === 'github' && (
-                              <i className="bx bxl-github ms-1 text-muted" style={{ fontSize: '0.9rem' }} title="GitHub-backed" />
+                              <GitHubIssuesListMark showLabel />
                             )}
+                            <ListVisibilityMark isPublic={Boolean((list as { isPublic?: boolean }).isPublic)} showLabel />
                           </h5>
                           {list.parentId && (
                             <span

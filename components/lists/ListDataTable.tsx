@@ -9,6 +9,8 @@ import { formatListCellDisplay } from "@/lib/lists/row-value-display";
 import { buildRowMarkdownMarkdown, buildExportDocumentPaths } from "@/lib/lists/row-to-markdown";
 import { parseDateFromInput } from "@/lib/lists/date-utils";
 import CreateDocFromRowModal from "./CreateDocFromRowModal";
+import GitHubIssuesListMark from "./GitHubIssuesListMark";
+import ListVisibilityMark from "./ListVisibilityMark";
 
 interface ListDataRow {
   id: string;
@@ -87,6 +89,8 @@ interface ListDataTableProps {
   /** For GitHub lists: fetch labels/assignees options from repo */
   listSource?: 'local' | 'github';
   githubRepo?: string;
+  /** When set, show public/private marker in the table card header */
+  listIsPublic?: boolean;
 }
 
 export default function ListDataTable({
@@ -101,6 +105,7 @@ export default function ListDataTable({
   refreshTrigger = 0,
   listSource,
   githubRepo,
+  listIsPublic,
 }: ListDataTableProps) {
   const [rows, setRows] = useState<ListDataRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -775,8 +780,28 @@ export default function ListDataTable({
   return (
     <>
     <div className="card">
-      <div className="card-header d-flex justify-content-between align-items-center">
-        <h5 className="mb-0">List Data</h5>
+      <div className="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <h5 className="mb-0 d-flex align-items-center gap-2 flex-wrap min-w-0">
+          <span>List Data</span>
+          {listSource === "github" && (
+            <>
+              <span className="text-secondary" aria-hidden>
+                ·
+              </span>
+              <span
+                className="text-truncate fw-semibold"
+                style={{ maxWidth: "min(320px, 55vw)" }}
+                title={listTitle}
+              >
+                {listTitle}
+              </span>
+              <GitHubIssuesListMark showLabel />
+            </>
+          )}
+          {typeof listIsPublic === "boolean" && (
+            <ListVisibilityMark isPublic={listIsPublic} showLabel />
+          )}
+        </h5>
       </div>
       <div className="card-body">
         {error && (

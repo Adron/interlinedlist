@@ -57,9 +57,9 @@ export default async function DashboardPage() {
         </div>
 
         {/* Right Column - Data Management and Profile Information */}
-        <div className="col-lg-4 col-12 mb-4 order-lg-2">
+        <div className="col-lg-4 col-12 mb-4 order-lg-2 d-flex flex-column lists-tree-flex-min lists-dashboard-side-col">
           {/* Data Management Section */}
-          <div className="card mb-3">
+          <div className="card mb-3 flex-shrink-0">
             <div className="card-body">
               <h4 className="h6 mb-3">Data Management</h4>
               <div className="d-flex gap-2 flex-wrap">
@@ -102,7 +102,7 @@ export default async function DashboardPage() {
           </div>
 
           {/* Profile Information */}
-          <div className="card mb-3">
+          <div className="card mb-3 flex-shrink-0">
             <div className="card-body">
               <h4 className="h6 mb-3">Profile Information</h4>
               <ul className="list-unstyled mb-0">
@@ -132,7 +132,9 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          <ListsTreeView />
+          <div className="flex-grow-1 lists-tree-flex-min d-flex flex-column">
+            <ListsTreeView fillColumn />
+          </div>
         </div>
       </div>
     </div>

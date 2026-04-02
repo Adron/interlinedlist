@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { List } from '@/lib/types';
 import { buildListTree, TreeNode } from '@/lib/lists/tree-utils';
 import DeleteListButton from '@/components/lists/DeleteListButton';
+import GitHubIssuesListMark from '@/components/lists/GitHubIssuesListMark';
+import ListVisibilityMark from '@/components/lists/ListVisibilityMark';
 
 interface TreeNodeComponentProps {
   node: TreeNode;
@@ -29,7 +31,7 @@ function TreeNodeComponent({ node, level, expandedNodes, onToggle, onDelete }: T
         <div className="d-flex align-items-center flex-grow-1" style={{ minWidth: 0, overflow: 'hidden' }}>
           {hasChildren ? (
             <div
-              className="d-flex align-items-center"
+              className="d-flex align-items-center gap-1"
               style={{ cursor: 'pointer', minWidth: 0, flex: 1 }}
               onClick={() => onToggle(node.list.id)}
             >
@@ -38,22 +40,30 @@ function TreeNodeComponent({ node, level, expandedNodes, onToggle, onDelete }: T
               <Link 
                 href={`/lists/${node.list.id}`} 
                 className="text-decoration-none text-truncate"
-                style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: '1 1 auto' }}
                 data-bs-toggle="tooltip"
                 data-bs-placement="top"
                 data-bs-title={node.list.title}
                 title={node.list.title}
+                onClick={(e) => e.stopPropagation()}
               >
                 {node.list.title}
               </Link>
+              {(node.list as { source?: string }).source === 'github' && (
+                <GitHubIssuesListMark className="flex-shrink-0" />
+              )}
+              <ListVisibilityMark
+                isPublic={Boolean((node.list as { isPublic?: boolean }).isPublic)}
+                className="flex-shrink-0"
+              />
             </div>
           ) : (
-            <div className="d-flex align-items-center" style={{ minWidth: 0, flex: 1 }}>
+            <div className="d-flex align-items-center gap-1" style={{ minWidth: 0, flex: 1 }}>
               <i className="bx bx-folder me-2 text-muted" style={{ flexShrink: 0 }}></i>
               <Link 
                 href={`/lists/${node.list.id}`} 
                 className="text-decoration-none text-truncate"
-                style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: '1 1 auto' }}
                 data-bs-toggle="tooltip"
                 data-bs-placement="top"
                 data-bs-title={node.list.title}
@@ -61,6 +71,13 @@ function TreeNodeComponent({ node, level, expandedNodes, onToggle, onDelete }: T
               >
                 {node.list.title}
               </Link>
+              {(node.list as { source?: string }).source === 'github' && (
+                <GitHubIssuesListMark className="flex-shrink-0" />
+              )}
+              <ListVisibilityMark
+                isPublic={Boolean((node.list as { isPublic?: boolean }).isPublic)}
+                className="flex-shrink-0"
+              />
             </div>
           )}
         </div>
@@ -86,7 +103,7 @@ function TreeNodeComponent({ node, level, expandedNodes, onToggle, onDelete }: T
         </div>
       </div>
       {hasChildren && isExpanded && (
-        <ul className="list-unstyled ms-4 mt-1 mb-0" style={{ minWidth: 0 }}>
+        <ul className="list-unstyled lists-tree-nested mt-1" style={{ minWidth: 0 }}>
           {node.children.map((child) => (
             <TreeNodeComponent
               key={child.list.id}
@@ -103,7 +120,12 @@ function TreeNodeComponent({ node, level, expandedNodes, onToggle, onDelete }: T
   );
 }
 
-export default function ListsTreeView() {
+interface ListsTreeViewProps {
+  /** When true, card grows in a flex column (e.g. dashboard) and tree scroll fills remaining height. */
+  fillColumn?: boolean;
+}
+
+export default function ListsTreeView({ fillColumn = false }: ListsTreeViewProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [lists, setLists] = useState<List[]>([]);
@@ -212,9 +234,13 @@ export default function ListsTreeView() {
   };
 
   return (
-    <div className="card mb-3">
-      <div className="card-body">
-        <div className="lists-treeview" style={{ maxHeight: '500px', overflowY: 'auto', overflowX: 'hidden' }}>
+    <div
+      className={`card ${fillColumn ? 'mb-0 h-100 flex-grow-1 d-flex flex-column lists-tree-flex-min' : 'mb-3'}`}
+    >
+      <div
+        className={`card-body ${fillColumn ? 'd-flex flex-column flex-grow-1 lists-tree-flex-min' : ''}`}
+      >
+        <div className={`lists-treeview ${fillColumn ? 'lists-treeview--fill' : ''}`}>
           <div
             className="treeview-root d-flex align-items-center mb-2"
             style={{ cursor: 'pointer' }}

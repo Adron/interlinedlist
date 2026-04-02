@@ -46,7 +46,14 @@ The binary version is embedded at build time via `main.version`, sourced from `g
 
 ### Build and Deploy Pipeline
 
-The CLI is integrated into the main project build via `npm run cli:build` (defined in root `package.json`). This script:
+From the **repository root**, use:
+
+| Command | Purpose |
+|--------|---------|
+| `npm run deploy-all-production` | Build all platform binaries, copy into `public/downloads/`, print commit/deploy hints |
+| `npm run cli:build` | Same build and copy steps, minimal output (used by automation) |
+
+Both run `scripts/deploy-all-production.js`, which:
 
 1. Runs `make -C cli all` to build all platform binaries
 2. Creates `public/downloads/` subdirectories for each platform
@@ -73,19 +80,19 @@ The CLI is integrated into the main project build via `npm run cli:build` (defin
 ### Where the Site Links to Downloads
 
 - **Help system**: The in-app help sidebar includes "Tooling (CLI)" and "Local Testing (CLI)".
-- **Documentation**: `documentation/tooling/overview.md` contains download links and install instructions; this content is rendered in the help UI and links to the `/downloads/...` URLs above.
+- **Documentation**: `documentation/help/tooling.md` contains download links and install instructions; this content is rendered in the help UI at `/help/tooling` and links to the `/downloads/...` URLs above.
 
 ### Deployment
 
 - `public/downloads/` is committed to the repo (or produced during build) and deployed with the rest of the Next.js app.
 - On Vercel (or similar), the `vercel-build` script runs `prisma migrate deploy && next build`; it does **not** run `cli:build` by default.
-- To ship new CLI binaries with a deployment, run `npm run cli:build` before or as part of your deploy process, and ensure the resulting `public/downloads/` files are included in the build output.
+- To ship new CLI binaries with a deployment, run `npm run deploy-all-production` (or `npm run cli:build`), commit `public/downloads/` if you version binaries in git, then deploy. Vercel’s default `vercel-build` does not run this automatically unless you add it to the build command.
 
 ---
 
 ## Usage (End Users)
 
-See the in-app help ("Tooling (CLI)") or `documentation/tooling/overview.md` for:
+See the in-app help ("Tooling (CLI)") or `documentation/help/tooling.md` for:
 
 - Download links and installation steps
 - `il-sync init` (setup with email/password)

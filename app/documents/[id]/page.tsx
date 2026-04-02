@@ -38,7 +38,7 @@ export default async function DocumentPage({
                 <Link href="/documents">Documents</Link>
               </li>
               <li className="breadcrumb-item active" aria-current="page">
-                {document.title}
+                {document.title.trim() || document.relativePath}
               </li>
             </ol>
           </nav>
@@ -46,10 +46,12 @@ export default async function DocumentPage({
       </div>
 
       <DocumentEditor
+        key={document.id}
         documentId={document.id}
         initialTitle={document.title}
         initialContent={document.content}
         initialIsPublic={document.isPublic}
+        initialRelativePath={document.relativePath}
       />
     </>
   );

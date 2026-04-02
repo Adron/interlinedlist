@@ -18,6 +18,8 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import ELK from 'elkjs/lib/elk.bundled.js';
+import GitHubIssuesListMark from './GitHubIssuesListMark';
+import ListVisibilityMark from './ListVisibilityMark';
 
 interface ListProperty {
   propertyKey: string;
@@ -32,6 +34,7 @@ interface ListForERD {
   parentId: string | null;
   properties: ListProperty[];
   source?: string;
+  isPublic?: boolean;
 }
 
 interface ListERDNodeData {
@@ -41,6 +44,7 @@ interface ListERDNodeData {
   hasParentId?: boolean;
   hasChildren?: boolean;
   isGitHubList?: boolean;
+  isPublic?: boolean;
 }
 
 interface ListsERDDiagramProps {
@@ -50,6 +54,7 @@ interface ListsERDDiagramProps {
 function ListTableNode({ data }: { data: ListERDNodeData }) {
   const router = useRouter();
   const isGitHub = data.isGitHubList ?? false;
+  const isPublic = data.isPublic ?? false;
 
   const handleClick = useCallback(() => {
     router.push(`/lists/${data.listId}`);
@@ -102,7 +107,8 @@ function ListTableNode({ data }: { data: ListERDNodeData }) {
         }}
       >
         <span style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-          {isGitHub && <i className="bx bxl-github" style={{ fontSize: '16px', flexShrink: 0 }} />}
+          {isGitHub && <GitHubIssuesListMark variant="onDark" showLabel />}
+          <ListVisibilityMark isPublic={isPublic} variant="onDark" showLabel />
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{data.label}</span>
         </span>
         <button
@@ -189,6 +195,7 @@ function buildNodesAndEdges(lists: ListForERD[]): { nodes: Node<ListERDNodeData>
         hasParentId: !!list.parentId,
         hasChildren: parentIds.has(list.id),
         isGitHubList: (list as { source?: string }).source === 'github',
+        isPublic: Boolean((list as { isPublic?: boolean }).isPublic),
       },
       width: 220,
       height: 150,

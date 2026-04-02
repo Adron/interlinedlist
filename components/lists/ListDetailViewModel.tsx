@@ -70,6 +70,7 @@ export default function ListDetailViewModel({
             refreshTrigger={refreshTrigger}
             listSource={listSource}
             githubRepo={githubRepo}
+            listIsPublic={isPublic}
           />
           {isPublic && (
             <ListAccessSection listId={listId} isPublic={isPublic} />

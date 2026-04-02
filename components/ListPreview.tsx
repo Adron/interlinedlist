@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { ParsedField } from '@/lib/lists/dsl-types';
+import GitHubIssuesListMark from '@/components/lists/GitHubIssuesListMark';
+import ListVisibilityMark from '@/components/lists/ListVisibilityMark';
 
 interface ListDataRow {
   id: string;
@@ -17,20 +19,38 @@ interface ListPreviewProps {
   items: ListDataRow[];
   /** When set, links go to /user/[ownerUsername]/lists/[id] instead of /lists/[id] */
   ownerUsername?: string;
+  isPublic?: boolean;
+  source?: string;
 }
 
-export default function ListPreview({ listId, listTitle, fields, items, ownerUsername }: ListPreviewProps) {
+export default function ListPreview({
+  listId,
+  listTitle,
+  fields,
+  items,
+  ownerUsername,
+  isPublic,
+  source,
+}: ListPreviewProps) {
   // Take only first 2 fields
   const displayFields = fields.slice(0, 2);
   
   // Take only first 3 items
   const displayItems = items.slice(0, 3);
 
+  const titleRow = (
+    <h6 className="mb-3 d-flex align-items-center flex-wrap gap-2">
+      <span>{listTitle}</span>
+      {source === 'github' && <GitHubIssuesListMark showLabel />}
+      {typeof isPublic === 'boolean' && <ListVisibilityMark isPublic={isPublic} showLabel />}
+    </h6>
+  );
+
   if (displayItems.length === 0) {
     return (
       <div className="card mb-3">
         <div className="card-body">
-          <h6 className="mb-2">{listTitle}</h6>
+          {titleRow}
           <p className="text-muted small mb-0">No items yet</p>
           <Link
             href={ownerUsername ? `/user/${encodeURIComponent(ownerUsername)}/lists/${listId}` : `/lists/${listId}`}
@@ -46,7 +66,7 @@ export default function ListPreview({ listId, listTitle, fields, items, ownerUse
   return (
     <div className="card mb-3">
       <div className="card-body">
-        <h6 className="mb-3">{listTitle}</h6>
+        {titleRow}
         <div className="d-flex flex-column gap-2">
           {displayItems.map((item) => (
             <div key={item.id} className="card bg-light">

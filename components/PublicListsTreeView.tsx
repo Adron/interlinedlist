@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { List } from '@/lib/types';
 import { buildListTree, TreeNode } from '@/lib/lists/tree-utils';
+import GitHubIssuesListMark from '@/components/lists/GitHubIssuesListMark';
+import ListVisibilityMark from '@/components/lists/ListVisibilityMark';
 
 interface PublicListsTreeViewProps {
   username: string;
@@ -38,7 +40,7 @@ function PublicTreeNodeComponent({
         <div className="d-flex align-items-center flex-grow-1" style={{ minWidth: 0, overflow: 'hidden' }}>
           {hasChildren ? (
             <div
-              className="d-flex align-items-center"
+              className="d-flex align-items-center gap-1"
               style={{ cursor: 'pointer', minWidth: 0, flex: 1 }}
               onClick={() => onToggle(node.list.id)}
             >
@@ -47,22 +49,30 @@ function PublicTreeNodeComponent({
               <Link
                 href={listHref}
                 className="text-decoration-none text-truncate"
-                style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: '1 1 auto' }}
                 data-bs-toggle="tooltip"
                 data-bs-placement="top"
                 data-bs-title={node.list.title}
                 title={node.list.title}
+                onClick={(e) => e.stopPropagation()}
               >
                 {node.list.title}
               </Link>
+              {(node.list as { source?: string }).source === 'github' && (
+                <GitHubIssuesListMark className="flex-shrink-0" />
+              )}
+              <ListVisibilityMark
+                isPublic={Boolean((node.list as { isPublic?: boolean }).isPublic ?? true)}
+                className="flex-shrink-0"
+              />
             </div>
           ) : (
-            <div className="d-flex align-items-center" style={{ minWidth: 0, flex: 1 }}>
+            <div className="d-flex align-items-center gap-1" style={{ minWidth: 0, flex: 1 }}>
               <i className="bx bx-folder me-2 text-muted" style={{ flexShrink: 0 }}></i>
               <Link
                 href={listHref}
                 className="text-decoration-none text-truncate"
-                style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: '1 1 auto' }}
                 data-bs-toggle="tooltip"
                 data-bs-placement="top"
                 data-bs-title={node.list.title}
@@ -70,6 +80,13 @@ function PublicTreeNodeComponent({
               >
                 {node.list.title}
               </Link>
+              {(node.list as { source?: string }).source === 'github' && (
+                <GitHubIssuesListMark className="flex-shrink-0" />
+              )}
+              <ListVisibilityMark
+                isPublic={Boolean((node.list as { isPublic?: boolean }).isPublic ?? true)}
+                className="flex-shrink-0"
+              />
             </div>
           )}
         </div>
