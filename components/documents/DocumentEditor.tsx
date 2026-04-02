@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useDocumentsTreeRefresh } from '@/components/documents/DocumentsTreeContext';
+import DeleteDocumentButton from '@/components/documents/DeleteDocumentButton';
 import '@uiw/react-md-editor/markdown-editor.css';
 
 const MDEditor = dynamic(() => import('@uiw/react-md-editor'), { ssr: false });
@@ -17,6 +18,7 @@ interface DocumentEditorProps {
   initialTitle: string;
   initialContent: string;
   initialIsPublic: boolean;
+  initialRelativePath: string;
 }
 
 function snapshotsEqual(
@@ -31,14 +33,20 @@ export default function DocumentEditor({
   initialTitle,
   initialContent,
   initialIsPublic,
+  initialRelativePath,
 }: DocumentEditorProps) {
   const router = useRouter();
   const { requestTreeRefresh } = useDocumentsTreeRefresh();
   const [title, setTitle] = useState(initialTitle);
+  const [committedTitle, setCommittedTitle] = useState(initialTitle);
   const [content, setContent] = useState(initialContent);
   const [isPublic, setIsPublic] = useState(initialIsPublic);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+
+  const [isTitleEditing, setIsTitleEditing] = useState(false);
+  const [draftTitle, setDraftTitle] = useState('');
+  const [titleError, setTitleError] = useState('');
 
   const titleRef = useRef(initialTitle);
   const contentRef = useRef(initialContent);
@@ -74,7 +82,7 @@ export default function DocumentEditor({
   }, [clearDebounceTimer, clearCheckpointTimer]);
 
   const flushSave = useCallback(
-    async (options?: { keepalive?: boolean }) => {
+    async (options?: { keepalive?: boolean }): Promise<boolean> => {
       const snapshot = {
         title: titleRef.current,
         content: contentRef.current,
@@ -82,7 +90,7 @@ export default function DocumentEditor({
       };
 
       if (snapshotsEqual(snapshot, lastSavedRef.current)) {
-        return;
+        return true;
       }
 
       abortRef.current?.abort();
@@ -107,15 +115,15 @@ export default function DocumentEditor({
         });
 
         if (gen !== saveGenRef.current) {
-          return;
+          return false;
         }
 
         if (res.ok) {
           lastSavedRef.current = { ...snapshot };
+          setCommittedTitle(titleRef.current);
           clearAllTimers();
           setSaveStatus('saved');
           requestTreeRefresh();
-          // Invalidate App Router client cache for this route so client nav back loads saved content.
           router.refresh();
           window.setTimeout(() => {
             setSaveStatus((s) => (s === 'saved' ? 'idle' : s));
@@ -138,17 +146,19 @@ export default function DocumentEditor({
               }, MAX_WAIT_MS);
             }
           }
-        } else {
-          setSaveStatus('error');
-        }
-      } catch (e) {
-        if (e instanceof Error && e.name === 'AbortError') {
-          return;
-        }
-        if (gen !== saveGenRef.current) {
-          return;
+          return true;
         }
         setSaveStatus('error');
+        return false;
+      } catch (e) {
+        if (e instanceof Error && e.name === 'AbortError') {
+          return false;
+        }
+        if (gen !== saveGenRef.current) {
+          return false;
+        }
+        setSaveStatus('error');
+        return false;
       } finally {
         if (gen === saveGenRef.current) {
           setSaving(false);
@@ -185,6 +195,50 @@ export default function DocumentEditor({
   }, [clearDebounceTimer, clearAllTimers, flushSave]);
 
   useEffect(() => {
+    const rsc = {
+      title: initialTitle,
+      content: initialContent,
+      isPublic: initialIsPublic,
+    };
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const res = await fetch(`/api/documents/${documentId}`);
+        if (!res.ok || cancelled) return;
+        const data: { document?: { title: string; content: string; isPublic: boolean } } =
+          await res.json();
+        if (cancelled || !data.document) return;
+        const d = data.document;
+
+        if (
+          titleRef.current === rsc.title &&
+          contentRef.current === rsc.content &&
+          isPublicRef.current === rsc.isPublic &&
+          lastSavedRef.current.title === rsc.title &&
+          lastSavedRef.current.content === rsc.content &&
+          lastSavedRef.current.isPublic === rsc.isPublic
+        ) {
+          setTitle(d.title);
+          setCommittedTitle(d.title);
+          setContent(d.content);
+          setIsPublic(d.isPublic);
+          titleRef.current = d.title;
+          contentRef.current = d.content;
+          isPublicRef.current = d.isPublic;
+          lastSavedRef.current = { title: d.title, content: d.content, isPublic: d.isPublic };
+        }
+      } catch {
+        /* ignore refresh errors; RSC payload remains */
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [documentId, initialTitle, initialContent, initialIsPublic]);
+
+  useEffect(() => {
     const onVisibility = () => {
       if (document.visibilityState === 'hidden') {
         void flushSave({ keepalive: true });
@@ -208,11 +262,33 @@ export default function DocumentEditor({
     };
   }, [clearAllTimers]);
 
-  const onTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const v = e.target.value;
-    titleRef.current = v;
-    setTitle(v);
-    scheduleAutosave();
+  const beginTitleEdit = () => {
+    setDraftTitle(title);
+    setTitleError('');
+    setIsTitleEditing(true);
+  };
+
+  const cancelTitleEdit = () => {
+    setTitleError('');
+    setIsTitleEditing(false);
+  };
+
+  const saveTitleEdit = async () => {
+    const trimmed = draftTitle.trim();
+    if (!trimmed) {
+      setTitleError('Title cannot be empty.');
+      return;
+    }
+    setTitleError('');
+    titleRef.current = trimmed;
+    setTitle(trimmed);
+
+    const ok = await flushSave();
+    if (ok) {
+      setIsTitleEditing(false);
+    } else {
+      setTitleError('Could not save title. Try again.');
+    }
   };
 
   const onContentChange = (v: string | undefined) => {
@@ -262,18 +338,84 @@ export default function DocumentEditor({
     }
   };
 
+  const titleDisplay = title.trim() || initialRelativePath;
+
   return (
     <div className="card">
       <div className="card-body">
-        <div className="d-flex justify-content-between align-items-center mb-3">
-          <input
-            type="text"
-            className="form-control form-control-lg border-0 bg-transparent"
-            value={title}
-            onChange={onTitleChange}
-            placeholder="Document title"
-            style={{ maxWidth: '60%' }}
-          />
+        <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <div className="d-flex align-items-center gap-2 flex-grow-1 min-w-0 flex-wrap">
+            {isTitleEditing ? (
+              <div className="d-flex flex-wrap align-items-start gap-2 flex-grow-1">
+                <div style={{ minWidth: '12rem', maxWidth: 'min(100%, 24rem)', flex: '1 1 12rem' }}>
+                  <input
+                    type="text"
+                    className={`form-control form-control-lg ${titleError ? 'is-invalid' : ''}`}
+                    value={draftTitle}
+                    onChange={(e) => {
+                      setDraftTitle(e.target.value);
+                      setTitleError('');
+                    }}
+                    placeholder="Document title"
+                    autoFocus
+                    aria-invalid={!!titleError}
+                    aria-describedby={titleError ? 'document-title-error' : undefined}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') cancelTitleEdit();
+                      if (e.key === 'Enter') void saveTitleEdit();
+                    }}
+                  />
+                  {titleError && (
+                    <div id="document-title-error" className="invalid-feedback d-block">
+                      {titleError}
+                    </div>
+                  )}
+                </div>
+                <div className="d-flex align-items-center gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={() => void saveTitleEdit()}
+                    disabled={saving}
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-sm"
+                    onClick={cancelTitleEdit}
+                    disabled={saving}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="h4 mb-0 text-start btn btn-link text-decoration-none text-body p-0 text-truncate"
+                  style={{ maxWidth: 'min(100%, 28rem)' }}
+                  onClick={beginTitleEdit}
+                  title="Edit title"
+                >
+                  {titleDisplay}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary btn-sm"
+                  onClick={beginTitleEdit}
+                >
+                  Rename
+                </button>
+                <DeleteDocumentButton
+                  documentId={documentId}
+                  displayName={committedTitle.trim() || initialRelativePath}
+                  onDeleteSuccess={requestTreeRefresh}
+                />
+              </>
+            )}
+          </div>
           <div className="d-flex align-items-center gap-2 flex-wrap justify-content-end">
             <span className="small text-muted">
               {saveStatus === 'saving' && 'Saving...'}

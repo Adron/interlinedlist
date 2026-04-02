@@ -261,3 +261,77 @@ textarea:focus {
 .scheduled-posted-badge {
   animation: scheduledPostedFadeOut 3s ease-out forwards;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Lists tree (ListsTreePane + ListsTreeView): nesting guide & scroll heights */
+/* -------------------------------------------------------------------------- */
+
+/* Subtle vertical line for nested list children (compact) */
+.lists-tree-nested {
+  list-style: none;
+  border-left: 1px solid rgba(var(--bs-secondary-rgb), 0.35);
+  margin-left: 0.25rem;
+  padding-left: 0.5rem;
+  margin-top: 0.125rem;
+  margin-bottom: 0;
+}
+
+/* Lists page Tree tab: --lists-tree-chrome-offset ≈ topbar + page padding + tabs + actions row */
+.lists-tree-pane-row {
+  min-height: 400px;
+}
+
+@media (min-width: 768px) {
+  .lists-tree-pane-row {
+    height: calc(100dvh - var(--lists-tree-chrome-offset, 13rem));
+    min-height: 400px;
+  }
+}
+
+/* Tree list scroll: fills flex area on md+; ~15 row cap on stacked/mobile */
+.lists-tree-pane-scroll {
+  overflow: auto;
+}
+
+@media (max-width: 767.98px) {
+  .lists-tree-pane-scroll {
+    max-height: calc(2.25rem * 15);
+  }
+}
+
+/* Sidebar / dashboard tree scroll — --lists-tree-sidebar-offset ≈ topbar + cards above tree */
+.lists-treeview {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+@media (min-width: 768px) {
+  .lists-treeview {
+    max-height: calc(100dvh - var(--lists-tree-sidebar-offset, 12rem));
+  }
+}
+
+@media (max-width: 767.98px) {
+  .lists-treeview {
+    max-height: min(calc(2.25rem * 15), calc(100dvh - 8rem));
+  }
+}
+
+/* When tree fills a flex column (dashboard), drop vh cap and use parent height */
+.lists-treeview.lists-treeview--fill {
+  max-height: none;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Flex children that must shrink for overflow (Bootstrap has no min-h-0 utility by default) */
+.lists-tree-flex-min {
+  min-height: 0;
+}
+
+/* Dashboard right column: reserve viewport so tree card can grow (lg+ only) */
+@media (min-width: 992px) {
+  .lists-dashboard-side-col {
+    min-height: calc(100dvh - 12rem);
+  }
+}

@@ -86,7 +86,7 @@ function TreeNodeComponent({ node, level, expandedNodes, onToggle, onDelete }: T
         </div>
       </div>
       {hasChildren && isExpanded && (
-        <ul className="list-unstyled ms-4 mt-1 mb-0" style={{ minWidth: 0 }}>
+        <ul className="list-unstyled lists-tree-nested mt-1" style={{ minWidth: 0 }}>
           {node.children.map((child) => (
             <TreeNodeComponent
               key={child.list.id}
@@ -103,7 +103,12 @@ function TreeNodeComponent({ node, level, expandedNodes, onToggle, onDelete }: T
   );
 }
 
-export default function ListsTreeView() {
+interface ListsTreeViewProps {
+  /** When true, card grows in a flex column (e.g. dashboard) and tree scroll fills remaining height. */
+  fillColumn?: boolean;
+}
+
+export default function ListsTreeView({ fillColumn = false }: ListsTreeViewProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [lists, setLists] = useState<List[]>([]);
@@ -212,9 +217,13 @@ export default function ListsTreeView() {
   };
 
   return (
-    <div className="card mb-3">
-      <div className="card-body">
-        <div className="lists-treeview" style={{ maxHeight: '500px', overflowY: 'auto', overflowX: 'hidden' }}>
+    <div
+      className={`card ${fillColumn ? 'mb-0 h-100 flex-grow-1 d-flex flex-column lists-tree-flex-min' : 'mb-3'}`}
+    >
+      <div
+        className={`card-body ${fillColumn ? 'd-flex flex-column flex-grow-1 lists-tree-flex-min' : ''}`}
+      >
+        <div className={`lists-treeview ${fillColumn ? 'lists-treeview--fill' : ''}`}>
           <div
             className="treeview-root d-flex align-items-center mb-2"
             style={{ cursor: 'pointer' }}

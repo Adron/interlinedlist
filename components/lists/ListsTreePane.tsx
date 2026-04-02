@@ -81,7 +81,7 @@ function TreeNodeItem({
         </a>
       </div>
       {hasChildren && isExpanded && (
-        <ul className="list-unstyled mb-0">
+        <ul className="list-unstyled lists-tree-nested">
           {node.children.map((child) => (
             <TreeNodeItem
               key={child.list.id}
@@ -149,13 +149,13 @@ export default function ListsTreePane({ lists, canCreateDocuments = false }: Lis
   }
 
   return (
-    <div className="row" style={{ minHeight: '400px' }}>
-      <div className="col-md-4 col-lg-3">
-        <div className="card h-100">
-          <div className="card-header py-2">
+    <div className="row g-3 lists-tree-pane-row">
+      <div className="col-md-4 col-lg-3 d-flex flex-column lists-tree-flex-min">
+        <div className="card h-100 d-flex flex-column lists-tree-flex-min">
+          <div className="card-header py-2 flex-shrink-0">
             <h6 className="mb-0">Lists</h6>
           </div>
-          <div className="card-body p-0 overflow-auto" style={{ maxHeight: '500px' }}>
+          <div className="card-body flex-grow-1 lists-tree-flex-min lists-tree-pane-scroll p-0">
             <ul className="list-unstyled mb-0 py-2">
               {tree.map((node) => (
                 <TreeNodeItem
@@ -173,10 +173,10 @@ export default function ListsTreePane({ lists, canCreateDocuments = false }: Lis
           </div>
         </div>
       </div>
-      <div className="col-md-8 col-lg-9">
+      <div className="col-md-8 col-lg-9 d-flex flex-column lists-tree-flex-min">
         {selectedList ? (
-          <div className="card">
-            <div className="card-header py-2 d-flex justify-content-between align-items-center">
+          <div className="card h-100 d-flex flex-column lists-tree-flex-min">
+            <div className="card-header py-2 d-flex justify-content-between align-items-center flex-shrink-0">
               <h6 className="mb-0">{selectedList.title}</h6>
               <div className="d-flex gap-1">
                 <a
@@ -195,7 +195,7 @@ export default function ListsTreePane({ lists, canCreateDocuments = false }: Lis
                 </a>
               </div>
             </div>
-            <div className="card-body p-0">
+            <div className="card-body flex-grow-1 lists-tree-flex-min overflow-auto p-0">
               <ListDataTable
                 listId={selectedList.id}
                 listTitle={selectedList.title}
@@ -205,7 +205,7 @@ export default function ListsTreePane({ lists, canCreateDocuments = false }: Lis
             </div>
           </div>
         ) : (
-          <div className="card">
+          <div className="card h-100">
             <div className="card-body text-center py-5 text-muted">
               <i className="bx bx-table fs-1 mb-3 d-block" />
               <p className="mb-0">Select a list to view its data.</p>
