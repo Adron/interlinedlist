@@ -79,8 +79,9 @@ Both run `scripts/deploy-all-production.js`, which:
 
 ### Where the Site Links to Downloads
 
-- **Help system**: The in-app help sidebar includes "Tooling (CLI)" and "Local Testing (CLI)".
+- **Help system**: The in-app help sidebar includes **Tooling (CLI)**.
 - **Documentation**: `documentation/help/tooling.md` contains download links and install instructions; this content is rendered in the help UI at `/help/tooling` and links to the `/downloads/...` URLs above.
+- **Contributors** testing the CLI against a local Next.js server: [`documentation/developer/cli-against-local-server.md`](../documentation/developer/cli-against-local-server.md).
 
 ### Deployment
 

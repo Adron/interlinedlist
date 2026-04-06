@@ -4,7 +4,7 @@ title: Documents
 
 # Documents
 
-Documents let you create and organize markdown files with folders. Use them for notes, wikis, or any text content. Documents support images, and you can edit them in the web app or sync them with the CLI for local editing.
+Documents let you create and organize markdown files with folders. Use them for notes, wikis, or any text content. Documents support images. Most people write and edit entirely in the browser; you can also **optionally** install the Document Sync CLI to keep a folder on your computer in sync with the same documents (see **Tooling (CLI)**).
 
 ## What Are Documents?
 
@@ -18,7 +18,7 @@ Documents can be public (viewable by anyone) or private (only you).
 
 ## Accessing Documents
 
-1. Click **Documents** in the top navigation (or go to `/documents`)
+1. Click **Documents** in the top navigation
 2. Use the folder tree on the left to browse
 3. Click a folder to see its documents
 4. Click a document to open it in the editor
@@ -60,9 +60,9 @@ Documents can be public (viewable by anyone) or private (only you).
 - Images are uploaded to cloud storage and embedded with a URL
 - When syncing with the CLI, local images (e.g. `![](./photo.png)`) are uploaded and the links are rewritten
 
-## Syncing with the CLI
+## Optional: syncing with the Document Sync CLI
 
-Use the Document Sync CLI to edit documents locally in your favorite editor. The daemon watches your sync folder and:
+If you prefer a desktop editor, use the Document Sync CLI. It watches a folder on your computer and:
 
 - **Pushes** local changes to the website
 - **Pulls** changes from the website to your local folder
@@ -81,4 +81,4 @@ Set visibility when creating or editing a document.
 
 ## Related
 
-- **Tooling (CLI)** — Set up the sync daemon for local editing
+- **Tooling (CLI)** — Download, install, and configure the optional sync tool

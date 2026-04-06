@@ -1,10 +1,12 @@
 ---
-title: Developer APIs
+title: HTTP API reference
 ---
 
-# Developer APIs
+# HTTP API reference
 
-This section describes the HTTP APIs available for building applications (clients, scripts, or integrations) on top of InterlinedList. All APIs use JSON for request and response bodies unless noted. The base URL is your instance (e.g. `https://your-app.example.com`); paths are relative to that (e.g. `/api/messages`).
+**Audience:** Developers building applications, scripts, or integrations against InterlinedList. In-app help for everyday website use lives under **Help** in the product; this file is repository documentation only.
+
+This section describes the HTTP APIs available on top of InterlinedList. All APIs use JSON for request and response bodies unless noted. The base URL is your deployment (e.g. `https://interlinedlist.com` for production); paths are relative to that (e.g. `/api/messages`).
 
 ## Authentication
 
@@ -195,9 +197,11 @@ All export endpoints return CSV (or similar) and require a session.
 
 ---
 
-## Tooling (CLI)
+## Document Sync CLI and Bearer auth
 
-The Document Sync CLI and native clients (e.g. iOS app) use the sync token for API access. See **Tooling (CLI)** and **Local Testing (CLI)** in the Help sidebar for setup and usage. Obtain a token via `POST /api/auth/sync-token`, then send `Authorization: Bearer <token>` on requests. Bearer auth is supported for: `GET /api/user`; `GET` and `POST /api/messages`; `GET` and `DELETE /api/messages/[id]`; and `GET` and `POST /api/documents/sync`.
+The Document Sync CLI and native clients (e.g. iOS app) use the sync token for API access. End users install the CLI from in-app **Help → Tooling (CLI)** on [interlinedlist.com/help/tooling](https://interlinedlist.com/help/tooling). Contributors testing against a local server: see [cli-against-local-server.md](./cli-against-local-server.md).
+
+Obtain a token via `POST /api/auth/sync-token`, then send `Authorization: Bearer <token>` on requests. Bearer auth is supported for: `GET /api/user`; `GET` and `POST /api/messages`; `GET` and `DELETE /api/messages/[id]`; and `GET` and `POST /api/documents/sync`.
 
 ---
 

@@ -19,7 +19,7 @@ Use the top bar to move around:
 - **Home** — Main feed (your messages + all public messages)
 - **Dashboard** — Your messages only, data management, profile
 - **Lists** — Create and manage your lists
-- **Documents** — Markdown notes and folders; sync with the CLI for local editing
+- **Documents** — Markdown notes and folders; create and edit in the browser, or optionally use the Document Sync CLI on your computer (see **Tooling (CLI)**)
 - **Organizations** — Browse and join organizations
 - **People** — Manage followers, following, and follow requests
 
@@ -34,7 +34,7 @@ Click your profile icon in the top right for the dropdown menu:
 
 1. **Post a message** — Use the input on the Home page (left sidebar) to share an update; use the advanced options (gear) to attach images or video
 2. **Create a list** — Go to Lists and click "New List" to add your first list (local or GitHub-backed)
-3. **Create a document** — Go to Documents to write markdown notes in folders; sync with the CLI for local editing
+3. **Create a document** — Open **Documents**, pick a folder, and write in the built-in editor (optional: install the **Document Sync CLI** if you prefer editing files on your computer)
 4. **Follow people** — Visit People or user profiles to follow others and see their messages in your feed
 5. **Watch lists** — Visit another user's profile to see their public lists; click "Watch" or "Add self as watcher" to follow a list
 6. **Update your profile** — Visit Settings to add a display name, avatar, and bio
@@ -45,4 +45,4 @@ Export your data (messages, lists, follows) from the **Exports** page. Reach it 
 
 ## Need More Help?
 
-Use the sidebar to explore other topics. See **Lists** for creating and managing lists; **Documents** for markdown notes and CLI sync; **Messages** for posting and visibility; **People** for followers and following; **Tooling (CLI)** for the Document Sync daemon; and **Settings** for customizing your experience.
+Use the sidebar to explore other topics. See **Lists** for creating and managing lists; **Documents** for markdown notes in the browser (and optional desktop sync); **Messages** for posting and visibility; **People** for followers and following; **Tooling (CLI)** if you want the optional Document Sync tool; and **Settings** for customizing your experience.

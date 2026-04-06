@@ -1,8 +1,10 @@
 ---
-title: Local Testing (CLI)
+title: Testing the document sync CLI against a local server
 ---
 
-# Testing the CLI Against a Local Server
+# Testing the document sync CLI against a local server
+
+**Audience:** Contributors and self-hosters running the InterlinedList app locally—not end users of [interlinedlist.com](https://interlinedlist.com).
 
 Use a local InterlinedList dev server instead of production to test the CLI without affecting live data.
 
@@ -27,6 +29,6 @@ Use a local InterlinedList dev server instead of production to test the CLI with
 
 4. **Verify**: Add a `.md` file to your sync root, save it, and wait a few seconds. Check the Documents page at http://localhost:3000 to confirm it appeared.
 
-## Switching Back to Production
+## Switching back to production
 
 Re-run `il-sync init` and enter your production server URL and credentials. The config is overwritten; there is one config per machine.

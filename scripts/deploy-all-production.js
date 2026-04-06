@@ -77,7 +77,7 @@ function main() {
 
   if (!binariesOnly) {
     console.log('\nDone. Binaries are under public/downloads/ for Next.js static serving.');
-    console.log('Help page links: /help/tooling (see documentation/help/tooling.md).');
+    console.log('Help: /help/tooling ← documentation/help/tooling.md; contributor CLI+local server docs: documentation/developer/');
     console.log('\nNext steps for production:');
     console.log('  1. git add public/downloads && git commit -m "chore: refresh CLI binaries"');
     console.log('  2. Push and deploy (e.g. Vercel), or run locally: npm run vercel-build');

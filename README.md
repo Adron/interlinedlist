@@ -453,7 +453,8 @@ interlinedlist/
 │   │   ├── api/                  # API reference docs
 │   │   ├── application-design/   # App structure and component docs
 │   │   └── architecture/         # Tech stack and data model docs
-│   ├── help/                     # In-app help (incl. tooling.md, local-testing.md)
+│   ├── help/                     # In-app help (end-user topics; e.g. tooling.md)
+│   ├── developer/                # Contributor docs (API reference, CLI vs local server)
 │   └── admin/                    # Admin feature docs
 ├── DSL/                          # Domain Specific Language for Lists
 │   ├── docs/                     # DSL documentation
@@ -708,7 +709,8 @@ interlinedlist/
 
 - **`documentation/`**: Project documentation (markdown)
   - `app-api-arch/`: Architecture, API reference, and application design docs
-  - `help/`: In-app help content rendered by the `/help/` pages (includes **Tooling (CLI)** and **Local Testing (CLI)** as `tooling.md` and `local-testing.md`)
+  - `help/`: End-user help rendered at `/help/` (see `lib/help-config.ts` for topics)
+  - `developer/`: Contributor and integrator docs ([`documentation/developer/README.md`](documentation/developer/README.md)) — HTTP API reference, CLI vs local dev server
   - `admin/`: Admin feature documentation
 
 ## Database
@@ -1040,6 +1042,7 @@ A test API endpoint is available at `/api/test-db` to verify your database conne
   - Markdown-driven help content from `documentation/help/`
   - Help sidebar with navigation
   - Accessible at `/help/[slug]`
+- **Developer documentation** (repository only): [`documentation/developer/`](documentation/developer/) — HTTP API reference for integrations; testing the document sync CLI against a local server (`cli-against-local-server.md`). Not linked from in-app Help.
 - **Architecture Visualizer**: Database schema and aggregate visualization
   - ERD diagram of the database schema
   - Per-table data grid views

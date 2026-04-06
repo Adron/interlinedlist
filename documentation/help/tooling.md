@@ -18,7 +18,7 @@ Pre-built binaries are available for Windows, macOS, and Linux. Each download is
 
 After downloading, make the file executable on macOS/Linux: `chmod +x il-sync`
 
-**Build from source:** If a download link is unavailable, clone the repository, install [Go](https://go.dev/dl/), and run `npm run cli:build` from the project root. Binaries are written under `public/downloads/` for local use or deployment.
+Prebuilt binaries are the supported way to install the sync tool. **Contributors** who clone the InterlinedList repository can build from source and test the CLI against a local server using the **Developer documentation** in the repo (`documentation/developer/` and the root README).
 
 ---
 
@@ -120,7 +120,7 @@ il-sync --verify
 Interactive setup. Prompts for:
 
 - **Sync root path** — The local folder that contains your markdown files (e.g. `~/Documents/notes`)
-- **Server URL** — Your InterlinedList instance (e.g. `https://app.example.com`)
+- **Server URL** — Usually `https://interlinedlist.com` (or another InterlinedList deployment you use)
 - **Email** — Your account email
 - **Password** — Your account password (the CLI authenticates and stores a sync token automatically)
 
@@ -147,10 +147,6 @@ Checks whether the daemon is installed and running. Prints a success message or 
 - **First run**: Run a pull first by starting the daemon; it will fetch your existing documents. Then push any local changes.
 
 ---
-
-## Local Testing
-
-To test the CLI against a local dev server instead of production, see [Local Testing](/help/local-testing).
 
 ## Troubleshooting
 
