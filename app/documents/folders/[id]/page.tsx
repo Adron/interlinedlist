@@ -3,6 +3,7 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { isSubscriber } from '@/lib/subscription/is-subscriber';
 import Link from 'next/link';
 import DocumentList from '@/components/documents/DocumentList';
+import NewFromTemplateButton from '@/components/documents/NewFromTemplateButton';
 import { getFolderById } from '@/lib/documents/queries';
 
 export default async function FolderPage({
@@ -43,13 +44,16 @@ export default async function FolderPage({
               {folder.name}
             </h1>
             {isSubscriber(user.customerStatus) ? (
-              <Link
-                href={`/documents/folders/${folder.id}/new`}
-                className="btn btn-primary"
-              >
-                <i className="bx bx-plus me-2"></i>
-                New Document
-              </Link>
+              <div className="d-flex gap-2 align-items-center">
+                <NewFromTemplateButton targetFolderId={folder.id} />
+                <Link
+                  href={`/documents/folders/${folder.id}/new`}
+                  className="btn btn-primary"
+                >
+                  <i className="bx bx-plus me-2"></i>
+                  New Document
+                </Link>
+              </div>
             ) : (
               <Link href="/subscription" className="btn btn-outline-primary btn-sm">
                 Subscribe to create documents

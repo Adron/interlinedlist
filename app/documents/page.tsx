@@ -3,6 +3,7 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { isSubscriber } from '@/lib/subscription/is-subscriber';
 import Link from 'next/link';
 import DocumentList from '@/components/documents/DocumentList';
+import NewFromTemplateButton from '@/components/documents/NewFromTemplateButton';
 import { prisma } from '@/lib/prisma';
 
 export default async function DocumentsPage() {
@@ -28,6 +29,7 @@ export default async function DocumentsPage() {
           <div className="d-flex gap-2 align-items-center">
             {isSubscriber(user.customerStatus) ? (
               <>
+                <NewFromTemplateButton targetFolderId={null} />
                 <Link href="/documents/new" className="btn btn-primary">
                   <i className="bx bx-plus me-2"></i>
                   New Document
