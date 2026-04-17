@@ -1,5 +1,4 @@
 .DS_Store
-.cursor/
 .idea
 .vscode
 .env
@@ -15,6 +14,9 @@ node_modules/
 
 # Testing
 /coverage
+playwright-report/
+test-results/
+.playwright/
 
 # Next.js
 /.next/

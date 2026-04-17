@@ -1,0 +1,14 @@
+---
+description: Next.js app conventions — lint, TypeScript, and scope for this repo
+globs: "**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# Next.js project standards (InterlinedList)
+
+- **Stack**: Next.js 14 App Router (`app/`), React 18, TypeScript strict, Prisma, Bootstrap + Boxicons. Prefer existing patterns in [`components/`](components/) and [`lib/`](lib/) over new abstractions.
+- **Before finishing a change**: run `npm run lint` and `npx tsc --noEmit`; fix new issues you introduce.
+- **Scope**: Touch only files needed for the task. No drive-by refactors, unrelated formatting sweeps, or new docs unless requested.
+- **Data & auth**: Use [`lib/auth/session`](lib/auth/session) and existing subscription helpers where applicable; respect Prisma models in [`prisma/schema.prisma`](prisma/schema.prisma).
+- **API routes**: Follow existing JSON error shapes and `getCurrentUser` checks in [`app/api/`](app/api/).
+- **UI**: Match spacing, typography, and Bootstrap patterns already used in similar screens.
