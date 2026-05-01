@@ -1,0 +1,41 @@
+# InterlinedList
+
+## Summary
+
+InterlinedList is a web application for time-series micro-blogging (short posts in chronological order, similar in spirit to Mastodon-style feeds) combined with **interactive lists**: users define custom list schemas using an embedded domain-specific language (DSL), store structured rows, organize lists in a hierarchy, and can embed or associate lists with posts. The product also includes **markdown documents** with nested folders and an optional **Document Sync CLI** (`il-sync`) to sync notes with a local machine. Production deployment is commonly at https://interlinedlist.com (override with the site’s `NEXT_PUBLIC_APP_URL` when describing a specific instance).
+
+## Intended audience
+
+People who want a single place to post short updates, maintain structured data (lists), optionally sync markdown notes, join **organizations**, and follow other users—with optional cross-posting to **Bluesky** and **Mastodon** after linking accounts.
+
+## Core concepts
+
+- **Messages**: User-authored posts with timestamps; visibility can be public or private; configurable per-user length limits; replies form threads; images and videos can be attached; URLs can show rich **link previews**.
+- **Feed / Home**: Main timeline mixes the signed-in user’s content with **public** posts from others (exact composition depends on user **view preferences**: e.g. all public messages, only followers, only following).
+- **Dashboard**: Signed-in view focused on the user’s own messages and shortcuts to data management (e.g. exports).
+- **Lists**: Custom schemas (DSL), data rows, parent/child list relationships, optional **watchers** with roles (e.g. follow, collaborate, manage schema). Lists may be public or private.
+- **Organizations**: Groups with roles (owner, admin, member); public or private; users can belong to many. A system organization (“The Public”) is used as a default membership context.
+- **People / profiles**: User directory and profile walls at `/user/{username}`; **follow** relationships may require approval; followers and following lists.
+- **Documents**: Markdown editing in the browser; folders; optional CLI sync using **sync tokens** (separate from browser session cookies).
+- **Exports**: User-driven export of messages, lists, list rows, and follow data (see in-app **Exporting Data** help).
+
+## Authentication and privacy
+
+Much of the site requires sign-in. **Public** messages and **public** lists/profiles are visible without an account; private messages, private lists, and account-specific APIs are not. **Email verification** is required before posting messages. Administrative routes (`/admin`, `/api/admin/*`) are restricted to platform administrators.
+
+## Account linking and integrations
+
+- OAuth linking for **Bluesky**, **GitHub**, and **Mastodon** (for identity and/or posting).
+- Cross-posting targets **Bluesky** and **Mastodon** where configured.
+
+## Help and documentation (end-user)
+
+In-app help topics live under `/help/{slug}` with topics including: `getting-started`, `lists`, `messages`, `people`, `organizations`, `documents`, `export`, `settings`, `account`, `tooling` (CLI). Example: https://interlinedlist.com/help/getting-started
+
+## Developer-facing material
+
+Repository and deployment docs describe HTTP APIs under `/api/*`, Prisma/PostgreSQL data model, and the Go-based Document Sync CLI. These are intended for contributors and integrators, not for casual site visitors.
+
+## Contact
+
+Default contact email referenced in app configuration: contact@interlinedlist.com
