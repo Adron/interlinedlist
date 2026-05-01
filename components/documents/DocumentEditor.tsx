@@ -43,6 +43,7 @@ export default function DocumentEditor({
   const [isPublic, setIsPublic] = useState(initialIsPublic);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [colorMode, setColorMode] = useState<'light' | 'dark'>('light');
 
   const [isTitleEditing, setIsTitleEditing] = useState(false);
   const [draftTitle, setDraftTitle] = useState('');
@@ -262,6 +263,23 @@ export default function DocumentEditor({
     };
   }, [clearAllTimers]);
 
+  useEffect(() => {
+    const root = document.documentElement;
+
+    const syncTheme = () => {
+      const theme = root.getAttribute('data-theme');
+      setColorMode(theme === 'dark' ? 'dark' : 'light');
+    };
+
+    syncTheme();
+    const observer = new MutationObserver(syncTheme);
+    observer.observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
   const beginTitleEdit = () => {
     setDraftTitle(title);
     setTitleError('');
@@ -448,7 +466,7 @@ export default function DocumentEditor({
             </div>
           </div>
         </div>
-        <div data-color-mode="light">
+        <div className="documents-markdown-editor" data-color-mode={colorMode}>
           <MDEditor
             value={content}
             onChange={onContentChange}
