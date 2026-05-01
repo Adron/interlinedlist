@@ -38,4 +38,4 @@ Repository and deployment docs describe HTTP APIs under `/api/*`, Prisma/Postgre
 
 ## Contact
 
-Default contact email referenced in app configuration: contact@interlinedlist.com
+Default contact email referenced in app configuration: support@interlinedlist.com
