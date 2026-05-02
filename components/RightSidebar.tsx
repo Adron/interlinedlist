@@ -1,5 +1,6 @@
 'use client';
 
+import ClockWidget from './ClockWidget';
 import WeatherWidget from './WeatherWidget';
 import { DEFAULT_WEATHER_LOCATION } from '@/lib/config/weather';
 
@@ -26,5 +27,10 @@ export default function RightSidebar({ latitude, longitude }: RightSidebarProps)
 
   const coords = getWeatherCoordinates();
 
-  return <WeatherWidget latitude={coords.latitude} longitude={coords.longitude} />;
+  return (
+    <>
+      <ClockWidget />
+      <WeatherWidget latitude={coords.latitude} longitude={coords.longitude} />
+    </>
+  );
 }

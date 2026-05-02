@@ -120,10 +120,9 @@ export default function WeatherWidget({ latitude, longitude }: WeatherWidgetProp
   return (
     <>
       <div className="card">
-        <div className="card-body">
-          <div className="d-flex justify-content-between align-items-start mb-3">
+        <div className="card-body py-2 px-3">
+          <div className="d-flex justify-content-between align-items-start mb-2">
             <div>
-              <h5 className="card-title mb-1">Today's Weather</h5>
               <p className="text-muted small mb-0">
                 <i className="bx bx-map-pin me-1"></i>
                 {displayWeather.location}
@@ -135,16 +134,16 @@ export default function WeatherWidget({ latitude, longitude }: WeatherWidgetProp
             </div>
           </div>
 
-          <div className="mb-3">
+          <div className="mb-2">
             <div className="d-flex align-items-baseline">
-              <span className="display-4 fw-bold me-2">{displayWeather.temperature}°</span>
-              <span className="text-muted">F</span>
+              <span className="display-5 fw-bold me-1">{displayWeather.temperature}°</span>
+              <span className="text-muted small">F</span>
             </div>
-            <p className="text-muted mb-0">{displayWeather.condition}</p>
+            <p className="text-muted mb-0 small">{displayWeather.condition}</p>
           </div>
 
-          <div className="border-top pt-3">
-            <div className="row g-3">
+          <div className="border-top pt-2">
+            <div className="row g-2">
               <div className="col-6">
                 <div className="d-flex align-items-center">
                   <i className="bx bx-up-arrow-alt text-success me-2"></i>
