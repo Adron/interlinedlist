@@ -4,6 +4,7 @@ import { isSubscriber } from '@/lib/subscription/is-subscriber';
 import Link from 'next/link';
 import DocumentList from '@/components/documents/DocumentList';
 import NewFromTemplateButton from '@/components/documents/NewFromTemplateButton';
+import RenameFolderHeader from '@/components/documents/RenameFolderHeader';
 import { getFolderById } from '@/lib/documents/queries';
 
 export default async function FolderPage({
@@ -39,10 +40,11 @@ export default async function FolderPage({
             </ol>
           </nav>
           <div className="d-flex justify-content-between align-items-center">
-            <h1 className="h3 mb-0">
-              <i className="bx bx-folder me-2 text-warning"></i>
-              {folder.name}
-            </h1>
+            <RenameFolderHeader
+              folderId={folder.id}
+              initialName={folder.name}
+              hasContents={folder.children.length > 0 || folder.documents.length > 0}
+            />
             {isSubscriber(user.customerStatus) ? (
               <div className="d-flex gap-2 align-items-center">
                 <NewFromTemplateButton targetFolderId={folder.id} />

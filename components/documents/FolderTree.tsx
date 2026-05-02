@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useDocumentsTreeRefresh } from '@/components/documents/DocumentsTreeContext';
+import RenameFolderInput from './RenameFolderInput';
+import DeleteFolderModal from './DeleteFolderModal';
 
 interface Folder {
   id: string;
@@ -15,7 +17,7 @@ interface Folder {
 
 export default function FolderTree() {
   const pathname = usePathname();
-  const { refreshVersion } = useDocumentsTreeRefresh();
+  const { refreshVersion, requestTreeRefresh } = useDocumentsTreeRefresh();
 
   const [folders, setFolders] = useState<Folder[]>([]);
   const [rootDocuments, setRootDocuments] = useState<
@@ -24,6 +26,9 @@ export default function FolderTree() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+  const [hoveredFolderId, setHoveredFolderId] = useState<string | null>(null);
+  const [deletingFolderId, setDeletingFolderId] = useState<string | null>(null);
 
   const hasCompletedInitialLoadRef = useRef(false);
 
@@ -86,6 +91,31 @@ export default function FolderTree() {
     });
   };
 
+  const patchFolderName = (
+    folders: Folder[],
+    targetId: string,
+    newName: string
+  ): Folder[] => {
+    return folders.map((folder) => {
+      if (folder.id === targetId) {
+        return { ...folder, name: newName };
+      }
+      if (folder.children && folder.children.length > 0) {
+        return { ...folder, children: patchFolderName(folder.children, targetId, newName) };
+      }
+      return folder;
+    });
+  };
+
+  const findFolderInTree = (folderList: Folder[], targetId: string): Folder | null => {
+    for (const folder of folderList) {
+      if (folder.id === targetId) return folder;
+      const found = findFolderInTree(folder.children || [], targetId);
+      if (found) return found;
+    }
+    return null;
+  };
+
   if (loading) {
     return (
       <div className="card">
@@ -104,10 +134,16 @@ export default function FolderTree() {
     const isExp = expanded.has(folder.id);
     const hasChildren =
       (folder.children?.length ?? 0) > 0 || (folder.documents?.length ?? 0) > 0;
+    const isEditing = editingFolderId === folder.id;
+    const isHovered = hoveredFolderId === folder.id;
 
     return (
       <div key={folder.id} className="mb-1">
-        <div className="d-flex align-items-center">
+        <div
+          className="d-flex align-items-center"
+          onMouseEnter={() => setHoveredFolderId(folder.id)}
+          onMouseLeave={() => setHoveredFolderId(null)}
+        >
           {hasChildren ? (
             <span
               onClick={() => toggle(folder.id)}
@@ -120,12 +156,66 @@ export default function FolderTree() {
             <span className="me-1" style={{ width: '1em' }}></span>
           )}
           <i className="bx bx-folder me-2 text-warning"></i>
-          <Link
-            href={`/documents/folders/${folder.id}`}
-            className="text-decoration-none text-truncate"
-          >
-            {folder.name}
-          </Link>
+          {isEditing ? (
+            <RenameFolderInput
+              folderId={folder.id}
+              initialName={folder.name}
+              onSave={async (newName) => {
+                const res = await fetch(`/api/documents/folders/${folder.id}`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ name: newName }),
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                  throw new Error(data.error || 'Failed to rename folder');
+                }
+                setFolders((prev) => patchFolderName(prev, folder.id, newName));
+                setEditingFolderId(null);
+                requestTreeRefresh();
+              }}
+              onCancel={() => setEditingFolderId(null)}
+            />
+          ) : (
+            <>
+              <Link
+                href={`/documents/folders/${folder.id}`}
+                className="text-decoration-none text-truncate"
+              >
+                {folder.name}
+              </Link>
+              {isHovered && (
+                <div className="d-flex gap-1 ms-1">
+                  <button
+                    type="button"
+                    className="btn btn-link btn-sm p-0 text-muted"
+                    style={{ lineHeight: 1 }}
+                    title="Rename folder"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setEditingFolderId(folder.id);
+                    }}
+                  >
+                    <i className="bx bx-pencil" style={{ fontSize: '0.85rem' }}></i>
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-link btn-sm p-0 text-danger"
+                    style={{ lineHeight: 1 }}
+                    title="Delete folder"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setDeletingFolderId(folder.id);
+                    }}
+                  >
+                    <i className="bx bx-trash" style={{ fontSize: '0.85rem' }}></i>
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
         {isExp && hasChildren && (
           <div className="ms-4">
@@ -183,6 +273,24 @@ export default function FolderTree() {
           <p className="text-muted small mb-0">No documents yet.</p>
         )}
       </div>
+
+      {deletingFolderId && (() => {
+        const folder = findFolderInTree(folders, deletingFolderId);
+        const hasContents =
+          (folder?.children?.length ?? 0) > 0 || (folder?.documents?.length ?? 0) > 0;
+        return (
+          <DeleteFolderModal
+            folderId={deletingFolderId}
+            folderName={folder?.name ?? ''}
+            hasContents={hasContents}
+            onClose={() => setDeletingFolderId(null)}
+            onSuccess={() => {
+              setDeletingFolderId(null);
+              requestTreeRefresh();
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }

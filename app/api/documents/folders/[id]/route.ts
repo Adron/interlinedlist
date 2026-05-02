@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getFolderById, validateFolderParent } from "@/lib/documents/queries";
@@ -91,6 +92,15 @@ export async function PUT(
       { status: 200 }
     );
   } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return NextResponse.json(
+        { error: "A folder with that name already exists here" },
+        { status: 409 }
+      );
+    }
     console.error("Update folder error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
