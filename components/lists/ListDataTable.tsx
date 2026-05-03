@@ -496,6 +496,18 @@ export default function ListDataTable({
   };
 
   const renderCellContent = (field: ParsedField, value: any) => {
+    if (field.propertyType === "priority") {
+      const colorMap: Record<string, string> = {
+        low: "success",
+        medium: "info",
+        high: "warning",
+        urgent: "danger",
+      };
+      const val = (value as string)?.toLowerCase() ?? "";
+      const bsColor = colorMap[val] ?? "secondary";
+      return <span className={`badge bg-${bsColor} text-capitalize`}>{val || "—"}</span>;
+    }
+
     const formatted = formatListCellDisplay(field, value);
     if (!formatted) return formatted;
     if (field.propertyType === "url" || isUrlValue(value)) {
@@ -876,10 +888,11 @@ export default function ListDataTable({
                                   <button
                                     type="button"
                                     className="btn btn-outline-primary btn-sm"
-                                    title="Create document from row"
+                                    title="Export this row as a new Document"
                                     onClick={() => openCreateDocFromRow(row)}
                                   >
                                     <i className="bx bx-file-blank"></i>
+                                    <span className="d-none d-xl-inline ms-1">To Doc</span>
                                   </button>
                                 )}
                                 {listSource !== 'github' && (
@@ -905,10 +918,11 @@ export default function ListDataTable({
                                   <button
                                     type="button"
                                     className="btn btn-outline-primary btn-sm"
-                                    title="Create document from row"
+                                    title="Export this row as a new Document"
                                     onClick={() => openCreateDocFromRow(row)}
                                   >
                                     <i className="bx bx-file-blank"></i>
+                                    <span className="d-none d-xl-inline ms-1">To Doc</span>
                                   </button>
                                 )}
                               </>
@@ -932,10 +946,11 @@ export default function ListDataTable({
                                   <button
                                     type="button"
                                     className="btn btn-outline-primary btn-sm"
-                                    title="Create document from row"
+                                    title="Export this row as a new Document"
                                     onClick={() => openCreateDocFromRow(row)}
                                   >
                                     <i className="bx bx-file-blank"></i>
+                                    <span className="d-none d-xl-inline ms-1">To Doc</span>
                                   </button>
                                 )}
                                 {listSource !== 'github' && (

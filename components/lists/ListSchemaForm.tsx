@@ -29,6 +29,7 @@ const FIELD_TYPES: FieldType[] = [
   "email",
   "url",
   "tel",
+  "priority",
 ];
 
 const VISIBILITY_OPERATORS = [

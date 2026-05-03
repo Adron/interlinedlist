@@ -381,6 +381,21 @@ export default function MessageCard({
             </p>
             )}
 
+            {/* Message tags */}
+            {message.tags && (message.tags as string[]).length > 0 && (
+              <div className="mt-1">
+                {(message.tags as string[]).map((tag) => (
+                  <Link
+                    key={tag}
+                    href={`/?tag=${encodeURIComponent(tag)}`}
+                    className="badge bg-secondary me-1 mb-1 text-lowercase text-decoration-none"
+                  >
+                    #{tag}
+                  </Link>
+                ))}
+              </div>
+            )}
+
             {/* Message images */}
             {message.imageUrls && Array.isArray(message.imageUrls) && message.imageUrls.length > 0 && (
               <div className="d-flex flex-wrap gap-1 mt-2">

@@ -96,6 +96,11 @@ export default async function UserProfilePage({
     }
   }
 
+  // Check if content should be blocked for private accounts
+  const isOwnProfile = currentUser?.id === profileUser.id;
+  const isApprovedFollower = followStatus === 'approved';
+  const isContentBlocked = profileUser.isPrivateAccount && !isOwnProfile && !isApprovedFollower;
+
   const where = { ...buildWallMessageWhereClause(profileUser.id, currentUser?.id ?? null), parentId: null };
   const messagesPerPage = currentUser?.messagesPerPage ?? DEFAULT_MESSAGES_PER_PAGE;
 
@@ -220,14 +225,31 @@ export default async function UserProfilePage({
             currentUserId={currentUser?.id}
             followStatus={followStatus}
           />
-          <MessageList
-            initialMessages={messagesWithDugs as unknown as Message[]}
-            initialTotal={total}
-            currentUserId={currentUser?.id}
-            showPreviews={currentUser?.showPreviews ?? true}
-            messagesPerPage={messagesPerPage}
-            messagesApiUrl={`/api/user/${encodeURIComponent(username)}/messages`}
-          />
+          {isOwnProfile && profileUser.isPrivateAccount && (
+            <div className="alert alert-secondary d-flex align-items-center gap-2 mt-2 py-2">
+              <i className="bx bx-lock"></i>
+              <span>Your account is private. Only approved followers can see your posts.</span>
+              <a href="/settings" className="ms-auto btn btn-sm btn-outline-secondary">
+                Change in Settings
+              </a>
+            </div>
+          )}
+          {isContentBlocked ? (
+            <div className="text-center py-5 text-muted">
+              <i className="bx bx-lock-alt fs-1 d-block mb-2"></i>
+              <p>This account is private.</p>
+              <p>Follow {profileUser.displayName ?? profileUser.username} to see their posts.</p>
+            </div>
+          ) : (
+            <MessageList
+              initialMessages={messagesWithDugs as unknown as Message[]}
+              initialTotal={total}
+              currentUserId={currentUser?.id}
+              showPreviews={currentUser?.showPreviews ?? true}
+              messagesPerPage={messagesPerPage}
+              messagesApiUrl={`/api/user/${encodeURIComponent(username)}/messages`}
+            />
+          )}
         </div>
 
         {/* Right column empty to match main page layout balance, or could add something later */}

@@ -48,6 +48,7 @@ export default function DocumentEditor({
   const [isTitleEditing, setIsTitleEditing] = useState(false);
   const [draftTitle, setDraftTitle] = useState('');
   const [titleError, setTitleError] = useState('');
+  const [editorMode, setEditorMode] = useState<'edit' | 'preview' | 'live'>('live');
 
   const titleRef = useRef(initialTitle);
   const contentRef = useRef(initialContent);
@@ -327,6 +328,19 @@ export default function DocumentEditor({
     void flushSave();
   };
 
+  const handlePrint = () => {
+    // Ensure preview is visible before printing
+    if (editorMode !== 'live' && editorMode !== 'preview') {
+      setEditorMode('live');
+      // Wait for state to update before printing
+      setTimeout(() => {
+        window.print();
+      }, 100);
+    } else {
+      window.print();
+    }
+  };
+
   const handleImagePaste = async (e: React.ClipboardEvent) => {
     const items = e.clipboardData?.items;
     if (!items) return;
@@ -359,7 +373,63 @@ export default function DocumentEditor({
   const titleDisplay = title.trim() || initialRelativePath;
 
   return (
-    <div className="card">
+    <>
+      <style>{`
+        @media print {
+          .app-topbar,
+          .sidebar,
+          .documents-markdown-editor .w-md-editor-toolbar,
+          .documents-markdown-editor .w-md-editor .w-md-editor-bar,
+          button[onclick*="print"],
+          .btn-outline-secondary,
+          .form-check,
+          .btn-link {
+            display: none !important;
+          }
+
+          .documents-markdown-editor .w-md-editor {
+            border: none !important;
+            background: white !important;
+            color: black !important;
+          }
+
+          .documents-markdown-editor .w-md-editor-preview {
+            width: 100% !important;
+            padding: 0 !important;
+          }
+
+          .card {
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+
+          .card-body {
+            padding: 0 !important;
+          }
+
+          h1 {
+            page-break-after: avoid;
+          }
+
+          h2, h3, h4, h5, h6 {
+            page-break-after: avoid;
+          }
+
+          p {
+            orphans: 3;
+            widows: 3;
+          }
+
+          body {
+            font-family: Georgia, serif;
+            font-size: 12pt;
+            line-height: 1.5;
+          }
+        }
+      `}</style>
+      <div className="card">
       <div className="card-body">
         <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
           <div className="d-flex align-items-center gap-2 flex-grow-1 min-w-0 flex-wrap">
@@ -452,6 +522,14 @@ export default function DocumentEditor({
                 </>
               )}
             </span>
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-secondary"
+              onClick={handlePrint}
+              title="Print document"
+            >
+              <i className="bx bx-printer"></i> Print
+            </button>
             <div className="form-check form-switch">
               <input
                 className="form-check-input"
@@ -472,10 +550,11 @@ export default function DocumentEditor({
             onChange={onContentChange}
             onPaste={handleImagePaste}
             height={400}
-            preview="live"
+            preview={editorMode as 'edit' | 'preview' | 'live'}
           />
         </div>
       </div>
     </div>
+    </>
   );
 }

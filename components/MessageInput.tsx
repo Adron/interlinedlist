@@ -136,6 +136,8 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
   const imageUrlsWhenModalOpenedRef = useRef<string[]>([]);
   const videoUrlsWhenModalOpenedRef = useRef<string[]>([]);
   const [quotePushedMessageId, setQuotePushedMessageId] = useState<string | null>(null);
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState('');
 
   // Create/revoke object URLs for pending file previews
   useEffect(() => {
@@ -266,6 +268,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
           ...(scheduledAt && scheduledAt > new Date() && !quotePushedMessageId && {
             scheduledAt: scheduledAt.toISOString(),
           }),
+          ...(tags.length > 0 && { tags }),
         }),
       });
 
@@ -294,6 +297,8 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
       setScheduledAt(null);
       setShowScheduleModal(false);
       setQuotePushedMessageId(null);
+      setTags([]);
+      setTagInput('');
       setError('');
       setLoading(false); // Reset loading state so button is enabled for next post
       
@@ -1150,6 +1155,61 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {showSettingsMenu && (
+            <div className="mb-3">
+              <label className="form-label small mb-2">Tags (optional)</label>
+              <div className="d-flex gap-2 flex-wrap align-items-end">
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  placeholder="Add tags (e.g. recipe, music, event)"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value.toLowerCase())}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ',') {
+                      e.preventDefault();
+                      const trimmed = tagInput.trim();
+                      if (trimmed && !tags.includes(trimmed)) {
+                        setTags([...tags, trimmed]);
+                        setTagInput('');
+                      }
+                    }
+                  }}
+                  style={{ maxWidth: '200px' }}
+                />
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary"
+                  onClick={() => {
+                    const trimmed = tagInput.trim();
+                    if (trimmed && !tags.includes(trimmed)) {
+                      setTags([...tags, trimmed]);
+                      setTagInput('');
+                    }
+                  }}
+                >
+                  Add
+                </button>
+              </div>
+              {tags.length > 0 && (
+                <div className="mt-2">
+                  {tags.map((tag) => (
+                    <span key={tag} className="badge bg-secondary me-1 mb-1">
+                      #{tag}
+                      <button
+                        type="button"
+                        className="btn-close btn-close-white ms-1"
+                        aria-label="Remove tag"
+                        onClick={() => setTags(tags.filter((t) => t !== tag))}
+                        style={{ fontSize: '0.75rem' }}
+                      />
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

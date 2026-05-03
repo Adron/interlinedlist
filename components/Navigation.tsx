@@ -4,6 +4,7 @@ import { isSubscriber } from '@/lib/subscription/is-subscriber';
 import UserDropdown from './UserDropdown';
 import NotificationsBell from './NotificationsBell';
 import NavigationTitle from './NavigationTitle';
+import ClockInNav from './ClockInNav';
 
 export default async function Navigation() {
   const user = await getCurrentUser();
@@ -122,6 +123,7 @@ export default async function Navigation() {
                     </Link>
                   </div>
                 )}
+                <ClockInNav />
                 <NotificationsBell />
                 <UserDropdown user={user} isSubscriber={isSubscriber(user.customerStatus)} />
               </>

@@ -109,6 +109,7 @@ export interface Message {
     crossPostToBluesky?: boolean;
     crossPostToLinkedIn?: boolean;
   } | null;
+  tags?: string[] | null;
   user: MessageUser;
   userId?: string; // Optional, may not be included in all queries
   parentId?: string | null;

@@ -102,6 +102,7 @@ export function getFieldComponent(field: ParsedField): {
       };
 
     case "select":
+    case "priority":
       return {
         type: "select",
         props: {
