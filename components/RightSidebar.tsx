@@ -28,9 +28,9 @@ export default function RightSidebar({ latitude, longitude }: RightSidebarProps)
   const coords = getWeatherCoordinates();
 
   return (
-    <>
+    <div className="sidebar-weather-panel">
       <ClockWidget />
       <WeatherWidget latitude={coords.latitude} longitude={coords.longitude} />
-    </>
+    </div>
   );
 }

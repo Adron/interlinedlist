@@ -1,0 +1,3 @@
+-- This migration was previously applied via prisma db push
+-- It added the list schema tables and relationships
+-- No action needed - schema already exists in production

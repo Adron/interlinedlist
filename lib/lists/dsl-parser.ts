@@ -29,6 +29,7 @@ const VALID_FIELD_TYPES: FieldType[] = [
   "email",
   "url",
   "tel",
+  "priority",
 ];
 
 /**
@@ -184,9 +185,13 @@ export function parseDSLSchema(dsl: DSLSchema): ParsedSchema {
   const validated = validateDSLSchema(dsl);
 
   const parsedFields: ParsedField[] = validated.fields.map((field, index) => {
-    // Handle options for select/multiselect - merge into validation rules
+    // Handle options for select/multiselect/priority - merge into validation rules
     const validationRules = convertValidationRules(field.validation);
-    if (field.options && (field.type === "select" || field.type === "multiselect")) {
+
+    // Priority type gets default options if not specified
+    const options = field.options || (field.type === "priority" ? ["low", "medium", "high", "urgent"] : undefined);
+
+    if (options && (field.type === "select" || field.type === "multiselect" || field.type === "priority")) {
       if (!validationRules) {
         return {
           propertyKey: field.key,
@@ -195,14 +200,14 @@ export function parseDSLSchema(dsl: DSLSchema): ParsedSchema {
           displayOrder: field.displayOrder ?? index,
           isRequired: field.required ?? false,
           defaultValue: serializeValue(field.defaultValue),
-          validationRules: { options: field.options },
+          validationRules: { options },
           helpText: field.helpText || null,
           placeholder: field.placeholder || null,
           isVisible: field.visible !== false,
           visibilityCondition: convertVisibilityCondition(field.visibility),
         };
       } else {
-        validationRules.options = field.options;
+        validationRules.options = options;
       }
     }
 

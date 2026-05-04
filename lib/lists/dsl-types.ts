@@ -19,7 +19,8 @@ export type FieldType =
   | "textarea"
   | "email"
   | "url"
-  | "tel";
+  | "tel"
+  | "priority";
 
 /**
  * Validation operators for conditional visibility

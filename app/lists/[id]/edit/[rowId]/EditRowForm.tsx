@@ -3,7 +3,10 @@
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import DynamicListForm from '@/components/lists/DynamicListForm';
+import CreateDocFromRowModal from '@/components/lists/CreateDocFromRowModal';
 import { ParsedField } from '@/lib/lists/dsl-types';
+import { ListDataRow } from '@/lib/types';
+import { buildRowMarkdown, buildExportDocumentPaths } from '@/lib/lists/row-to-markdown';
 
 interface EditRowFormProps {
   listId: string;
@@ -12,13 +15,15 @@ interface EditRowFormProps {
   initialRowData: { rowData: Record<string, any> };
   listSource?: 'local' | 'github';
   githubRepo?: string;
+  row: ListDataRow;
 }
 
-export default function EditRowForm({ listId, rowId, fields, initialRowData, listSource, githubRepo }: EditRowFormProps) {
+export default function EditRowForm({ listId, rowId, fields, initialRowData, listSource, githubRepo, row }: EditRowFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [fieldsWithOptions, setFieldsWithOptions] = useState<ParsedField[]>(fields);
+  const [docExport, setDocExport] = useState<{ markdown: string; title: string; relativePath: string } | null>(null);
 
   useEffect(() => {
     if (listSource !== 'github' || !githubRepo) {
@@ -80,6 +85,16 @@ export default function EditRowForm({ listId, rowId, fields, initialRowData, lis
     router.push(`/lists/${listId}`);
   };
 
+  const handleCreateDocument = () => {
+    const markdown = buildRowMarkdown(row, fieldsWithOptions);
+    const paths = buildExportDocumentPaths(row);
+    setDocExport({
+      markdown,
+      title: paths.title,
+      relativePath: paths.relativePath,
+    });
+  };
+
   return (
     <>
       {error && (
@@ -87,6 +102,16 @@ export default function EditRowForm({ listId, rowId, fields, initialRowData, lis
           {error}
         </div>
       )}
+      <div className="mb-3">
+        <button
+          type="button"
+          className="btn btn-sm btn-outline-primary"
+          onClick={handleCreateDocument}
+          title="Export this row as a new Document"
+        >
+          <i className="bx bx-file-blank"></i> Create Document
+        </button>
+      </div>
       <DynamicListForm
         fields={fieldsWithOptions}
         initialData={initialRowData.rowData}
@@ -95,6 +120,13 @@ export default function EditRowForm({ listId, rowId, fields, initialRowData, lis
         submitLabel="Update Row"
         loading={loading}
         layout="horizontal"
+      />
+      <CreateDocFromRowModal
+        open={docExport !== null}
+        onClose={() => setDocExport(null)}
+        markdown={docExport?.markdown ?? ""}
+        title={docExport?.title ?? ""}
+        relativePath={docExport?.relativePath ?? ""}
       />
     </>
   );

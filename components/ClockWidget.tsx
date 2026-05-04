@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 
 export default function ClockWidget() {
-  const [time, setTime] = useState({ military: '', standard: '' });
+  const [time, setTime] = useState({ military: '', standard: '', date: '' });
 
   useEffect(() => {
     const updateTime = () => {
@@ -25,7 +25,14 @@ export default function ClockWidget() {
         second: '2-digit',
       });
 
-      setTime({ military, standard });
+      // Current date (short format)
+      const date = now.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+      });
+
+      setTime({ military, standard, date });
     };
 
     updateTime();
@@ -46,6 +53,9 @@ export default function ClockWidget() {
             <small className="text-muted d-block">Standard</small>
             <strong className="font-monospace fs-5">{time.standard || '--:--:--'}</strong>
           </div>
+        </div>
+        <div className="text-muted small text-center mt-2 border-top pt-2">
+          {time.date || 'Loading...'}
         </div>
       </div>
     </div>

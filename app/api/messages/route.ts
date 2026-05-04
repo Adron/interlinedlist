@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
       parentId,
       scheduledAt: scheduledAtRaw,
       pushedMessageId: pushedMessageIdRaw,
+      tags,
     } = body;
 
     const userWithSettings = await prisma.user.findUnique({
@@ -246,6 +247,7 @@ export async function POST(request: NextRequest) {
                 crossPostToLinkedIn: crossPostToLinkedIn === true,
               } as object,
             }),
+            ...(Array.isArray(tags) && tags.length > 0 && { tags }),
           },
           include: {
             user: {

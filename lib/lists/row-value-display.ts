@@ -28,6 +28,8 @@ export function formatListCellDisplay(field: ParsedField, value: unknown): strin
         return value.join(", ");
       }
       return String(value);
+    case "priority":
+      return (value as string)?.toUpperCase() ?? "";
     default:
       return String(value);
   }

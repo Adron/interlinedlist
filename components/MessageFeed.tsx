@@ -7,7 +7,11 @@ import { LinkMetadata, CrossPostUrl, Message } from '@/lib/types';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 
-export default async function MessageFeed() {
+interface MessageFeedProps {
+  filterTag?: string;
+}
+
+export default async function MessageFeed({ filterTag }: MessageFeedProps = {}) {
   const user = await getCurrentUser();
 
   try {
@@ -33,6 +37,11 @@ export default async function MessageFeed() {
         publiclyVisible: true,
         ...scheduledFilter,
       };
+    }
+
+    // Filter by tag if provided
+    if (filterTag) {
+      where.tags = { array_contains: [filterTag] };
     }
 
     // Use user's messagesPerPage preference or default to 20

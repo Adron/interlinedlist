@@ -80,6 +80,7 @@ export default async function EditRowPage({ params }: EditRowPageProps) {
                 initialRowData={{ rowData }}
                 listSource={(list as { source?: string }).source === "github" ? "github" : "local"}
                 githubRepo={(list as { githubRepo?: string }).githubRepo ?? undefined}
+                row={row}
               />
             </div>
           </div>

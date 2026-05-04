@@ -15,11 +15,20 @@ import ReactFlow, {
   useEdgesState,
   NodeTypes,
   ConnectionMode,
+  Connection,
+  addEdge,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import ELK from 'elkjs/lib/elk.bundled.js';
 import GitHubIssuesListMark from './GitHubIssuesListMark';
 import ListVisibilityMark from './ListVisibilityMark';
+
+interface ListConnection {
+  id: string;
+  fromListId: string;
+  toListId: string;
+  label?: string;
+}
 
 interface ListProperty {
   propertyKey: string;
@@ -170,7 +179,10 @@ const listNodeTypes: NodeTypes = {
   tableNode: ListTableNode,
 };
 
-function buildNodesAndEdges(lists: ListForERD[]): { nodes: Node<ListERDNodeData>[]; edges: Edge[] } {
+function buildNodesAndEdges(
+  lists: ListForERD[],
+  connections: ListConnection[] = []
+): { nodes: Node<ListERDNodeData>[]; edges: Edge[] } {
   const parentIds = new Set(lists.map((l) => l.parentId).filter(Boolean) as string[]);
 
   const nodes: Node<ListERDNodeData>[] = lists.map((list) => {
@@ -204,6 +216,8 @@ function buildNodesAndEdges(lists: ListForERD[]): { nodes: Node<ListERDNodeData>
 
   const edgeSet = new Set<string>();
   const edges: Edge[] = [];
+
+  // Add parentId edges (blue dashed)
   lists.forEach((list) => {
     if (list.parentId) {
       const edgeId = `parentId-${list.parentId}-${list.id}`;
@@ -223,8 +237,32 @@ function buildNodesAndEdges(lists: ListForERD[]): { nodes: Node<ListERDNodeData>
             strokeDasharray: '5 5',
           },
           markerEnd: { type: MarkerType.ArrowClosed },
+          deletable: false,
         });
       }
+    }
+  });
+
+  // Add connection edges (green solid)
+  connections.forEach((conn) => {
+    const edgeId = `connection-${conn.id}`;
+    if (!edgeSet.has(edgeId)) {
+      edgeSet.add(edgeId);
+      edges.push({
+        id: edgeId,
+        source: conn.fromListId,
+        target: conn.toListId,
+        type: 'smoothstep',
+        label: conn.label || '',
+        style: {
+          stroke: '#10b981',
+          strokeWidth: 2,
+        },
+        markerEnd: { type: MarkerType.ArrowClosed, color: '#10b981' },
+        animated: true,
+        deletable: true,
+        data: { connectionId: conn.id },
+      });
     }
   });
 
@@ -232,18 +270,44 @@ function buildNodesAndEdges(lists: ListForERD[]): { nodes: Node<ListERDNodeData>
 }
 
 export default function ListsERDDiagram({ lists }: ListsERDDiagramProps) {
-  const { nodes: initialNodes, edges: initialEdges } = useMemo(() => buildNodesAndEdges(lists), [lists]);
+  const [connections, setConnections] = useState<ListConnection[]>([]);
+  const [mode, setMode] = useState<'hierarchy' | 'idea-board'>('hierarchy');
+  const [connectionLoading, setConnectionLoading] = useState(true);
+
+  const { nodes: initialNodes, edges: initialEdges } = useMemo(
+    () => buildNodesAndEdges(lists, connections),
+    [lists, connections]
+  );
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [loading, setLoading] = useState(true);
   const elk = useMemo(() => new ELK(), []);
   const layoutKey = useMemo(() => lists.map((l) => l.id).sort().join(','), [lists]);
 
+  // Fetch connections on mount
   useEffect(() => {
-    const { nodes: n, edges: e } = buildNodesAndEdges(lists);
+    const fetchConnections = async () => {
+      try {
+        const res = await fetch('/api/lists/connections');
+        if (res.ok) {
+          const data = await res.json();
+          setConnections(data.connections || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch connections:', error);
+      } finally {
+        setConnectionLoading(false);
+      }
+    };
+
+    fetchConnections();
+  }, []);
+
+  useEffect(() => {
+    const { nodes: n, edges: e } = buildNodesAndEdges(lists, connections);
     setNodes(n);
     setEdges(e);
-  }, [lists, setNodes, setEdges]);
+  }, [lists, connections, setNodes, setEdges]);
 
   useEffect(() => {
     if (initialNodes.length === 0) {
@@ -254,16 +318,24 @@ export default function ListsERDDiagram({ lists }: ListsERDDiagramProps) {
     const layoutNodes = async () => {
       setLoading(true);
       try {
+        const layoutAlgorithm = mode === 'idea-board' ? 'force' : 'layered';
         const graph = {
           id: 'root',
           layoutOptions: {
-            'elk.algorithm': 'layered',
-            'elk.direction': 'DOWN',
-            'elk.spacing.nodeNode': '100',
-            'elk.layered.spacing.nodeNodeBetweenLayers': '150',
-            'elk.spacing.edgeNode': '50',
-            'elk.spacing.edgeEdge': '20',
-            'elk.layered.nodePlacement.strategy': 'SIMPLE',
+            'elk.algorithm': layoutAlgorithm,
+            ...(layoutAlgorithm === 'layered' && {
+              'elk.direction': 'DOWN',
+              'elk.spacing.nodeNode': '100',
+              'elk.layered.spacing.nodeNodeBetweenLayers': '150',
+              'elk.spacing.edgeNode': '50',
+              'elk.spacing.edgeEdge': '20',
+              'elk.layered.nodePlacement.strategy': 'SIMPLE',
+            }),
+            ...(layoutAlgorithm === 'force' && {
+              'elk.spacing.nodeNode': '150',
+              'elk.force.iterations': '100',
+              'elk.force.repulsivePower': '1.5',
+            }),
           },
           children: initialNodes.map((node) => ({
             id: node.id,
@@ -306,9 +378,69 @@ export default function ListsERDDiagram({ lists }: ListsERDDiagramProps) {
     return () => {
       cancelled = true;
     };
-  }, [layoutKey, initialNodes.length, elk, setNodes, initialNodes, initialEdges]);
+  }, [layoutKey, initialNodes.length, elk, setNodes, initialNodes, initialEdges, mode]);
 
   const onNodeClick = useCallback((_event: React.MouseEvent, _node: Node) => {}, []);
+
+  const onConnect = useCallback(
+    async (connection: Connection) => {
+      if (!connection.source || !connection.target) return;
+      if (connection.source === connection.target) {
+        alert('Cannot connect a list to itself');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/lists/connections', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fromListId: connection.source,
+            toListId: connection.target,
+          }),
+        });
+
+        if (res.ok) {
+          const newConnection = await res.json();
+          setConnections((prev) => [...prev, newConnection]);
+        } else {
+          const error = await res.json();
+          alert(error.error || 'Failed to create connection');
+        }
+      } catch (error) {
+        console.error('Failed to create connection:', error);
+        alert('Failed to create connection');
+      }
+    },
+    []
+  );
+
+  const onEdgesDelete = useCallback(
+    async (edgesToDelete: Edge[]) => {
+      for (const edge of edgesToDelete) {
+        // Only delete user-created connections, not parentId edges
+        if (edge.id.startsWith('connection-')) {
+          const connectionId = edge.data?.connectionId;
+          if (connectionId) {
+            try {
+              const res = await fetch(`/api/lists/connections/${connectionId}`, {
+                method: 'DELETE',
+              });
+
+              if (res.ok) {
+                setConnections((prev) => prev.filter((c) => c.id !== connectionId));
+              } else {
+                console.error('Failed to delete connection:', await res.json());
+              }
+            } catch (error) {
+              console.error('Failed to delete connection:', error);
+            }
+          }
+        }
+      }
+    },
+    []
+  );
 
   if (lists.length === 0) {
     return (
@@ -321,7 +453,7 @@ export default function ListsERDDiagram({ lists }: ListsERDDiagramProps) {
     );
   }
 
-  if (loading) {
+  if (loading || connectionLoading) {
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ height: '600px' }}>
         <div className="spinner-border text-primary" role="status">
@@ -333,11 +465,29 @@ export default function ListsERDDiagram({ lists }: ListsERDDiagramProps) {
 
   return (
     <div style={{ width: '100%', height: '800px', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+      <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 10, display: 'flex', gap: '8px' }}>
+        <button
+          className={`btn btn-sm ${mode === 'hierarchy' ? 'btn-primary' : 'btn-outline-secondary'}`}
+          onClick={() => setMode('hierarchy')}
+          title="Hierarchy view with layered layout"
+        >
+          <i className="bx bx-sitemap"></i> Hierarchy
+        </button>
+        <button
+          className={`btn btn-sm ${mode === 'idea-board' ? 'btn-primary' : 'btn-outline-secondary'}`}
+          onClick={() => setMode('idea-board')}
+          title="Idea board view with force-directed layout"
+        >
+          <i className="bx bx-bulb"></i> Idea Board
+        </button>
+      </div>
       <ReactFlow
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onEdgesDelete={onEdgesDelete}
+        onConnect={onConnect}
         onNodeClick={onNodeClick}
         nodeTypes={listNodeTypes}
         connectionMode={ConnectionMode.Loose}

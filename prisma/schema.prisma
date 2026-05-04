@@ -97,6 +97,7 @@ model Message {
   crossPostUrls            Json?
   scheduledAt              DateTime?
   scheduledCrossPostConfig Json?
+  tags                     Json?
   createdAt                DateTime  @default(now())
   updatedAt                DateTime  @updatedAt
   digCount                 Int       @default(0)
@@ -173,6 +174,8 @@ model List {
   dataRows    ListDataRow[]
   watchers    ListWatcher[]
   githubIssueCache ListGitHubIssueCache[]
+  connectionsFrom ListConnection[] @relation("ConnectionsFrom")
+  connectionsTo ListConnection[] @relation("ConnectionsTo")
 
   @@index([userId, deletedAt])
   @@index([messageId])
@@ -424,4 +427,21 @@ model AnalyticsEvent {
   @@index([sessionId])
   @@index([createdAt])
   @@map("analytics_events")
+}
+
+model ListConnection {
+  id          String   @id @default(uuid())
+  fromListId  String
+  toListId    String
+  label       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  fromList    List     @relation("ConnectionsFrom", fields: [fromListId], references: [id], onDelete: Cascade)
+  toList      List     @relation("ConnectionsTo", fields: [toListId], references: [id], onDelete: Cascade)
+
+  @@unique([fromListId, toListId])
+  @@index([fromListId])
+  @@index([toListId])
+  @@map("list_connections")
 }
