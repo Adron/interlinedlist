@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useDocumentsTreeRefresh } from '@/components/documents/DocumentsTreeContext';
@@ -12,6 +12,8 @@ const MDEditor = dynamic(() => import('@uiw/react-md-editor'), { ssr: false });
 const DEBOUNCE_MS = 800;
 const MAX_WAIT_MS = 8000;
 const SAVED_STATUS_MS = 2000;
+const EDITOR_MIN_HEIGHT = 240;
+const EDITOR_VIEWPORT_BOTTOM_PAD = 16;
 
 interface DocumentEditorProps {
   documentId: string;
@@ -49,6 +51,11 @@ export default function DocumentEditor({
   const [draftTitle, setDraftTitle] = useState('');
   const [titleError, setTitleError] = useState('');
   const [editorMode, setEditorMode] = useState<'edit' | 'preview' | 'live'>('live');
+  const [editorHeight, setEditorHeight] = useState(400);
+
+  const cardBodyRef = useRef<HTMLDivElement>(null);
+  const editorShellRef = useRef<HTMLDivElement>(null);
+  const measureEditorRafRef = useRef<number | null>(null);
 
   const titleRef = useRef(initialTitle);
   const contentRef = useRef(initialContent);
@@ -281,6 +288,47 @@ export default function DocumentEditor({
     };
   }, []);
 
+  const scheduleMeasureEditorHeight = useCallback(() => {
+    if (measureEditorRafRef.current != null) return;
+    measureEditorRafRef.current = window.requestAnimationFrame(() => {
+      measureEditorRafRef.current = null;
+      const shell = editorShellRef.current;
+      if (!shell) return;
+      const vv = window.visualViewport;
+      const vh = vv?.height ?? window.innerHeight;
+      const offsetTop = vv?.offsetTop ?? 0;
+      const rect = shell.getBoundingClientRect();
+      const top = Math.max(0, rect.top - offsetTop);
+      const next = Math.floor(vh - top - EDITOR_VIEWPORT_BOTTOM_PAD);
+      setEditorHeight(Math.max(EDITOR_MIN_HEIGHT, next));
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    scheduleMeasureEditorHeight();
+    const roTarget = cardBodyRef.current;
+    const ro = new ResizeObserver(() => scheduleMeasureEditorHeight());
+    if (roTarget) ro.observe(roTarget);
+
+    window.addEventListener('resize', scheduleMeasureEditorHeight);
+    window.addEventListener('scroll', scheduleMeasureEditorHeight, true);
+    const vv = window.visualViewport;
+    vv?.addEventListener('resize', scheduleMeasureEditorHeight);
+    vv?.addEventListener('scroll', scheduleMeasureEditorHeight);
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', scheduleMeasureEditorHeight);
+      window.removeEventListener('scroll', scheduleMeasureEditorHeight, true);
+      vv?.removeEventListener('resize', scheduleMeasureEditorHeight);
+      vv?.removeEventListener('scroll', scheduleMeasureEditorHeight);
+      if (measureEditorRafRef.current != null) {
+        cancelAnimationFrame(measureEditorRafRef.current);
+        measureEditorRafRef.current = null;
+      }
+    };
+  }, [isTitleEditing, editorMode, scheduleMeasureEditorHeight]);
+
   const beginTitleEdit = () => {
     setDraftTitle(title);
     setTitleError('');
@@ -430,7 +478,7 @@ export default function DocumentEditor({
         }
       `}</style>
       <div className="card">
-      <div className="card-body">
+      <div className="card-body" ref={cardBodyRef}>
         <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
           <div className="d-flex align-items-center gap-2 flex-grow-1 min-w-0 flex-wrap">
             {isTitleEditing ? (
@@ -544,12 +592,17 @@ export default function DocumentEditor({
             </div>
           </div>
         </div>
-        <div className="documents-markdown-editor" data-color-mode={colorMode}>
+        <div
+          className="documents-markdown-editor"
+          data-color-mode={colorMode}
+          ref={editorShellRef}
+          style={{ minHeight: editorHeight }}
+        >
           <MDEditor
             value={content}
             onChange={onContentChange}
             onPaste={handleImagePaste}
-            height={400}
+            height={editorHeight}
             preview={editorMode as 'edit' | 'preview' | 'live'}
           />
         </div>
