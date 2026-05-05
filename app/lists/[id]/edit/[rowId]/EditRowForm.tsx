@@ -5,20 +5,43 @@ import { useState, useEffect } from 'react';
 import DynamicListForm from '@/components/lists/DynamicListForm';
 import CreateDocFromRowModal from '@/components/lists/CreateDocFromRowModal';
 import { ParsedField } from '@/lib/lists/dsl-types';
-import { ListDataRow } from '@/lib/types';
-import { buildRowMarkdown, buildExportDocumentPaths } from '@/lib/lists/row-to-markdown';
+import { buildRowMarkdownMarkdown, buildExportDocumentPaths } from '@/lib/lists/row-to-markdown';
+
+/** Row shape from getListDataRowById (Prisma `JsonValue` or GitHub cache object) */
+interface EditRowSourceRow {
+  id: string;
+  rowData: unknown;
+}
+
+function rowDataAsRecord(rowData: unknown): Record<string, unknown> {
+  if (rowData && typeof rowData === 'object' && !Array.isArray(rowData)) {
+    return rowData as Record<string, unknown>;
+  }
+  return {};
+}
 
 interface EditRowFormProps {
   listId: string;
   rowId: string;
+  /** List display title — used for row → document export headings and path */
+  listTitle: string;
   fields: ParsedField[];
   initialRowData: { rowData: Record<string, any> };
   listSource?: 'local' | 'github';
   githubRepo?: string;
-  row: ListDataRow;
+  row: EditRowSourceRow;
 }
 
-export default function EditRowForm({ listId, rowId, fields, initialRowData, listSource, githubRepo, row }: EditRowFormProps) {
+export default function EditRowForm({
+  listId,
+  rowId,
+  listTitle,
+  fields,
+  initialRowData,
+  listSource,
+  githubRepo,
+  row,
+}: EditRowFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -86,8 +109,12 @@ export default function EditRowForm({ listId, rowId, fields, initialRowData, lis
   };
 
   const handleCreateDocument = () => {
-    const markdown = buildRowMarkdown(row, fieldsWithOptions);
-    const paths = buildExportDocumentPaths(row);
+    const markdown = buildRowMarkdownMarkdown({
+      listTitle,
+      fields: fieldsWithOptions,
+      rowData: rowDataAsRecord(row.rowData),
+    });
+    const paths = buildExportDocumentPaths(listTitle, row.id);
     setDocExport({
       markdown,
       title: paths.title,

@@ -76,6 +76,7 @@ export default async function EditRowPage({ params }: EditRowPageProps) {
               <EditRowForm
                 listId={listId}
                 rowId={rowId}
+                listTitle={list.title}
                 fields={properties}
                 initialRowData={{ rowData }}
                 listSource={(list as { source?: string }).source === "github" ? "github" : "local"}
