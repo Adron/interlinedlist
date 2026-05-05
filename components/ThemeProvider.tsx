@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { syncThemeAttributes } from '@/lib/theme/darkone-bridge';
+import { isDeferringThemeForPrint, syncThemeAttributes } from '@/lib/theme/darkone-bridge';
 
 interface ThemeProviderProps {
   theme?: string | null;
@@ -23,7 +23,10 @@ export default function ThemeProvider({ theme = 'system', children }: ThemeProvi
     // Listen for system preference changes if theme is 'system'
     if (themeValue === 'system') {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const handleChange = () => syncThemeAttributes('system');
+      const handleChange = () => {
+        if (isDeferringThemeForPrint()) return;
+        syncThemeAttributes('system');
+      };
       
       // Modern browsers
       if (mediaQuery.addEventListener) {

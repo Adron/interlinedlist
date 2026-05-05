@@ -5,9 +5,43 @@
 
 let isUpdatingTheme = false;
 
+/** Browsers may fire bogus prefers-color-scheme changes while the print dialog is open; avoid rewriting the DOM theme during that window. */
+let printInteractionActive = false;
+let printThemeGuardsAttached = false;
+
+function attachPrintThemeGuards(): void {
+  if (typeof window === 'undefined' || printThemeGuardsAttached) return;
+  printThemeGuardsAttached = true;
+  window.addEventListener(
+    'beforeprint',
+    () => {
+      printInteractionActive = true;
+    },
+    { capture: true }
+  );
+  window.addEventListener(
+    'afterprint',
+    () => {
+      window.setTimeout(() => {
+        printInteractionActive = false;
+        const stored =
+          typeof localStorage !== 'undefined' ? localStorage.getItem('theme') || 'system' : 'system';
+        syncThemeAttributes(stored);
+      }, 0);
+    },
+    { capture: true }
+  );
+}
+
+/** Used by ThemeProvider's prefers-color-scheme listener (same guard as syncThemeAttributes). */
+export function isDeferringThemeForPrint(): boolean {
+  return printInteractionActive;
+}
+
 export function syncThemeAttributes(theme: string | null): void {
   if (typeof window === 'undefined') return;
   if (isUpdatingTheme) return; // Prevent infinite loops
+  attachPrintThemeGuards();
 
   const root = document.documentElement;
   const themeValue = theme || 'system';
@@ -15,6 +49,9 @@ export function syncThemeAttributes(theme: string | null): void {
 
   // If theme is 'system', detect OS preference
   if (themeValue === 'system') {
+    if (printInteractionActive) {
+      return;
+    }
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     effectiveTheme = prefersDark ? 'dark' : 'light';
   } else {
@@ -71,13 +108,13 @@ export function initializeThemeBridge(): () => void {
     attributeFilter: ['data-theme'],
   });
 
-  // Also watch for system preference changes
+  // Also watch for system preference changes (DOM stores resolved light/dark, not "system")
   const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
   const handleSystemThemeChange = () => {
-    const currentTheme = document.documentElement.getAttribute('data-theme');
-    if (currentTheme === 'system' || !currentTheme) {
-      syncThemeAttributes('system');
-    }
+    const stored = typeof localStorage !== 'undefined' ? localStorage.getItem('theme') || 'system' : 'system';
+    if (stored !== 'system') return;
+    if (printInteractionActive) return;
+    syncThemeAttributes('system');
   };
 
   if (mediaQuery.addEventListener) {
