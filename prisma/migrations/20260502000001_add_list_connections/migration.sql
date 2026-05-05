@@ -1,5 +1,5 @@
--- CreateTable
-CREATE TABLE "list_connections" (
+-- CreateTable (idempotent: relation may already exist from drift or prior partial apply)
+CREATE TABLE IF NOT EXISTS "list_connections" (
     "id" TEXT NOT NULL,
     "fromListId" TEXT NOT NULL,
     "toListId" TEXT NOT NULL,
@@ -11,16 +11,25 @@ CREATE TABLE "list_connections" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "list_connections_fromListId_toListId_key" ON "list_connections"("fromListId", "toListId");
+CREATE UNIQUE INDEX IF NOT EXISTS "list_connections_fromListId_toListId_key" ON "list_connections"("fromListId", "toListId");
 
 -- CreateIndex
-CREATE INDEX "list_connections_fromListId_idx" ON "list_connections"("fromListId");
+CREATE INDEX IF NOT EXISTS "list_connections_fromListId_idx" ON "list_connections"("fromListId");
 
 -- CreateIndex
-CREATE INDEX "list_connections_toListId_idx" ON "list_connections"("toListId");
+CREATE INDEX IF NOT EXISTS "list_connections_toListId_idx" ON "list_connections"("toListId");
 
--- AddForeignKey
-ALTER TABLE "list_connections" ADD CONSTRAINT "list_connections_fromListId_fkey" FOREIGN KEY ("fromListId") REFERENCES "lists"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- AddForeignKey (no IF NOT EXISTS on ALTER ADD CONSTRAINT; skip if already present)
+DO $$
+BEGIN
+    ALTER TABLE "list_connections" ADD CONSTRAINT "list_connections_fromListId_fkey" FOREIGN KEY ("fromListId") REFERENCES "lists"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
--- AddForeignKey
-ALTER TABLE "list_connections" ADD CONSTRAINT "list_connections_toListId_fkey" FOREIGN KEY ("toListId") REFERENCES "lists"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+    ALTER TABLE "list_connections" ADD CONSTRAINT "list_connections_toListId_fkey" FOREIGN KEY ("toListId") REFERENCES "lists"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
