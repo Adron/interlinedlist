@@ -46,9 +46,7 @@ export default function Logo({ size = 'medium', showText = false, iconOnly = fal
     );
   }
 
-  const logoPath = iconOnly
-    ? `/logo-icon-${theme}.svg`
-    : `/logo-${theme}.svg`;
+  const logoPath = iconOnly ? '/logo-icon.png' : `/logo-${theme}.svg`;
 
   const logoSize = sizeMap[size];
 

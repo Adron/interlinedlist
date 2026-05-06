@@ -16,11 +16,9 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: '/favicon.svg', type: 'image/svg+xml' },
-      { url: '/logo-icon-light.svg', type: 'image/svg+xml' },
+      { url: '/logo-icon.png', type: 'image/png', sizes: '321x321' },
     ],
-    apple: [
-      { url: '/logo-icon-light.svg', type: 'image/svg+xml' },
-    ],
+    apple: [{ url: '/logo-icon.png', type: 'image/png', sizes: '321x321' }],
   },
   manifest: '/manifest.json',
 };
