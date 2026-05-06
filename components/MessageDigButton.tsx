@@ -10,6 +10,13 @@ export const MESSAGE_ACTION_TEXT_STYLE_COMPACT: CSSProperties = { fontSize: '0.7
 export const messageActionLinkClass =
   'btn btn-sm btn-link text-muted p-0 align-baseline text-decoration-none';
 
+/** Outline buttons for Reply / Push — clearer than bare text links */
+export const MESSAGE_ACTION_OUTLINE_CLASS =
+  'btn btn-sm btn-outline-secondary shadow-sm align-baseline fw-medium';
+
+export const MESSAGE_ACTION_OUTLINE_DANGER_CLASS =
+  'btn btn-sm btn-outline-danger shadow-sm align-baseline fw-medium';
+
 interface MessageDigButtonProps {
   messageId: string;
   initialCount: number;
@@ -75,7 +82,12 @@ export default function MessageDigButton({
         <span className="text-muted" aria-hidden>
           ·
         </span>
-        <Link href="/login" className={`${messageActionLinkClass} text-muted`} style={fontStyle}>
+        <Link
+          href="/login"
+          className={`${messageActionLinkClass} text-muted`}
+          style={fontStyle}
+          title="Sign in to mark this message with I Dig!"
+        >
           Sign in to dig
         </Link>
       </span>
@@ -94,6 +106,10 @@ export default function MessageDigButton({
     lineHeight: 1.25,
   };
 
+  const digTitle = dugByMe
+    ? `Remove your dig from this message (${count} total)`
+    : `Mark this message as something you dig (${count} digs)`;
+
   return (
     <button
       type="button"
@@ -105,7 +121,8 @@ export default function MessageDigButton({
       onClick={handleClick}
       disabled={pending}
       aria-pressed={dugByMe}
-      aria-label={dugByMe ? `Undig this message, ${count} digs` : `I dig this message, ${count} digs`}
+      aria-label={digTitle}
+      title={digTitle}
       style={dugByMe ? pressedStyle : fontStyle}
     >
       I Dig!{count > 0 ? ` · ${count}` : ''}

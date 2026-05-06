@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Avatar } from './Avatar';
@@ -9,12 +9,13 @@ import { linkifyText } from '@/lib/messages/linkify';
 import LinkMetadataCard from './messages/LinkMetadataCard';
 import MessageReplies from './MessageReplies';
 import { Message as MessageType, LinkMetadataItem } from '@/lib/types';
-import { detectLinks } from '@/lib/messages/link-detector';
-import { extractListNameFromMessage } from '@/lib/utils/message-extractor';
+import { detectLinks, extractInstagramUrlsFromText } from '@/lib/messages/link-detector';
+import { extractListNameFromMessage, extractListNameFromMessageExcludingUrls } from '@/lib/utils/message-extractor';
 import ScheduledPostIndicator from './ScheduledPostIndicator';
 import CrossPostPlatformIcons from './scheduled/CrossPostPlatformIcons';
 import MessageDigButton, {
-  messageActionLinkClass,
+  MESSAGE_ACTION_OUTLINE_CLASS,
+  MESSAGE_ACTION_OUTLINE_DANGER_CLASS,
   MESSAGE_ACTION_TEXT_STYLE,
 } from './MessageDigButton';
 
@@ -171,6 +172,11 @@ export default function MessageCard({
     !!message.pushedMessage &&
     !message.parentId;
 
+  const instagramUrlsFromText = useMemo(
+    () => extractInstagramUrlsFromText(message.content || ''),
+    [message.content],
+  );
+
   const handlePlainPush = async () => {
     setPushError('');
     setPushingPlain(true);
@@ -308,10 +314,40 @@ export default function MessageCard({
                 )}
               </div>
               
-              <div className="d-flex align-items-center gap-2">
+              <div className="d-flex align-items-center gap-1 flex-wrap">
+                {currentUserId && message.content.trim() && instagramUrlsFromText.length > 0 && (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-secondary d-inline-flex align-items-center justify-content-center px-2 py-1 shadow-sm"
+                    onClick={() => {
+                      const isOwner = currentUserId === message.user.id;
+                      const listName = extractListNameFromMessageExcludingUrls(
+                        message.content,
+                        instagramUrlsFromText,
+                      );
+                      sessionStorage.setItem(
+                        'createListFromMessage',
+                        JSON.stringify({
+                          name: listName || 'Instagram links',
+                          description: message.content,
+                          instagramLinks: instagramUrlsFromText,
+                          publiclyVisible: message.publiclyVisible,
+                          isOwner,
+                        }),
+                      );
+                      router.push('/lists/new');
+                    }}
+                    style={{ fontSize: '0.85rem', minWidth: '2.25rem', minHeight: '2.25rem' }}
+                    title="Create a list using Instagram links found in this message’s text (URLs are normalized and deduplicated)."
+                    aria-label="Create a list from Instagram links in this message text"
+                  >
+                    <i className="bx bxl-instagram" aria-hidden />
+                  </button>
+                )}
                 {currentUserId && message.content.trim() && (
                   <button
-                    className="btn btn-sm btn-link text-primary p-0"
+                    type="button"
+                    className="btn btn-sm btn-outline-primary d-inline-flex align-items-center justify-content-center px-2 py-1 shadow-sm"
                     onClick={() => {
                       const listName = extractListNameFromMessage(message.content);
                       const isOwner = currentUserId === message.user.id;
@@ -323,10 +359,11 @@ export default function MessageCard({
                       }));
                       router.push('/lists/new');
                     }}
-                    style={{ fontSize: '0.75rem' }}
-                    title="Create list from this message"
+                    style={{ fontSize: '0.85rem', minWidth: '2.25rem', minHeight: '2.25rem' }}
+                    title="Create a list prefilled with this entire message as the description."
+                    aria-label="Create list from this message"
                   >
-                    <i className="bx bx-list-plus"></i>
+                    <i className="bx bx-list-plus" aria-hidden />
                   </button>
                 )}
 
@@ -334,12 +371,14 @@ export default function MessageCard({
                   <div className="position-relative">
                     {!showDeleteConfirm ? (
                       <button
-                        className="btn btn-sm btn-link text-danger p-0"
+                        type="button"
+                        className="btn btn-sm btn-outline-danger d-inline-flex align-items-center justify-content-center px-2 py-1 shadow-sm"
                         onClick={() => setShowDeleteConfirm(true)}
-                        style={{ fontSize: '0.75rem' }}
-                        title="Delete message"
+                        style={{ fontSize: '0.85rem', minWidth: '2.25rem', minHeight: '2.25rem' }}
+                        title="Delete this message permanently"
+                        aria-label="Delete this message"
                       >
-                        <i className="bx bx-trash"></i>
+                        <i className="bx bx-trash" aria-hidden />
                       </button>
                     ) : (
                       <div className="d-flex gap-1">
@@ -505,9 +544,17 @@ export default function MessageCard({
                 {currentUserId && (
                   <button
                     type="button"
-                    className={messageActionLinkClass}
+                    className={MESSAGE_ACTION_OUTLINE_CLASS}
                     style={MESSAGE_ACTION_TEXT_STYLE}
                     onClick={() => setReplyComposeOpen((o) => !o)}
+                    title={
+                      replyComposeOpen
+                        ? 'Close the reply box without sending'
+                        : 'Write a reply to this message'
+                    }
+                    aria-label={
+                      replyComposeOpen ? 'Cancel reply' : 'Reply to this message'
+                    }
                   >
                     {replyComposeOpen ? 'Cancel' : 'Reply'}
                   </button>
@@ -540,11 +587,12 @@ export default function MessageCard({
                     </span>
                     <button
                       type="button"
-                      className={messageActionLinkClass}
+                      className={MESSAGE_ACTION_OUTLINE_CLASS}
                       style={MESSAGE_ACTION_TEXT_STYLE}
                       onClick={handlePlainPush}
                       disabled={pushingPlain}
-                      title="Push Message"
+                      title="Share this message to your followers as a push (no extra comment)"
+                      aria-label="Push message to your followers without a comment"
                     >
                       {pushingPlain ? '…' : 'Push Message'}
                     </button>
@@ -553,10 +601,11 @@ export default function MessageCard({
                     </span>
                     <button
                       type="button"
-                      className={messageActionLinkClass}
+                      className={MESSAGE_ACTION_OUTLINE_CLASS}
                       style={MESSAGE_ACTION_TEXT_STYLE}
                       onClick={handleQuotePush}
-                      title="Push Message & Add Comment"
+                      title="Share to your followers and add your own comment"
+                      aria-label="Push message and add a comment"
                     >
                       Push & Comment
                     </button>
@@ -570,10 +619,11 @@ export default function MessageCard({
                     {!showUnpushConfirm ? (
                       <button
                         type="button"
-                        className="btn btn-sm btn-link text-danger p-0 align-baseline text-decoration-none"
+                        className={MESSAGE_ACTION_OUTLINE_DANGER_CLASS}
                         style={MESSAGE_ACTION_TEXT_STYLE}
                         onClick={() => setShowUnpushConfirm(true)}
-                        title="Remove this push from your feed"
+                        title="Remove your push of this message from your feed"
+                        aria-label="Unpush this message from your feed"
                       >
                         Unpush
                       </button>

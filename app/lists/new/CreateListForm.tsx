@@ -28,14 +28,21 @@ export default function CreateListForm() {
           isPublic = false; // Private
         }
         
-        if (data.name || data.description) {
+        if (data.name || data.description || (Array.isArray(data.instagramLinks) && data.instagramLinks.length > 0)) {
+          let description = typeof data.description === 'string' ? data.description : '';
+          if (Array.isArray(data.instagramLinks) && data.instagramLinks.length > 0) {
+            const block = ['Instagram links (extracted from message text):', ...data.instagramLinks].join('\n');
+            description = description.trim()
+              ? `${description.trim()}\n\n---\n${block}`
+              : block;
+          }
           return {
             schema: {
               name: data.name || '',
-              description: data.description || '',
-              fields: [] // Will use default fields from ListSchemaForm
+              description,
+              fields: [],
             },
-            isPublic
+            isPublic,
           };
         }
         

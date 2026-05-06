@@ -75,6 +75,62 @@ export function detectPlatform(url: string): Platform {
   return 'other';
 }
 
+/** Strip trailing punctuation often captured with pasted URLs */
+function trimTrailingFromUrl(url: string): string {
+  return url.replace(/[),.;>'"\]}]+$/u, '');
+}
+
+/**
+ * Normalizes an Instagram URL for deduplication (HTTPS, strip common tracking params).
+ */
+export function normalizeInstagramUrl(url: string): string {
+  let raw = trimTrailingFromUrl(url.trim());
+  if (!raw) return raw;
+  if (!/^https?:\/\//i.test(raw)) {
+    raw = raw.startsWith('www.') ? `https://${raw}` : `https://${raw}`;
+  }
+  try {
+    const u = new URL(raw);
+    const host = u.hostname.replace(/^www\./i, '').toLowerCase();
+    if (!host.endsWith('instagram.com') && host !== 'instagr.am') {
+      return trimTrailingFromUrl(url.trim());
+    }
+    const stripKeys = [
+      'igsh',
+      'igshid',
+      'fbclid',
+      'utm_source',
+      'utm_medium',
+      'utm_campaign',
+      'utm_content',
+      'utm_term',
+    ];
+    stripKeys.forEach((k) => u.searchParams.delete(k));
+    return u.toString();
+  } catch {
+    return trimTrailingFromUrl(url.trim());
+  }
+}
+
+/**
+ * Instagram links parsed from message body text only (option 1): extract, normalize, dedupe.
+ */
+export function extractInstagramUrlsFromText(content: string): string[] {
+  const urls = extractUrls(content).map(trimTrailingFromUrl);
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of urls) {
+    const platform = detectPlatform(raw);
+    if (platform !== 'instagram') continue;
+    const norm = normalizeInstagramUrl(raw);
+    if (!seen.has(norm)) {
+      seen.add(norm);
+      out.push(norm);
+    }
+  }
+  return out;
+}
+
 /**
  * Extracts all URLs from message content
  */
@@ -83,13 +139,14 @@ export function extractUrls(content: string): string[] {
   if (!matches) {
     return [];
   }
-  
+
   // Normalize URLs (add https:// if missing for www. URLs)
-  return matches.map(url => {
-    if (url.startsWith('www.')) {
-      return `https://${url}`;
+  return matches.map((url) => {
+    let u = trimTrailingFromUrl(url);
+    if (u.startsWith('www.')) {
+      return `https://${u}`;
     }
-    return url;
+    return u;
   });
 }
 

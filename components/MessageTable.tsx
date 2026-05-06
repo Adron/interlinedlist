@@ -6,10 +6,10 @@ import Link from 'next/link';
 import { formatDateTime, formatDatagridDateTime } from '@/lib/utils/relativeTime';
 import { linkifyText } from '@/lib/messages/linkify';
 import { Message as MessageType, LinkMetadataItem } from '@/lib/types';
-import { detectLinks } from '@/lib/messages/link-detector';
+import { detectLinks, extractInstagramUrlsFromText } from '@/lib/messages/link-detector';
 import LinkMetadataCard from './messages/LinkMetadataCard';
 import MessageReplies from './MessageReplies';
-import { extractListNameFromMessage } from '@/lib/utils/message-extractor';
+import { extractListNameFromMessage, extractListNameFromMessageExcludingUrls } from '@/lib/utils/message-extractor';
 import ScheduledPostIndicator from './ScheduledPostIndicator';
 import CrossPostPlatformIcons from './scheduled/CrossPostPlatformIcons';
 
@@ -882,9 +882,42 @@ export default function MessageTable({
                     </td>
                     {currentUserId && (
                       <td style={{ padding: '0.25rem 0.5rem' }}>
-                        <div className="d-flex align-items-center gap-1">
+                        <div className="d-flex align-items-center gap-1 flex-wrap">
+                          {message.content.trim() &&
+                            extractInstagramUrlsFromText(message.content).length > 0 && (
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-secondary d-inline-flex align-items-center justify-content-center px-2 py-1 shadow-sm"
+                                onClick={() => {
+                                  const ig = extractInstagramUrlsFromText(message.content);
+                                  const isOwner = currentUserId === message.user.id;
+                                  const listName = extractListNameFromMessageExcludingUrls(
+                                    message.content,
+                                    ig,
+                                  );
+                                  sessionStorage.setItem(
+                                    'createListFromMessage',
+                                    JSON.stringify({
+                                      name: listName || 'Instagram links',
+                                      description: message.content,
+                                      instagramLinks: ig,
+                                      publiclyVisible: message.publiclyVisible,
+                                      isOwner,
+                                    }),
+                                  );
+                                  router.push('/lists/new');
+                                }}
+                                disabled={isLoading}
+                                style={{ fontSize: '0.85rem', minWidth: '2.25rem', minHeight: '2.25rem' }}
+                                title="Create a list using Instagram links found in this message’s text (URLs are normalized and deduplicated)."
+                                aria-label="Create a list from Instagram links in this message text"
+                              >
+                                <i className="bx bxl-instagram" aria-hidden />
+                              </button>
+                            )}
                           <button
-                            className="btn btn-sm btn-link text-primary p-0"
+                            type="button"
+                            className="btn btn-sm btn-outline-primary d-inline-flex align-items-center justify-content-center px-2 py-1 shadow-sm"
                             onClick={() => {
                               const listName = extractListNameFromMessage(message.content);
                               const isOwner = currentUserId === message.user.id;
@@ -897,9 +930,11 @@ export default function MessageTable({
                               router.push('/lists/new');
                             }}
                             disabled={isLoading || !message.content.trim()}
-                            title="Create list from this message"
+                            style={{ fontSize: '0.85rem', minWidth: '2.25rem', minHeight: '2.25rem' }}
+                            title="Create a list prefilled with this entire message as the description."
+                            aria-label="Create list from this message"
                           >
-                            <i className="bx bx-list-plus"></i>
+                            <i className="bx bx-list-plus" aria-hidden />
                           </button>
                           {(() => {
                             const isPushRow = !!message.pushedMessage && !message.parentId;
@@ -908,7 +943,13 @@ export default function MessageTable({
                               return (
                                 <button
                                   type="button"
-                                  className="btn btn-sm btn-link text-danger p-0"
+                                  className="btn btn-sm btn-outline-danger d-inline-flex align-items-center justify-content-center px-2 py-1 shadow-sm"
+                                  style={{
+                                    fontSize: '0.85rem',
+                                    minWidth: '2.25rem',
+                                    minHeight: '2.25rem',
+                                    opacity: isOwner ? 1 : 0.5,
+                                  }}
                                   onClick={async () => {
                                     if (!isOwner) return;
                                     const confirmMsg = isPlainPushRow
@@ -919,8 +960,12 @@ export default function MessageTable({
                                     }
                                   }}
                                   disabled={isLoading || !isOwner}
-                                  title={isOwner ? 'Unpush' : 'You can only unpush your own messages'}
-                                  style={{ fontSize: '0.75rem', opacity: isOwner ? 1 : 0.5 }}
+                                  title={
+                                    isOwner
+                                      ? 'Remove your push of this message from your feed'
+                                      : 'You can only unpush your own messages'
+                                  }
+                                  aria-label={isOwner ? 'Unpush this message from your feed' : undefined}
                                 >
                                   Unpush
                                 </button>
@@ -929,17 +974,18 @@ export default function MessageTable({
                             return (
                               <button
                                 type="button"
-                                className="btn btn-sm btn-link text-danger p-0"
+                                className="btn btn-sm btn-outline-danger d-inline-flex align-items-center justify-content-center px-2 py-1 shadow-sm"
                                 onClick={async () => {
                                   if (isOwner && window.confirm('Are you sure you want to delete this message?')) {
                                     await handleDelete(message.id);
                                   }
                                 }}
                                 disabled={isLoading || !isOwner}
-                                title={isOwner ? 'Delete message' : 'You can only delete your own messages'}
-                                style={{ opacity: isOwner ? 1 : 0.5 }}
+                                title={isOwner ? 'Delete this message permanently' : 'You can only delete your own messages'}
+                                aria-label={isOwner ? 'Delete this message' : undefined}
+                                style={{ fontSize: '0.85rem', minWidth: '2.25rem', minHeight: '2.25rem', opacity: isOwner ? 1 : 0.5 }}
                               >
-                                <i className="bx bx-trash"></i>
+                                <i className="bx bx-trash" aria-hidden />
                               </button>
                             );
                           })()}

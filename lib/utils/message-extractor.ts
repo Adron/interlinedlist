@@ -11,6 +11,25 @@ const MAX_NAME_LENGTH = 50;
  * Extracts a list name from message content using NLP
  * Attempts to extract subject and verb, falls back to first few words
  */
+/**
+ * Same as extractListNameFromMessage but removes known URL strings first (e.g. for Instagram-derived titles).
+ */
+export function extractListNameFromMessageExcludingUrls(
+  messageContent: string,
+  urlsToStrip: string[],
+): string {
+  if (!urlsToStrip.length) {
+    return extractListNameFromMessage(messageContent);
+  }
+  let cleaned = messageContent;
+  const sorted = [...urlsToStrip].sort((a, b) => b.length - a.length);
+  for (const u of sorted) {
+    if (!u) continue;
+    cleaned = cleaned.split(u).join(' ');
+  }
+  return extractListNameFromMessage(cleaned.replace(/\s+/g, ' ').trim());
+}
+
 export function extractListNameFromMessage(messageContent: string): string {
   if (!messageContent || typeof messageContent !== 'string') {
     return '';
