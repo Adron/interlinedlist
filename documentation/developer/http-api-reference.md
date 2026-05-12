@@ -51,10 +51,24 @@ Endpoints that support **Bearer** are documented as “Session or Bearer”. All
 | POST | `/api/auth/reset-password` | Reset password with token. |
 | GET  | `/api/auth/github/authorize` | Redirect to GitHub OAuth. |
 | GET  | `/api/auth/github/callback` | GitHub OAuth callback. |
-| GET  | `/api/auth/mastodon/authorize` | Redirect to Mastodon OAuth. |
+| GET  | `/api/auth/mastodon/authorize` | Redirect to Mastodon OAuth. Query: `instance` (Mastodon instance hostname). |
 | GET  | `/api/auth/mastodon/callback` | Mastodon OAuth callback. |
 | GET  | `/api/auth/bluesky/authorize` | Redirect to Bluesky OAuth. |
 | GET  | `/api/auth/bluesky/callback` | Bluesky OAuth callback. |
+| GET  | `/api/auth/linkedin/authorize` | Redirect to LinkedIn OAuth. |
+| GET  | `/api/auth/linkedin/callback` | LinkedIn OAuth callback. |
+| GET  | `/api/auth/linkedin/status` | Check whether LinkedIn OAuth is configured on this instance. Returns `{ configured: boolean, redirectUri?: string }`. |
+
+### Social OAuth — sign-in vs. account linking
+
+All three social providers (Mastodon, Bluesky, LinkedIn) support two modes, controlled by the `?link=true` query parameter on the authorize endpoint:
+
+- **Without `link=true`** (default): sign-in / register flow. On success the server creates or updates a session cookie and redirects to `/dashboard`. If no local account exists for the provider identity, a new account is created automatically.
+- **With `link=true`**: account-linking flow. The user must already be logged in. On success the provider identity is attached to the existing account as a `LinkedIdentity` and the server redirects to `/settings`. Use this when a signed-in user wants to connect a social account for cross-posting.
+
+Attempting `?link=true` without an active session redirects to `/login` with an error. Attempting to link a provider identity already linked to a different account returns an error redirect to `/settings`.
+
+After linking, the identity's `id` from `GET /api/user/identities` is the value to supply in `mastodonProviderIds` when cross-posting. Bluesky and LinkedIn use the dedicated `crossPostToBluesky` / `crossPostToLinkedIn` boolean fields instead — the server resolves the linked identity automatically.
 
 ---
 
@@ -78,8 +92,10 @@ Endpoints that support **Bearer** are documented as “Session or Bearer”. All
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | GET  | `/api/messages` | Session or Bearer | List messages (query: `limit`, `offset`, `onlyMine`). |
-| POST | `/api/messages` | Session or Bearer | Create message. Body: `content`, `publiclyVisible`, optional `imageUrls`, `videoUrls`, `parentId`, cross-post options. |
+| POST | `/api/messages` | Session or Bearer | Create a message. See body reference below. |
+| GET  | `/api/messages/scheduled` | Session or Bearer | List the current user's upcoming scheduled messages (query: `range` — `today`, `week`, or `month`; default `month`). |
 | GET  | `/api/messages/[id]` | Session or Bearer | Get one message by ID. |
+| PUT  | `/api/messages/[id]` | Session or Bearer | Update a message (content, publiclyVisible). |
 | DELETE | `/api/messages/[id]` | Session or Bearer | Delete a message (own only). |
 | GET  | `/api/messages/[id]/replies` | Session | Get replies to a message. |
 | POST | `/api/messages/[id]/dig` | Session | Add **I Dig!** (idempotent). Returns `{ digCount, dugByMe }`. |
@@ -88,7 +104,57 @@ Endpoints that support **Bearer** are documented as “Session or Bearer”. All
 | POST | `/api/messages/images/upload` | Session | Upload an image (FormData `file`). Returns `{ url }`. Images resized to max 1200×1200, 1.4 MB. |
 | POST | `/api/messages/videos/upload` | Session | Upload a video (FormData `file`). Returns `{ url }`. Max 3 MB; formats: MP4, WebM, QuickTime, AVI. |
 
-Creating a message requires a verified email. Optional body fields include `imageUrls` (array of URLs from the upload endpoints, max 8) and `videoUrls` (array of URLs, max 1).
+### POST /api/messages — body reference
+
+All fields except `content` are optional.
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `content` | string | Message text. Required (unless `pushedMessageId` is set with no comment). Trimmed; max length from the user's `maxMessageLength` setting (default 666). |
+| `publiclyVisible` | boolean | Whether the message is public. Defaults to the user's `defaultPubliclyVisible` setting. Push messages are always public. |
+| `parentId` | string | ID of the message being replied to. Mutually exclusive with `pushedMessageId`. |
+| `pushedMessageId` | string | ID of a public message to push (repost). Mutually exclusive with `parentId`. `content` may be empty for a plain push or non-empty to push with a comment. Scheduled posts and replies cannot be combined with a push. |
+| `tags` | string[] | Array of tag strings to attach to the message. |
+| `imageUrls` | string[] | Up to 8 image URLs obtained from `POST /api/messages/images/upload`. **Subscriber only.** |
+| `videoUrls` | string[] | At most 1 video URL obtained from `POST /api/messages/videos/upload`. **Subscriber only.** |
+| `scheduledAt` | string (ISO 8601) | Future datetime to publish the message. Must be in the future. Cannot be combined with `parentId` or `pushedMessageId`. **Subscriber only.** |
+| `mastodonProviderIds` | string[] | IDs of linked Mastodon identities (from `GET /api/user/identities`) to cross-post to. Skipped for replies and push messages. **Subscriber only.** |
+| `crossPostToBluesky` | boolean | Cross-post to the user's linked Bluesky account. Skipped for replies and push messages. **Subscriber only.** |
+| `crossPostToLinkedIn` | boolean | Cross-post to the user's linked LinkedIn account. Skipped for replies and push messages. **Subscriber only.** |
+
+### Subscriber-only features
+
+The fields `imageUrls`, `videoUrls`, `scheduledAt`, `mastodonProviderIds`, `crossPostToBluesky`, and `crossPostToLinkedIn` are restricted to paid subscribers. Sending any of these fields as a free user returns **403** with the error `"Subscribe to unlock images, video, cross-posting, and scheduled posts."`.
+
+The user's subscription status is available on `GET /api/user` as `customerStatus`. Active subscribers have a value of `"subscriber"`, `"subscriber:monthly"`, or `"subscriber:annual"`.
+
+### Scheduled posts
+
+When `scheduledAt` is provided, the message is saved but not published immediately. The cron job at `GET /api/cron/publish-scheduled-messages` runs periodically and publishes due messages, executing any configured cross-posting at that time. Use `GET /api/messages/scheduled` to list pending scheduled posts.
+
+### Cross-posting
+
+Cross-posting sends the message to external platforms at post time (or at the scheduled time for deferred posts). The user must have the relevant accounts linked under `GET /api/user/identities`. The response includes a `crossPostResults` array reporting success or failure per platform. Plain push messages (no comment) do not support cross-posting.
+
+> **Coming soon:** Organization-scoped posting will allow publishing a message on behalf of an organization. The button is present in the posting UI but is not yet active.
+
+### Response
+
+On success the API returns **201** with:
+
+```json
+{
+  "message": "Message created successfully",
+  "data": { ...message object... },
+  "scheduledAt": "2025-06-01T10:00:00.000Z",
+  "crossPostResults": [
+    { "providerId": "...", "instanceName": "mastodon.social", "success": true, "url": "https://..." },
+    { "providerId": "", "instanceName": "Bluesky", "success": false, "error": "..." }
+  ]
+}
+```
+
+`scheduledAt` and `crossPostResults` are only present when applicable.
 
 ---
 
@@ -201,7 +267,7 @@ All export endpoints return CSV (or similar) and require a session.
 
 The Document Sync CLI and native clients (e.g. iOS app) use the sync token for API access. End users install the CLI from in-app **Help → Tooling (CLI)** on [interlinedlist.com/help/tooling](https://interlinedlist.com/help/tooling). Contributors testing against a local server: see [cli-against-local-server.md](./cli-against-local-server.md).
 
-Obtain a token via `POST /api/auth/sync-token`, then send `Authorization: Bearer <token>` on requests. Bearer auth is supported for: `GET /api/user`; `GET` and `POST /api/messages`; `GET` and `DELETE /api/messages/[id]`; and `GET` and `POST /api/documents/sync`.
+Obtain a token via `POST /api/auth/sync-token`, then send `Authorization: Bearer <token>` on requests. Bearer auth is supported for: `GET /api/user`; `GET`, `POST`, and `GET /api/messages/scheduled` under the messages API; `GET`, `PUT`, and `DELETE /api/messages/[id]`; and `GET` and `POST /api/documents/sync`. All subscriber-only restrictions (images, video, cross-posting, scheduled posts) are enforced the same way for Bearer callers as for session callers.
 
 ---
 

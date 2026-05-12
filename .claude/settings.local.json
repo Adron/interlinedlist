@@ -4,7 +4,10 @@
       "Bash(curl -s http://localhost:3001/api/documents/folders)",
       "Bash(grep -E \"\\\\.\\(ts|tsx|js|jsx\\)$\")",
       "Bash(npx prisma *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(xargs ls)",
+      "Bash(npx playwright *)",
+      "Bash(npx dotenv *)"
     ]
   }
 }
