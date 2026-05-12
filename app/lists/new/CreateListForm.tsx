@@ -11,7 +11,13 @@ export default function CreateListForm() {
   const [error, setError] = useState('');
   
   // Read from sessionStorage synchronously on mount
-  const getInitialData = (): { schema?: DSLSchema; isPublic: boolean } => {
+  const getInitialData = (): {
+    schema?: DSLSchema;
+    isPublic: boolean;
+    fromMessageId?: string;
+    fromUser?: string;
+    fromUrl?: string;
+  } => {
     if (typeof window === 'undefined') return { isPublic: false };
     const stored = sessionStorage.getItem('createListFromMessage');
     if (stored) {
@@ -19,7 +25,7 @@ export default function CreateListForm() {
         const data = JSON.parse(stored);
         // Clear sessionStorage after reading
         sessionStorage.removeItem('createListFromMessage');
-        
+
         // Determine initial visibility:
         // - If user owns the message and it's private, make list private
         // - Otherwise (public message or someone else's message), make list public
@@ -27,7 +33,13 @@ export default function CreateListForm() {
         if (data.isOwner === true && data.publiclyVisible === false) {
           isPublic = false; // Private
         }
-        
+
+        const origin = {
+          fromMessageId: typeof data.fromMessageId === 'string' ? data.fromMessageId : undefined,
+          fromUser: typeof data.fromUser === 'string' ? data.fromUser : undefined,
+          fromUrl: typeof data.fromUrl === 'string' ? data.fromUrl : undefined,
+        };
+
         if (data.name || data.description || (Array.isArray(data.instagramLinks) && data.instagramLinks.length > 0)) {
           let description = typeof data.description === 'string' ? data.description : '';
           if (Array.isArray(data.instagramLinks) && data.instagramLinks.length > 0) {
@@ -43,10 +55,11 @@ export default function CreateListForm() {
               fields: [],
             },
             isPublic,
+            ...origin,
           };
         }
-        
-        return { isPublic };
+
+        return { isPublic, ...origin };
       } catch (err) {
         console.error('Failed to parse stored message data:', err);
         sessionStorage.removeItem('createListFromMessage');
@@ -54,10 +67,13 @@ export default function CreateListForm() {
     }
     return { isPublic: false }; // Default to private if no data
   };
-  
+
   const initialData = getInitialData();
   const [initialSchema] = useState<DSLSchema | undefined>(initialData.schema);
   const [initialIsPublic] = useState<boolean>(initialData.isPublic);
+  const [fromMessageId] = useState<string | undefined>(initialData.fromMessageId);
+  const [fromUser] = useState<string | undefined>(initialData.fromUser);
+  const [fromUrl] = useState<string | undefined>(initialData.fromUrl);
 
   const handleSubmit = async (schema: DSLSchema, parentId: string | null, isPublic: boolean) => {
     setLoading(true);
@@ -84,7 +100,15 @@ export default function CreateListForm() {
       }
 
       const data = await response.json();
-      router.push(`/lists/${data.data.id}`);
+      const listId = data.data.id;
+      if (fromMessageId && fromUser) {
+        const encodedFromUrl = fromUrl ? encodeURIComponent(fromUrl) : encodeURIComponent(window.location.href);
+        router.push(
+          `/lists/${listId}?fromMessage=${fromMessageId}&fromUser=${encodeURIComponent(fromUser)}&fromUrl=${encodedFromUrl}`
+        );
+      } else {
+        router.push(`/lists/${listId}`);
+      }
       router.refresh();
     } catch (err: any) {
       setError(err.message || 'Failed to create list');

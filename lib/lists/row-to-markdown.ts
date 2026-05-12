@@ -60,3 +60,88 @@ export function buildExportDocumentPaths(listTitle: string, rowId: string): { ti
     listTitle.length > 120 ? `${listTitle.slice(0, 117)}…` : `${listTitle} (row)`;
   return { title, relativePath };
 }
+
+export interface BuildListMarkdownOptions {
+  listTitle: string;
+  fields: ParsedField[];
+  rows: Array<Record<string, unknown>>;
+  listStyle: "numbered" | "bulleted";
+  rowDataStyle: "inline" | "sub-items";
+  truncated?: boolean;
+  totalRows?: number;
+}
+
+function inlineValue(display: string): string {
+  return display.replace(/[\r\n]+/g, " ").trim() || "—";
+}
+
+/**
+ * Builds a full-list markdown document with configurable list and row-data styles.
+ *
+ * listStyle:    'numbered'  → 1. 2. 3.   |  'bulleted' → - - -
+ * rowDataStyle: 'inline'    → comma-delimited values on one line
+ *               'sub-items' → first field as parent label, remaining as key: value sub-items
+ */
+export function buildListMarkdown(options: BuildListMarkdownOptions): string {
+  const { listTitle, fields, rows, listStyle, rowDataStyle, truncated, totalRows } = options;
+  const titleLine = sanitizeHeadingText(listTitle);
+  const lines: string[] = [`# ${titleLine}`, ""];
+
+  if (truncated && totalRows !== undefined) {
+    lines.push(`> ⚠ Showing first ${rows.length} of ${totalRows} rows.`, "");
+  }
+
+  if (rows.length === 0) {
+    lines.push("_No rows._");
+    return lines.join("\n").trimEnd() + "\n";
+  }
+
+  if (rowDataStyle === "inline") {
+    lines.push(`**${fields.map((f) => sanitizeHeadingText(f.propertyName)).join(", ")}**`, "");
+    rows.forEach((rowData, idx) => {
+      const values = fields.map((f) =>
+        inlineValue(formatListCellDisplay(f, rowData[f.propertyKey]))
+      );
+      const prefix = listStyle === "numbered" ? `${idx + 1}.` : "-";
+      lines.push(`${prefix} ${values.join(", ")}`);
+    });
+    lines.push("");
+  } else {
+    rows.forEach((rowData, idx) => {
+      const firstField = fields[0];
+      const label = firstField
+        ? inlineValue(formatListCellDisplay(firstField, rowData[firstField.propertyKey])) ||
+          `Row ${idx + 1}`
+        : `Row ${idx + 1}`;
+      const prefix = listStyle === "numbered" ? `${idx + 1}.` : "-";
+      lines.push(`${prefix} ${label}`);
+
+      const subFields = fields.slice(1);
+      if (listStyle === "numbered") {
+        subFields.forEach((field, subIdx) => {
+          const display = inlineValue(formatListCellDisplay(field, rowData[field.propertyKey]));
+          lines.push(`   ${subIdx + 1}. ${sanitizeHeadingText(field.propertyName)}: ${display}`);
+        });
+      } else {
+        subFields.forEach((field) => {
+          const display = inlineValue(formatListCellDisplay(field, rowData[field.propertyKey]));
+          lines.push(`  - ${sanitizeHeadingText(field.propertyName)}: ${display}`);
+        });
+      }
+      lines.push("");
+    });
+  }
+
+  return lines.join("\n").trimEnd() + "\n";
+}
+
+export function buildListDocumentPaths(
+  listTitle: string,
+  listId: string
+): { title: string; relativePath: string } {
+  const slug = slugifyForPath(listTitle);
+  const shortId = listId.slice(0, 8);
+  const relativePath = `${slug}-list-${shortId}.md`;
+  const title = listTitle.length > 120 ? `${listTitle.slice(0, 117)}…` : listTitle;
+  return { title, relativePath };
+}

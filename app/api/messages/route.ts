@@ -553,6 +553,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
     const onlyMine = searchParams.get('onlyMine') === 'true';
+    const tagFilter = searchParams.get('tag');
 
     // Build where clause based on authentication and viewing preference
     let where: any = {};
@@ -582,6 +583,11 @@ export async function GET(request: NextRequest) {
 
     // Only top-level messages (no replies in main feed)
     where = { ...where, parentId: null };
+
+    // Filter by tag if requested
+    if (tagFilter) {
+      where.tags = { array_contains: [tagFilter] };
+    }
 
     // Fetch messages ordered by createdAt DESC (newest first)
     const messages = await prisma.message.findMany({

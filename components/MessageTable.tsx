@@ -12,6 +12,7 @@ import MessageReplies from './MessageReplies';
 import { extractListNameFromMessage, extractListNameFromMessageExcludingUrls } from '@/lib/utils/message-extractor';
 import ScheduledPostIndicator from './ScheduledPostIndicator';
 import CrossPostPlatformIcons from './scheduled/CrossPostPlatformIcons';
+import MessageToDocButton from './messages/MessageToDocButton';
 
 interface MessageUser {
   id: string;
@@ -903,6 +904,9 @@ export default function MessageTable({
                                       instagramLinks: ig,
                                       publiclyVisible: message.publiclyVisible,
                                       isOwner,
+                                      fromMessageId: message.id,
+                                      fromUser: message.user.username,
+                                      fromUrl: window.location.href,
                                     }),
                                   );
                                   router.push('/lists/new');
@@ -915,6 +919,7 @@ export default function MessageTable({
                                 <i className="bx bxl-instagram" aria-hidden />
                               </button>
                             )}
+                          <MessageToDocButton message={message} />
                           <button
                             type="button"
                             className="btn btn-sm btn-outline-primary d-inline-flex align-items-center justify-content-center px-2 py-1 shadow-sm"
@@ -925,7 +930,10 @@ export default function MessageTable({
                                 name: listName,
                                 description: message.content,
                                 publiclyVisible: message.publiclyVisible,
-                                isOwner: isOwner
+                                isOwner: isOwner,
+                                fromMessageId: message.id,
+                                fromUser: message.user.username,
+                                fromUrl: window.location.href,
                               }));
                               router.push('/lists/new');
                             }}

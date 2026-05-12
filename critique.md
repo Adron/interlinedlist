@@ -40,6 +40,7 @@ Based on current gaps between feedback and implementation:
 Beyond the improvements above, these features would enhance the app based on feedback themes:
 
 ### Calendar & Events
+
 - **Calendar / Event view** — A dedicated `/calendar` page where items tagged as events (from lists, scheduled posts, or messages) appear in a month/week/day calendar view. Support color-coded event types and date range highlighting, directly addressing: "it could be really powerful to integrate one [calendar]... Maybe highlight specific dates (e.g., with a color or marker) to show when events are happening."
 
 - **Recurring events** — Allow list items or messages with dates to repeat (daily, weekly, monthly, yearly) for recurring activities like classes, choir rehearsals, or weekly meetings. Storage: add `recurrenceRule` (iCal RRULE format) to `Message` and `ListDataRow` models.

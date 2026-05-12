@@ -51,10 +51,24 @@ Endpoints that support **Bearer** are documented as “Session or Bearer”. All
 | POST | `/api/auth/reset-password` | Reset password with token. |
 | GET  | `/api/auth/github/authorize` | Redirect to GitHub OAuth. |
 | GET  | `/api/auth/github/callback` | GitHub OAuth callback. |
-| GET  | `/api/auth/mastodon/authorize` | Redirect to Mastodon OAuth. |
+| GET  | `/api/auth/mastodon/authorize` | Redirect to Mastodon OAuth. Query: `instance` (Mastodon instance hostname). |
 | GET  | `/api/auth/mastodon/callback` | Mastodon OAuth callback. |
 | GET  | `/api/auth/bluesky/authorize` | Redirect to Bluesky OAuth. |
 | GET  | `/api/auth/bluesky/callback` | Bluesky OAuth callback. |
+| GET  | `/api/auth/linkedin/authorize` | Redirect to LinkedIn OAuth. |
+| GET  | `/api/auth/linkedin/callback` | LinkedIn OAuth callback. |
+| GET  | `/api/auth/linkedin/status` | Check whether LinkedIn OAuth is configured on this instance. Returns `{ configured: boolean, redirectUri?: string }`. |
+
+### Social OAuth — sign-in vs. account linking
+
+All three social providers (Mastodon, Bluesky, LinkedIn) support two modes, controlled by the `?link=true` query parameter on the authorize endpoint:
+
+- **Without `link=true`** (default): sign-in / register flow. On success the server creates or updates a session cookie and redirects to `/dashboard`. If no local account exists for the provider identity, a new account is created automatically.
+- **With `link=true`**: account-linking flow. The user must already be logged in. On success the provider identity is attached to the existing account as a `LinkedIdentity` and the server redirects to `/settings`. Use this when a signed-in user wants to connect a social account for cross-posting.
+
+Attempting `?link=true` without an active session redirects to `/login` with an error. Attempting to link a provider identity already linked to a different account returns an error redirect to `/settings`.
+
+After linking, the identity's `id` from `GET /api/user/identities` is the value to supply in `mastodonProviderIds` when cross-posting. Bluesky and LinkedIn use the dedicated `crossPostToBluesky` / `crossPostToLinkedIn` boolean fields instead — the server resolves the linked identity automatically.
 
 ---
 
@@ -77,18 +91,182 @@ Endpoints that support **Bearer** are documented as “Session or Bearer”. All
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET  | `/api/messages` | Session or Bearer | List messages (query: `limit`, `offset`, `onlyMine`). |
-| POST | `/api/messages` | Session or Bearer | Create message. Body: `content`, `publiclyVisible`, optional `imageUrls`, `videoUrls`, `parentId`, cross-post options. |
+| GET  | `/api/messages` | Session or Bearer | List messages (query: `limit`, `offset`, `onlyMine`, `tag`). |
+| POST | `/api/messages` | Session or Bearer | Create a message. See body reference below. |
+| GET  | `/api/messages/scheduled` | Session or Bearer | List the current user's upcoming scheduled messages (query: `range` — `today`, `week`, or `month`; default `month`). |
 | GET  | `/api/messages/[id]` | Session or Bearer | Get one message by ID. |
+| PUT  | `/api/messages/[id]` | Session or Bearer | Update a message (content, publiclyVisible). |
 | DELETE | `/api/messages/[id]` | Session or Bearer | Delete a message (own only). |
 | GET  | `/api/messages/[id]/replies` | Session | Get replies to a message. |
 | POST | `/api/messages/[id]/dig` | Session | Add **I Dig!** (idempotent). Returns `{ digCount, dugByMe }`. |
 | DELETE | `/api/messages/[id]/dig` | Session | Remove your dig. Returns `{ digCount, dugByMe }`. |
 | POST | `/api/messages/[id]/metadata` | Session | Trigger link metadata fetch for the message. |
-| POST | `/api/messages/images/upload` | Session | Upload an image (FormData `file`). Returns `{ url }`. Images resized to max 1200×1200, 1.4 MB. |
-| POST | `/api/messages/videos/upload` | Session | Upload a video (FormData `file`). Returns `{ url }`. Max 3 MB; formats: MP4, WebM, QuickTime, AVI. |
+| POST | `/api/messages/images/upload` | Session or Bearer | Upload an image (multipart `file` field). Returns `{ url }`. **Subscriber only.** |
+| POST | `/api/messages/videos/upload` | Session or Bearer | Upload a video (multipart `file` field). Returns `{ url }`. **Subscriber only.** |
 
-Creating a message requires a verified email. Optional body fields include `imageUrls` (array of URLs from the upload endpoints, max 8) and `videoUrls` (array of URLs, max 1).
+### POST /api/messages — body reference
+
+All fields except `content` are optional.
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `content` | string | Message text. Required (unless `pushedMessageId` is set with no comment). Trimmed; max length from the user's `maxMessageLength` setting (default 666). |
+| `publiclyVisible` | boolean | Whether the message is public. Defaults to the user's `defaultPubliclyVisible` setting. Push messages are always public. |
+| `parentId` | string | ID of the message being replied to. Mutually exclusive with `pushedMessageId`. |
+| `pushedMessageId` | string | ID of a public message to push (repost). Mutually exclusive with `parentId`. `content` may be empty for a plain push or non-empty to push with a comment. Scheduled posts and replies cannot be combined with a push. |
+| `tags` | string[] | Array of tag strings to attach to the message. |
+| `imageUrls` | string[] | Up to 8 image URLs obtained from `POST /api/messages/images/upload`. **Subscriber only.** |
+| `videoUrls` | string[] | At most 1 video URL obtained from `POST /api/messages/videos/upload`. **Subscriber only.** |
+| `scheduledAt` | string (ISO 8601) | Future datetime to publish the message. Must be in the future. Cannot be combined with `parentId` or `pushedMessageId`. **Subscriber only.** |
+| `mastodonProviderIds` | string[] | IDs of linked Mastodon identities (from `GET /api/user/identities`) to cross-post to. Skipped for replies and push messages. **Subscriber only.** |
+| `crossPostToBluesky` | boolean | Cross-post to the user's linked Bluesky account. Skipped for replies and push messages. **Subscriber only.** |
+| `crossPostToLinkedIn` | boolean | Cross-post to the user's linked LinkedIn account. Skipped for replies and push messages. **Subscriber only.** |
+
+### Subscriber-only features
+
+The fields `imageUrls`, `videoUrls`, `scheduledAt`, `mastodonProviderIds`, `crossPostToBluesky`, and `crossPostToLinkedIn` are restricted to paid subscribers. Sending any of these fields as a free user returns **403** with the error `"Subscribe to unlock images, video, cross-posting, and scheduled posts."`.
+
+The user's subscription status is available on `GET /api/user` as `customerStatus`. Active subscribers have a value of `"subscriber"`, `"subscriber:monthly"`, or `"subscriber:annual"`.
+
+### Scheduled posts
+
+When `scheduledAt` is provided, the message is saved but not published immediately. The cron job at `GET /api/cron/publish-scheduled-messages` runs periodically and publishes due messages, executing any configured cross-posting at that time. Use `GET /api/messages/scheduled` to list pending scheduled posts.
+
+### Cross-posting
+
+Cross-posting sends the message to external platforms at post time (or at the scheduled time for deferred posts). The user must have the relevant accounts linked under `GET /api/user/identities`. The response includes a `crossPostResults` array reporting success or failure per platform. Plain push messages (no comment) do not support cross-posting.
+
+> **Coming soon:** Organization-scoped posting will allow publishing a message on behalf of an organization. The button is present in the posting UI but is not yet active.
+
+### Tags
+
+Tags are free-form string labels attached to a message. Any authenticated user can tag their own messages.
+
+#### Setting tags — `POST /api/messages`
+
+Pass a `tags` array in the request body:
+
+```json
+{
+  "content": "Something interesting",
+  "tags": ["music", "jazz"]
+}
+```
+
+Tags are stored as-is (case-sensitive). No normalisation is applied server-side; lowercase is recommended for consistency.
+
+#### Filtering by tag — `GET /api/messages`
+
+Use the `tag` query parameter to return only messages that include a specific tag:
+
+```http
+GET /api/messages?tag=jazz
+```
+
+The filter is applied after all other feed filters (authentication, viewing preference, `onlyMine`), so it can be combined freely:
+
+```http
+GET /api/messages?tag=jazz&onlyMine=true&limit=20&offset=0
+```
+
+The response shape is identical to `GET /api/messages` without a tag filter — messages and pagination object.
+
+#### Reading tags on a message
+
+The `tags` field is present on every message object returned by the API:
+
+```json
+{
+  "id": "abc123",
+  "content": "Something interesting",
+  "tags": ["music", "jazz"],
+  ...
+}
+```
+
+When no tags were set the field is either `null` or absent.
+
+### Response
+
+On success the API returns **201** with:
+
+```json
+{
+  "message": "Message created successfully",
+  "data": { ...message object... },
+  "scheduledAt": "2025-06-01T10:00:00.000Z",
+  "crossPostResults": [
+    { "providerId": "...", "instanceName": "mastodon.social", "success": true, "url": "https://..." },
+    { "providerId": "", "instanceName": "Bluesky", "success": false, "error": "..." }
+  ]
+}
+```
+
+`scheduledAt` and `crossPostResults` are only present when applicable.
+
+### Uploading images and videos (two-step flow)
+
+Attaching media to a message requires two steps: upload the file first to get a URL, then include that URL when creating the message. Both upload endpoints require an active subscriber account and a verified email. Bearer token auth is supported, so native clients (iOS, CLI) can use the same flow as the web app.
+
+#### Step 1 — upload the file
+
+Send a `multipart/form-data` POST with a single field named `file`.
+
+```http
+POST /api/messages/images/upload
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+
+file=<binary image data>
+```
+
+Response `200`:
+
+```json
+{ "url": "https://your-blob-store.public.blob.vercel-storage.com/messages/…/1234-abc.jpg" }
+```
+
+Image constraints:
+
+- Accepted formats: JPEG, PNG, WebP, GIF (any `image/*` MIME type)
+- Automatically resized to fit within 1200×1200 pixels (aspect ratio preserved)
+- Output size capped at 1.4 MB; JPEG quality is reduced iteratively if needed
+- EXIF orientation is corrected automatically
+- Output format: JPEG for most inputs; PNG preserved if the PNG output fits within 1.4 MB
+- Returns **413** if the image cannot be brought within limits even at minimum JPEG quality
+
+Video constraints:
+
+- Accepted formats: MP4 (`video/mp4`), WebM (`video/webm`), QuickTime (`video/quicktime`), AVI (`video/x-msvideo`)
+- Maximum size: 3 MB (raw — no server-side transcoding)
+- Returns **400** if the format is unsupported or the file exceeds 3 MB
+
+#### Step 2 — create the message with the URL
+
+Pass the URL(s) returned in step 1 in the `imageUrls` or `videoUrls` fields of `POST /api/messages`:
+
+```json
+{
+  "content": "Check this out",
+  "publiclyVisible": true,
+  "imageUrls": [
+    "https://your-blob-store.public.blob.vercel-storage.com/messages/…/1234-abc.jpg",
+    "https://your-blob-store.public.blob.vercel-storage.com/messages/…/1235-def.jpg"
+  ]
+}
+```
+
+Up to **8 images** and **1 video** may be attached to a single message. Images and video may be combined in the same message.
+
+Error responses for upload endpoints:
+
+| Status | Meaning |
+| ------ | ------- |
+| 400 | No file provided, unsupported format, or video exceeds 3 MB |
+| 401 | Not authenticated |
+| 403 | Email not verified, or not a subscriber |
+| 413 | Image could not be resized to fit within limits |
+| 500 | Upload to blob storage failed |
 
 ---
 
@@ -113,6 +291,118 @@ Creating a message requires a verified email. Optional body fields include `imag
 | GET  | `/api/users/[username]/lists` | None | Public lists for a user (by username). |
 | GET  | `/api/users/[username]/lists/[id]` | None | Public list by ID (read-only). |
 | GET  | `/api/users/[username]/lists/[id]/data` | None | Public list rows (read-only). |
+
+### Exporting a list to a document (List to Doc)
+
+The web app's **List to Doc** button (subscriber-only) converts an entire list into a Markdown document saved to the user's document library. External clients can replicate this flow using two existing API calls.
+
+#### Step 1 — fetch the list rows
+
+```http
+GET /api/lists/{id}/data?limit=500&offset=0
+Authorization: Bearer <token>
+```
+
+Response:
+
+```json
+{
+  "rows": [
+    { "id": "...", "rowData": { "Name": "Alice", "Age": "30", "Role": "Engineer" }, ... },
+    { "id": "...", "rowData": { "Name": "Bob",   "Age": "25", "Role": "Designer" }, ... }
+  ],
+  "pagination": { "total": 2, "limit": 500, "offset": 0, "hasMore": false }
+}
+```
+
+Each row's data lives in `rowData`. The list's field definitions and display order come from `GET /api/lists/{id}` (the `properties` array on the list object).
+
+> **Row cap**: The web app caps the export at 500 rows. If `pagination.total` exceeds 500, include a note in the document so readers know the export is truncated.
+
+#### Step 2 — build the Markdown
+
+Choose a combination of two options:
+
+| Option | Values |
+| ------ | ------ |
+| `listStyle` | `numbered` — `1.` `2.` `3.` &nbsp;&nbsp; or &nbsp;&nbsp; `bulleted` — `-` |
+| `rowDataStyle` | `inline` — comma-delimited on one line &nbsp;&nbsp; or &nbsp;&nbsp; `sub-items` — key: value sub-bullets |
+
+**Numbered + inline** (fields as a bold header row, then one line per row):
+
+```markdown
+# My List
+
+**Name, Age, Role**
+
+1. Alice, 30, Engineer
+2. Bob, 25, Designer
+```
+
+**Bulleted + inline**:
+
+```markdown
+# My List
+
+**Name, Age, Role**
+
+- Alice, 30, Engineer
+- Bob, 25, Designer
+```
+
+**Numbered + sub-items** (first field value is the parent label; remaining fields as sub-enumerated key: value):
+
+```markdown
+# My List
+
+1. Alice
+   1. Age: 30
+   2. Role: Engineer
+2. Bob
+   1. Age: 25
+   2. Role: Designer
+```
+
+**Bulleted + sub-items**:
+
+```markdown
+# My List
+
+- Alice
+  - Age: 30
+  - Role: Engineer
+- Bob
+  - Age: 25
+  - Role: Designer
+```
+
+When the export is truncated, prepend a blockquote before the list:
+
+```markdown
+> ⚠ Showing first 500 of 1243 rows.
+```
+
+#### Step 3 — create the document
+
+```http
+POST /api/documents
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "title": "My List",
+  "content": "<markdown from step 2>",
+  "relativePath": "my-list-list-a1b2c3d4.md"
+}
+```
+
+`relativePath` should be unique per list. A reliable pattern is `{slugified-title}-list-{listId.slice(0,8)}.md`.
+
+Response `201`:
+
+```json
+{ "message": "Document created", "document": { "id": "...", "title": "My List", ... } }
+```
 
 ---
 
@@ -201,7 +491,7 @@ All export endpoints return CSV (or similar) and require a session.
 
 The Document Sync CLI and native clients (e.g. iOS app) use the sync token for API access. End users install the CLI from in-app **Help → Tooling (CLI)** on [interlinedlist.com/help/tooling](https://interlinedlist.com/help/tooling). Contributors testing against a local server: see [cli-against-local-server.md](./cli-against-local-server.md).
 
-Obtain a token via `POST /api/auth/sync-token`, then send `Authorization: Bearer <token>` on requests. Bearer auth is supported for: `GET /api/user`; `GET` and `POST /api/messages`; `GET` and `DELETE /api/messages/[id]`; and `GET` and `POST /api/documents/sync`.
+Obtain a token via `POST /api/auth/sync-token`, then send `Authorization: Bearer <token>` on requests. Bearer auth is supported for: `GET /api/user`; `GET`, `POST`, and `GET /api/messages/scheduled` under the messages API; `GET`, `PUT`, and `DELETE /api/messages/[id]`; and `GET` and `POST /api/documents/sync`. All subscriber-only restrictions (images, video, cross-posting, scheduled posts) are enforced the same way for Bearer callers as for session callers.
 
 ---
 

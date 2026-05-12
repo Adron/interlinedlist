@@ -14,6 +14,9 @@ interface ListDetailActionsProps {
   githubRepo?: string;
   onRefresh?: () => void;
   refreshing?: boolean;
+  canCreateDocuments?: boolean;
+  onListToDoc?: () => void;
+  listToDocLoading?: boolean;
 }
 
 export default function ListDetailActions({
@@ -26,6 +29,9 @@ export default function ListDetailActions({
   githubRepo,
   onRefresh,
   refreshing = false,
+  canCreateDocuments = false,
+  onListToDoc,
+  listToDocLoading = false,
 }: ListDetailActionsProps) {
   const router = useRouter();
 
@@ -73,6 +79,17 @@ export default function ListDetailActions({
             >
               <i className={`bx ${refreshing ? 'bx-loader-alt bx-spin' : 'bx-refresh'} me-1`}></i>
               {refreshing ? 'Refreshing...' : 'Refresh from GitHub'}
+            </button>
+          )}
+          {canCreateDocuments && onListToDoc && (
+            <button
+              type="button"
+              className="btn btn-outline-secondary"
+              onClick={onListToDoc}
+              disabled={listToDocLoading}
+            >
+              <i className={`bx ${listToDocLoading ? 'bx-loader-alt bx-spin' : 'bx-file-blank'} me-1`}></i>
+              {listToDocLoading ? 'Loading…' : 'List to Doc'}
             </button>
           )}
           <Link

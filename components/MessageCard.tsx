@@ -18,6 +18,7 @@ import MessageDigButton, {
   MESSAGE_ACTION_OUTLINE_DANGER_CLASS,
   MESSAGE_ACTION_TEXT_STYLE,
 } from './MessageDigButton';
+import MessageToDocButton from './messages/MessageToDocButton';
 
 interface MessageUser {
   id: string;
@@ -333,6 +334,9 @@ export default function MessageCard({
                           instagramLinks: instagramUrlsFromText,
                           publiclyVisible: message.publiclyVisible,
                           isOwner,
+                          fromMessageId: message.id,
+                          fromUser: message.user.username,
+                          fromUrl: window.location.href,
                         }),
                       );
                       router.push('/lists/new');
@@ -343,6 +347,9 @@ export default function MessageCard({
                   >
                     <i className="bx bxl-instagram" aria-hidden />
                   </button>
+                )}
+                {currentUserId && (
+                  <MessageToDocButton message={message} />
                 )}
                 {currentUserId && message.content.trim() && (
                   <button
@@ -355,7 +362,10 @@ export default function MessageCard({
                         name: listName,
                         description: message.content,
                         publiclyVisible: message.publiclyVisible,
-                        isOwner: isOwner
+                        isOwner: isOwner,
+                        fromMessageId: message.id,
+                        fromUser: message.user.username,
+                        fromUrl: window.location.href,
                       }));
                       router.push('/lists/new');
                     }}

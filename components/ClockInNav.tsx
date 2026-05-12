@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
 export default function ClockInNav() {
@@ -32,16 +33,17 @@ export default function ClockInNav() {
   const textClass = isLateNight ? 'text-warning' : '';
 
   return (
-    <div
-      className="topbar-item"
-      title={isLateNight ? "Maybe time to rest?" : "Current time"}
-    >
-      <div className={`topbar-button btn btn-link text-decoration-none d-flex align-items-center gap-1 ${textClass}`}>
+    <div className="topbar-item">
+      <Link
+        href="/clock"
+        className={`topbar-button btn btn-link text-decoration-none d-flex align-items-center gap-1 ${textClass}`}
+        title={isLateNight ? 'Maybe time to rest? — Open full clock' : 'Open full clock'}
+      >
         {isLateNight && <i className="bx bx-moon align-middle"></i>}
         <span className="font-monospace" style={{ minWidth: '50px' }}>
           {time || '--:--'}
         </span>
-      </div>
+      </Link>
     </div>
   );
 }
