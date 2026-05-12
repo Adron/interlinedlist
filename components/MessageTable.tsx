@@ -904,6 +904,9 @@ export default function MessageTable({
                                       instagramLinks: ig,
                                       publiclyVisible: message.publiclyVisible,
                                       isOwner,
+                                      fromMessageId: message.id,
+                                      fromUser: message.user.username,
+                                      fromUrl: window.location.href,
                                     }),
                                   );
                                   router.push('/lists/new');
@@ -927,7 +930,10 @@ export default function MessageTable({
                                 name: listName,
                                 description: message.content,
                                 publiclyVisible: message.publiclyVisible,
-                                isOwner: isOwner
+                                isOwner: isOwner,
+                                fromMessageId: message.id,
+                                fromUser: message.user.username,
+                                fromUrl: window.location.href,
                               }));
                               router.push('/lists/new');
                             }}

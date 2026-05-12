@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth/session';
 import Link from 'next/link';
 import DocumentEditor from '@/components/documents/DocumentEditor';
 import { getDocumentById } from '@/lib/documents/queries';
+import MessageOriginBreadcrumb from '@/components/messages/MessageOriginBreadcrumb';
 
 /** Avoid serving a stale RSC payload for this route after edits (client nav back must re-fetch). */
 export const dynamic = 'force-dynamic';
@@ -32,16 +33,18 @@ export default async function DocumentPage({
     <>
       <div className="row mb-3">
         <div className="col-12">
-          <nav aria-label="breadcrumb">
-            <ol className="breadcrumb">
-              <li className="breadcrumb-item">
-                <Link href="/documents">Documents</Link>
-              </li>
-              <li className="breadcrumb-item active" aria-current="page">
-                {document.title.trim() || document.relativePath}
-              </li>
-            </ol>
-          </nav>
+          <MessageOriginBreadcrumb>
+            <nav aria-label="breadcrumb">
+              <ol className="breadcrumb mb-0">
+                <li className="breadcrumb-item">
+                  <Link href="/documents">Documents</Link>
+                </li>
+                <li className="breadcrumb-item active" aria-current="page">
+                  {document.title.trim() || document.relativePath}
+                </li>
+              </ol>
+            </nav>
+          </MessageOriginBreadcrumb>
         </div>
       </div>
 

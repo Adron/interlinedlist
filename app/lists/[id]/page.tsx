@@ -10,6 +10,7 @@ import AnalyticsActionTracker from '@/components/AnalyticsActionTracker';
 import EditSchemaForm from './EditSchemaForm';
 import EditParentForm from '@/components/lists/EditParentForm';
 import AddRowForm from './AddRowForm';
+import MessageOriginBreadcrumb from '@/components/messages/MessageOriginBreadcrumb';
 
 interface ListDetailPageProps {
   params: Promise<{ id: string }> | { id: string };
@@ -58,7 +59,9 @@ export default async function ListDetailPage({ params, searchParams }: ListDetai
 
   return (
     <div className="container-fluid container-fluid-max py-4">
-      <ListBreadcrumbs items={breadcrumbItems} />
+      <MessageOriginBreadcrumb>
+        <ListBreadcrumbs items={breadcrumbItems} />
+      </MessageOriginBreadcrumb>
       {list.children && list.children.length > 0 && (
         <ListChildLinks children={list.children} />
       )}

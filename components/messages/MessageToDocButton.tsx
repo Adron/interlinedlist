@@ -29,7 +29,11 @@ export default function MessageToDocButton({ message, className }: MessageToDocB
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.document?.id) {
-        router.push(`/documents/${data.document.id}`);
+        const fromUrl = encodeURIComponent(window.location.href);
+        const fromUser = encodeURIComponent(message.user.username);
+        router.push(
+          `/documents/${data.document.id}?fromMessage=${message.id}&fromUser=${fromUser}&fromUrl=${fromUrl}`
+        );
         return;
       }
       const msg = typeof data.error === 'string' ? data.error : 'Failed to create document';
