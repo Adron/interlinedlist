@@ -292,6 +292,118 @@ Error responses for upload endpoints:
 | GET  | `/api/users/[username]/lists/[id]` | None | Public list by ID (read-only). |
 | GET  | `/api/users/[username]/lists/[id]/data` | None | Public list rows (read-only). |
 
+### Exporting a list to a document (List to Doc)
+
+The web app's **List to Doc** button (subscriber-only) converts an entire list into a Markdown document saved to the user's document library. External clients can replicate this flow using two existing API calls.
+
+#### Step 1 — fetch the list rows
+
+```http
+GET /api/lists/{id}/data?limit=500&offset=0
+Authorization: Bearer <token>
+```
+
+Response:
+
+```json
+{
+  "rows": [
+    { "id": "...", "rowData": { "Name": "Alice", "Age": "30", "Role": "Engineer" }, ... },
+    { "id": "...", "rowData": { "Name": "Bob",   "Age": "25", "Role": "Designer" }, ... }
+  ],
+  "pagination": { "total": 2, "limit": 500, "offset": 0, "hasMore": false }
+}
+```
+
+Each row's data lives in `rowData`. The list's field definitions and display order come from `GET /api/lists/{id}` (the `properties` array on the list object).
+
+> **Row cap**: The web app caps the export at 500 rows. If `pagination.total` exceeds 500, include a note in the document so readers know the export is truncated.
+
+#### Step 2 — build the Markdown
+
+Choose a combination of two options:
+
+| Option | Values |
+| ------ | ------ |
+| `listStyle` | `numbered` — `1.` `2.` `3.` &nbsp;&nbsp; or &nbsp;&nbsp; `bulleted` — `-` |
+| `rowDataStyle` | `inline` — comma-delimited on one line &nbsp;&nbsp; or &nbsp;&nbsp; `sub-items` — key: value sub-bullets |
+
+**Numbered + inline** (fields as a bold header row, then one line per row):
+
+```markdown
+# My List
+
+**Name, Age, Role**
+
+1. Alice, 30, Engineer
+2. Bob, 25, Designer
+```
+
+**Bulleted + inline**:
+
+```markdown
+# My List
+
+**Name, Age, Role**
+
+- Alice, 30, Engineer
+- Bob, 25, Designer
+```
+
+**Numbered + sub-items** (first field value is the parent label; remaining fields as sub-enumerated key: value):
+
+```markdown
+# My List
+
+1. Alice
+   1. Age: 30
+   2. Role: Engineer
+2. Bob
+   1. Age: 25
+   2. Role: Designer
+```
+
+**Bulleted + sub-items**:
+
+```markdown
+# My List
+
+- Alice
+  - Age: 30
+  - Role: Engineer
+- Bob
+  - Age: 25
+  - Role: Designer
+```
+
+When the export is truncated, prepend a blockquote before the list:
+
+```markdown
+> ⚠ Showing first 500 of 1243 rows.
+```
+
+#### Step 3 — create the document
+
+```http
+POST /api/documents
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "title": "My List",
+  "content": "<markdown from step 2>",
+  "relativePath": "my-list-list-a1b2c3d4.md"
+}
+```
+
+`relativePath` should be unique per list. A reliable pattern is `{slugified-title}-list-{listId.slice(0,8)}.md`.
+
+Response `201`:
+
+```json
+{ "message": "Document created", "document": { "id": "...", "title": "My List", ... } }
+```
+
 ---
 
 ## Documents and sync
