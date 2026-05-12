@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export interface EmailLogEntry {
   id: string;
@@ -18,85 +18,300 @@ export interface EmailLogEntry {
 interface EmailLogTableProps {
   initialLogs: EmailLogEntry[];
   initialTotal: number;
+  initialSummary?: Record<string, number>;
 }
 
 const EMAIL_TYPE_LABELS: Record<string, string> = {
   signup_verification: 'Signup',
-  resend_verification: 'Resend verification',
-  admin_user_verification: 'Admin create user',
+  resend_verification: 'Resend verif.',
+  admin_user_verification: 'Admin create',
   email_change_verification: 'Email change',
-  forgot_password: 'Forgot password',
+  forgot_password: 'Forgot pwd',
 };
 
-export default function EmailLogTable({ initialLogs, initialTotal }: EmailLogTableProps) {
+const STATUS_BADGE: Record<string, string> = {
+  sent: 'bg-success',
+  failed: 'bg-danger',
+  delivered: 'bg-primary',
+  bounced: 'bg-warning text-dark',
+  complained: 'bg-danger',
+};
+
+function statusBadgeClass(status: string): string {
+  return STATUS_BADGE[status] ?? 'bg-secondary';
+}
+
+function recipientDomain(email: string): string {
+  const at = email.indexOf('@');
+  return at >= 0 ? email.slice(at + 1) : '';
+}
+
+function SummaryStrip({ summary }: { summary: Record<string, number> }) {
+  const statuses = ['sent', 'delivered', 'failed', 'bounced', 'complained'];
+  const total = Object.values(summary).reduce((a, b) => a + b, 0);
+  return (
+    <div className="d-flex flex-wrap gap-2 mb-3 align-items-center">
+      <span className="text-muted small me-1">
+        <strong>{total}</strong> total
+      </span>
+      {statuses.map((s) =>
+        summary[s] ? (
+          <span key={s} className={`badge ${statusBadgeClass(s)}`}>
+            {s}: {summary[s]}
+          </span>
+        ) : null
+      )}
+    </div>
+  );
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      className="btn btn-link btn-sm p-0 ms-1"
+      title="Copy to clipboard"
+      onClick={async () => {
+        await navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      }}
+    >
+      <i className={`bx ${copied ? 'bx-check text-success' : 'bx-copy'}`} style={{ fontSize: '0.8rem' }} />
+    </button>
+  );
+}
+
+function ProviderIdCell({ providerId }: { providerId: string }) {
+  return (
+    <span className="d-flex align-items-center gap-1">
+      <code style={{ fontSize: '0.68rem', wordBreak: 'break-all' }}>{providerId}</code>
+      <CopyButton text={providerId} />
+      <a
+        href={`https://resend.com/emails/${providerId}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        title="View in Resend"
+        className="text-muted"
+      >
+        <i className="bx bx-link-external" style={{ fontSize: '0.8rem' }} />
+      </a>
+    </span>
+  );
+}
+
+function ErrorCodeBadge({ metadata }: { metadata: unknown }) {
+  if (!metadata || typeof metadata !== 'object') return null;
+  const m = metadata as Record<string, unknown>;
+  const code = m.errorCode;
+  const name = m.errorName as string | undefined;
+  if (!code && !name) return null;
+  return (
+    <span className="badge bg-danger bg-opacity-75 ms-1" title={name}>
+      {code ? String(code) : name}
+    </span>
+  );
+}
+
+function WebhookEventsList({ metadata }: { metadata: unknown }) {
+  if (!metadata || typeof metadata !== 'object') return null;
+  const m = metadata as Record<string, unknown>;
+  const events = m.webhookEvents as Array<{ type: string; createdAt: string }> | undefined;
+  if (!events?.length) return null;
+  return (
+    <div className="mt-1">
+      <span className="text-muted small fw-semibold">Webhook events:</span>
+      <ul className="mb-0 ps-3">
+        {events.map((e, i) => (
+          <li key={i} className="small">
+            <code>{e.type}</code>{' '}
+            <span className="text-muted">{new Date(e.createdAt).toLocaleString()}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function LogRow({ log }: { log: EmailLogEntry }) {
+  const [expanded, setExpanded] = useState(false);
+  const domain = recipientDomain(log.recipient);
+  const hasError = !!log.errorMessage;
+  const metadata = log.metadata as Record<string, unknown> | null;
+  const hasWebhookEvents =
+    metadata &&
+    Array.isArray(metadata.webhookEvents) &&
+    (metadata.webhookEvents as unknown[]).length > 0;
+  const expandable = hasError || hasWebhookEvents;
+
+  return (
+    <>
+      <tr
+        className={expandable ? 'cursor-pointer' : ''}
+        onClick={expandable ? () => setExpanded((e) => !e) : undefined}
+        style={expandable ? { cursor: 'pointer' } : undefined}
+      >
+        <td className="text-nowrap small">{new Date(log.createdAt).toLocaleString()}</td>
+        <td>
+          <span className="badge bg-secondary">
+            {EMAIL_TYPE_LABELS[log.emailType] ?? log.emailType}
+          </span>
+        </td>
+        <td>
+          <code className="small">{log.recipient}</code>
+          {domain && <span className="text-muted small ms-1">({domain})</span>}
+        </td>
+        <td>
+          <span className={`badge ${statusBadgeClass(log.status)}`}>{log.status}</span>
+          {hasError && <ErrorCodeBadge metadata={log.metadata} />}
+        </td>
+        <td style={{ maxWidth: 220 }}>
+          {log.providerId ? (
+            <ProviderIdCell providerId={log.providerId} />
+          ) : (
+            <span className="text-muted">—</span>
+          )}
+        </td>
+        <td>
+          {expandable ? (
+            <i className={`bx ${expanded ? 'bx-chevron-up' : 'bx-chevron-down'} text-muted`} />
+          ) : null}
+        </td>
+      </tr>
+      {expanded && (
+        <tr>
+          <td colSpan={6} className="bg-light px-3 py-2">
+            {hasError && (
+              <div className="mb-1">
+                <span className="text-muted small fw-semibold">Error: </span>
+                <span className="text-danger small">{log.errorMessage}</span>
+              </div>
+            )}
+            <WebhookEventsList metadata={log.metadata} />
+          </td>
+        </tr>
+      )}
+    </>
+  );
+}
+
+export default function EmailLogTable({
+  initialLogs,
+  initialTotal,
+  initialSummary = {},
+}: EmailLogTableProps) {
   const [logs, setLogs] = useState<EmailLogEntry[]>(initialLogs);
   const [total, setTotal] = useState(initialTotal);
+  const [summary, setSummary] = useState<Record<string, number>>(initialSummary);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState<string>('');
-  const [typeFilter, setTypeFilter] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [dateRange, setDateRange] = useState('all');
+  const [sort, setSort] = useState<'asc' | 'desc'>('desc');
   const itemsPerPage = 25;
 
+  const isDefault =
+    currentPage === 1 &&
+    !statusFilter &&
+    !typeFilter &&
+    !search &&
+    dateRange === 'all' &&
+    sort === 'desc';
+
+  const fetchLogs = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        limit: itemsPerPage.toString(),
+        offset: ((currentPage - 1) * itemsPerPage).toString(),
+        sort,
+        dateRange,
+      });
+      if (statusFilter) params.set('status', statusFilter);
+      if (typeFilter) params.set('emailType', typeFilter);
+      if (search) params.set('search', search);
+
+      const res = await fetch(`/api/admin/email-logs?${params.toString()}`);
+      const data = await res.json();
+      if (res.ok) {
+        setLogs(data.logs ?? []);
+        setTotal(data.total ?? 0);
+        if (data.summary) setSummary(data.summary);
+      }
+    } catch (err) {
+      console.error('Failed to fetch email logs:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, statusFilter, typeFilter, search, dateRange, sort]);
+
   useEffect(() => {
-    if (currentPage === 1 && !statusFilter && !typeFilter) {
+    if (isDefault) {
       setLogs(initialLogs);
       setTotal(initialTotal);
+      setSummary(initialSummary);
       return;
     }
-
-    const fetchLogs = async () => {
-      setLoading(true);
-      try {
-        const params = new URLSearchParams({
-          limit: itemsPerPage.toString(),
-          offset: ((currentPage - 1) * itemsPerPage).toString(),
-        });
-        if (statusFilter) params.set('status', statusFilter);
-        if (typeFilter) params.set('emailType', typeFilter);
-
-        const res = await fetch(`/api/admin/email-logs?${params.toString()}`);
-        const data = await res.json();
-        if (res.ok) {
-          setLogs(data.logs || []);
-          setTotal(data.total ?? 0);
-        }
-      } catch (err) {
-        console.error('Failed to fetch email logs:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchLogs();
-  }, [currentPage, statusFilter, typeFilter, initialLogs, initialTotal]);
+  }, [isDefault, fetchLogs, initialLogs, initialTotal, initialSummary]);
 
   const totalPages = Math.ceil(total / itemsPerPage);
+
+  function handleSearchSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSearch(searchInput);
+    setCurrentPage(1);
+  }
+
+  function handleFilterChange(setter: (v: string) => void, value: string) {
+    setter(value);
+    setCurrentPage(1);
+  }
 
   return (
     <div className="card">
       <div className="card-body">
-        <div className="d-flex flex-wrap gap-2 mb-3">
+        <SummaryStrip summary={summary} />
+
+        {/* Filters row */}
+        <div className="d-flex flex-wrap gap-2 mb-3 align-items-center">
+          <form className="d-flex gap-1" onSubmit={handleSearchSubmit}>
+            <input
+              type="search"
+              className="form-control form-control-sm"
+              placeholder="Search recipient..."
+              style={{ width: 200 }}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+            />
+            <button type="submit" className="btn btn-sm btn-outline-secondary">
+              <i className="bx bx-search" />
+            </button>
+          </form>
+
           <select
             className="form-select form-select-sm"
             style={{ width: 'auto' }}
             value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setCurrentPage(1);
-            }}
+            onChange={(e) => handleFilterChange(setStatusFilter, e.target.value)}
           >
             <option value="">All statuses</option>
             <option value="sent">Sent</option>
+            <option value="delivered">Delivered</option>
             <option value="failed">Failed</option>
+            <option value="bounced">Bounced</option>
+            <option value="complained">Complained</option>
           </select>
+
           <select
             className="form-select form-select-sm"
             style={{ width: 'auto' }}
             value={typeFilter}
-            onChange={(e) => {
-              setTypeFilter(e.target.value);
-              setCurrentPage(1);
-            }}
+            onChange={(e) => handleFilterChange(setTypeFilter, e.target.value)}
           >
             <option value="">All types</option>
             {Object.entries(EMAIL_TYPE_LABELS).map(([value, label]) => (
@@ -105,98 +320,61 @@ export default function EmailLogTable({ initialLogs, initialTotal }: EmailLogTab
               </option>
             ))}
           </select>
+
+          <select
+            className="form-select form-select-sm"
+            style={{ width: 'auto' }}
+            value={dateRange}
+            onChange={(e) => handleFilterChange(setDateRange, e.target.value)}
+          >
+            <option value="all">All time</option>
+            <option value="today">Today</option>
+            <option value="7d">Last 7 days</option>
+            <option value="30d">Last 30 days</option>
+          </select>
+
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
+            title={sort === 'desc' ? 'Newest first' : 'Oldest first'}
+            onClick={() => {
+              setSort((s) => (s === 'desc' ? 'asc' : 'desc'));
+              setCurrentPage(1);
+            }}
+          >
+            <i className={`bx ${sort === 'desc' ? 'bx-sort-down' : 'bx-sort-up'}`} />
+            {sort === 'desc' ? 'Newest' : 'Oldest'}
+          </button>
         </div>
 
         <div className="table-responsive">
-          <table className="table table-hover table-sm">
+          <table className="table table-hover table-sm align-middle">
             <thead>
               <tr>
                 <th>Date</th>
                 <th>Type</th>
-                <th>From</th>
                 <th>Recipient</th>
                 <th>Status</th>
                 <th>Provider ID</th>
-                <th>Error</th>
-                <th>User ID</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="text-center text-muted py-4">
-                    Loading...
+                  <td colSpan={6} className="text-center text-muted py-4">
+                    <span className="spinner-border spinner-border-sm me-2" />
+                    Loading…
                   </td>
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center text-muted py-4">
+                  <td colSpan={6} className="text-center text-muted py-4">
                     No email logs found.
                   </td>
                 </tr>
               ) : (
-                logs.map((log) => (
-                  <tr key={log.id}>
-                    <td className="text-nowrap small">
-                      {new Date(log.createdAt).toLocaleString()}
-                    </td>
-                    <td>
-                      <span className="badge bg-secondary">
-                        {EMAIL_TYPE_LABELS[log.emailType] ?? log.emailType}
-                      </span>
-                    </td>
-                    <td>
-                      {log.fromEmail ? (
-                        <code className="small">{log.fromEmail}</code>
-                      ) : (
-                        <span className="text-muted">-</span>
-                      )}
-                    </td>
-                    <td>
-                      <code className="small">{log.recipient}</code>
-                    </td>
-                    <td>
-                      <span
-                        className={`badge ${
-                          log.status === 'sent' ? 'bg-success' : 'bg-danger'
-                        }`}
-                      >
-                        {log.status}
-                      </span>
-                    </td>
-                    <td>
-                      {log.providerId ? (
-                        <code className="small" style={{ fontSize: '0.7rem' }}>
-                          {log.providerId.slice(0, 8)}...
-                        </code>
-                      ) : (
-                        <span className="text-muted">-</span>
-                      )}
-                    </td>
-                    <td>
-                      {log.errorMessage ? (
-                        <span
-                          className="text-danger small"
-                          title={log.errorMessage}
-                          style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', display: 'inline-block' }}
-                        >
-                          {log.errorMessage}
-                        </span>
-                      ) : (
-                        <span className="text-muted">-</span>
-                      )}
-                    </td>
-                    <td>
-                      {log.userId ? (
-                        <code className="small" style={{ fontSize: '0.7rem' }}>
-                          {log.userId.slice(0, 8)}...
-                        </code>
-                      ) : (
-                        <span className="text-muted">-</span>
-                      )}
-                    </td>
-                  </tr>
-                ))
+                logs.map((log) => <LogRow key={log.id} log={log} />)
               )}
             </tbody>
           </table>
@@ -204,9 +382,7 @@ export default function EmailLogTable({ initialLogs, initialTotal }: EmailLogTab
 
         {totalPages > 1 && (
           <div className="d-flex justify-content-between align-items-center mt-3">
-            <span className="text-muted small">
-              {total} total
-            </span>
+            <span className="text-muted small">{total} total</span>
             <nav>
               <ul className="pagination pagination-sm mb-0">
                 <li className={`page-item ${currentPage <= 1 ? 'disabled' : ''}`}>
@@ -221,7 +397,7 @@ export default function EmailLogTable({ initialLogs, initialTotal }: EmailLogTab
                 </li>
                 <li className="page-item disabled">
                   <span className="page-link">
-                    Page {currentPage} of {totalPages}
+                    {currentPage} / {totalPages}
                   </span>
                 </li>
                 <li className={`page-item ${currentPage >= totalPages ? 'disabled' : ''}`}>

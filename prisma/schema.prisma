@@ -407,6 +407,7 @@ model EmailLog {
   @@index([recipient])
   @@index([createdAt])
   @@index([status])
+  @@index([providerId])
   @@map("email_logs")
 }
 

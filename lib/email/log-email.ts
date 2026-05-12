@@ -24,16 +24,27 @@ export interface LogEmailParams {
   metadata?: object | null;
 }
 
-/** Resend API returns { data } on success or { error: { message } } on failure (does not throw) */
+/** Resend API returns { data } on success or { error: { message, statusCode, name } } on failure */
 export function getResendLogParams(
-  result: { data?: { id?: string } | null; error?: { message?: string } | null },
+  result: {
+    data?: { id?: string } | null;
+    error?: { message?: string; statusCode?: number | null; name?: string } | null;
+  },
   base: Omit<LogEmailParams, 'status' | 'providerId' | 'errorMessage'>
 ): LogEmailParams {
-  const err = (result as { error?: { message?: string } })?.error;
+  const err = result?.error;
   if (err) {
-    return { ...base, status: 'failed', errorMessage: err.message ?? 'Unknown Resend error' };
+    const metadata: Record<string, unknown> = { ...(base.metadata as Record<string, unknown> ?? {}) };
+    if (err.statusCode !== undefined) metadata.errorCode = err.statusCode;
+    if (err.name) metadata.errorName = err.name;
+    return {
+      ...base,
+      status: 'failed',
+      errorMessage: err.message ?? 'Unknown Resend error',
+      metadata,
+    };
   }
-  const id = (result as { data?: { id?: string } })?.data?.id;
+  const id = result?.data?.id;
   return { ...base, status: 'sent', providerId: id ?? undefined };
 }
 

@@ -6,12 +6,22 @@ import { requireAdminAndPublicOwner } from '@/lib/auth/admin-access';
 export default async function EmailLoggingPage() {
   await requireAdminAndPublicOwner();
 
-  const initialLogs = await prisma.emailLog.findMany({
-    orderBy: { createdAt: 'desc' },
-    take: 25,
-  });
+  const [initialLogs, total, summaryGroups] = await Promise.all([
+    prisma.emailLog.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 25,
+    }),
+    prisma.emailLog.count(),
+    prisma.emailLog.groupBy({
+      by: ['status'],
+      _count: { status: true },
+    }),
+  ]);
 
-  const total = await prisma.emailLog.count();
+  const initialSummary: Record<string, number> = {};
+  for (const g of summaryGroups) {
+    initialSummary[g.status] = g._count.status;
+  }
 
   const logsWithDates = initialLogs.map((log) => ({
     ...log,
@@ -40,6 +50,7 @@ export default async function EmailLoggingPage() {
           <EmailLogTable
             initialLogs={logsWithDates}
             initialTotal={total}
+            initialSummary={initialSummary}
           />
         </div>
       </div>
