@@ -12,6 +12,7 @@ import MessageReplies from './MessageReplies';
 import { extractListNameFromMessage, extractListNameFromMessageExcludingUrls } from '@/lib/utils/message-extractor';
 import ScheduledPostIndicator from './ScheduledPostIndicator';
 import CrossPostPlatformIcons from './scheduled/CrossPostPlatformIcons';
+import MessageToDocButton from './messages/MessageToDocButton';
 
 interface MessageUser {
   id: string;
@@ -915,6 +916,7 @@ export default function MessageTable({
                                 <i className="bx bxl-instagram" aria-hidden />
                               </button>
                             )}
+                          <MessageToDocButton message={message} />
                           <button
                             type="button"
                             className="btn btn-sm btn-outline-primary d-inline-flex align-items-center justify-content-center px-2 py-1 shadow-sm"

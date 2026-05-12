@@ -18,6 +18,7 @@ import MessageDigButton, {
   MESSAGE_ACTION_OUTLINE_DANGER_CLASS,
   MESSAGE_ACTION_TEXT_STYLE,
 } from './MessageDigButton';
+import MessageToDocButton from './messages/MessageToDocButton';
 
 interface MessageUser {
   id: string;
@@ -343,6 +344,9 @@ export default function MessageCard({
                   >
                     <i className="bx bxl-instagram" aria-hidden />
                   </button>
+                )}
+                {currentUserId && (
+                  <MessageToDocButton message={message} />
                 )}
                 {currentUserId && message.content.trim() && (
                   <button
