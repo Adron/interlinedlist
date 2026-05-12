@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth/session';
+import { getCurrentUserOrSyncToken } from '@/lib/auth/sync-token';
 import { isSubscriber } from '@/lib/subscription/is-subscriber';
 import { put } from '@vercel/blob';
 import { resizeAvatarToLimit, ImageTooLargeAfterResizeError } from '@/lib/avatar/resize';
@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
+    const user = await getCurrentUserOrSyncToken(request);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -40,9 +40,11 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(arrayBuffer);
     // Resize to at most 1200px per side and 1.4MB (proportions maintained)
     let resizedBuffer: Buffer;
+    let outputContentType: string;
     try {
       const result = await resizeAvatarToLimit(buffer, contentType);
       resizedBuffer = result.buffer;
+      outputContentType = result.contentType;
     } catch (err) {
       if (err instanceof ImageTooLargeAfterResizeError) {
         return NextResponse.json(
@@ -56,10 +58,11 @@ export async function POST(request: NextRequest) {
       throw err;
     }
 
-    const pathname = `messages/${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 10)}.jpg`;
+    const ext = outputContentType === 'image/png' ? 'png' : 'jpg';
+    const pathname = `messages/${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${ext}`;
     const blob = await put(pathname, resizedBuffer, {
       access: 'public',
-      contentType: 'image/jpeg',
+      contentType: outputContentType,
     });
 
     return NextResponse.json({ url: blob.url }, { status: 200 });

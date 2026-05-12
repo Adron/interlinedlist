@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth/session';
+import { getCurrentUserOrSyncToken } from '@/lib/auth/sync-token';
 import { isSubscriber } from '@/lib/subscription/is-subscriber';
 import { put } from '@vercel/blob';
 
@@ -16,7 +16,7 @@ const ALLOWED_VIDEO_TYPES: Record<string, string> = {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
+    const user = await getCurrentUserOrSyncToken(request);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

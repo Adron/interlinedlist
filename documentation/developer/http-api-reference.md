@@ -91,7 +91,7 @@ After linking, the identity's `id` from `GET /api/user/identities` is the value 
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET  | `/api/messages` | Session or Bearer | List messages (query: `limit`, `offset`, `onlyMine`). |
+| GET  | `/api/messages` | Session or Bearer | List messages (query: `limit`, `offset`, `onlyMine`, `tag`). |
 | POST | `/api/messages` | Session or Bearer | Create a message. See body reference below. |
 | GET  | `/api/messages/scheduled` | Session or Bearer | List the current user's upcoming scheduled messages (query: `range` — `today`, `week`, or `month`; default `month`). |
 | GET  | `/api/messages/[id]` | Session or Bearer | Get one message by ID. |
@@ -101,8 +101,8 @@ After linking, the identity's `id` from `GET /api/user/identities` is the value 
 | POST | `/api/messages/[id]/dig` | Session | Add **I Dig!** (idempotent). Returns `{ digCount, dugByMe }`. |
 | DELETE | `/api/messages/[id]/dig` | Session | Remove your dig. Returns `{ digCount, dugByMe }`. |
 | POST | `/api/messages/[id]/metadata` | Session | Trigger link metadata fetch for the message. |
-| POST | `/api/messages/images/upload` | Session | Upload an image (FormData `file`). Returns `{ url }`. Images resized to max 1200×1200, 1.4 MB. |
-| POST | `/api/messages/videos/upload` | Session | Upload a video (FormData `file`). Returns `{ url }`. Max 3 MB; formats: MP4, WebM, QuickTime, AVI. |
+| POST | `/api/messages/images/upload` | Session or Bearer | Upload an image (multipart `file` field). Returns `{ url }`. **Subscriber only.** |
+| POST | `/api/messages/videos/upload` | Session or Bearer | Upload a video (multipart `file` field). Returns `{ url }`. **Subscriber only.** |
 
 ### POST /api/messages — body reference
 
@@ -138,6 +138,54 @@ Cross-posting sends the message to external platforms at post time (or at the sc
 
 > **Coming soon:** Organization-scoped posting will allow publishing a message on behalf of an organization. The button is present in the posting UI but is not yet active.
 
+### Tags
+
+Tags are free-form string labels attached to a message. Any authenticated user can tag their own messages.
+
+#### Setting tags — `POST /api/messages`
+
+Pass a `tags` array in the request body:
+
+```json
+{
+  "content": "Something interesting",
+  "tags": ["music", "jazz"]
+}
+```
+
+Tags are stored as-is (case-sensitive). No normalisation is applied server-side; lowercase is recommended for consistency.
+
+#### Filtering by tag — `GET /api/messages`
+
+Use the `tag` query parameter to return only messages that include a specific tag:
+
+```http
+GET /api/messages?tag=jazz
+```
+
+The filter is applied after all other feed filters (authentication, viewing preference, `onlyMine`), so it can be combined freely:
+
+```http
+GET /api/messages?tag=jazz&onlyMine=true&limit=20&offset=0
+```
+
+The response shape is identical to `GET /api/messages` without a tag filter — messages and pagination object.
+
+#### Reading tags on a message
+
+The `tags` field is present on every message object returned by the API:
+
+```json
+{
+  "id": "abc123",
+  "content": "Something interesting",
+  "tags": ["music", "jazz"],
+  ...
+}
+```
+
+When no tags were set the field is either `null` or absent.
+
 ### Response
 
 On success the API returns **201** with:
@@ -155,6 +203,70 @@ On success the API returns **201** with:
 ```
 
 `scheduledAt` and `crossPostResults` are only present when applicable.
+
+### Uploading images and videos (two-step flow)
+
+Attaching media to a message requires two steps: upload the file first to get a URL, then include that URL when creating the message. Both upload endpoints require an active subscriber account and a verified email. Bearer token auth is supported, so native clients (iOS, CLI) can use the same flow as the web app.
+
+#### Step 1 — upload the file
+
+Send a `multipart/form-data` POST with a single field named `file`.
+
+```http
+POST /api/messages/images/upload
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+
+file=<binary image data>
+```
+
+Response `200`:
+
+```json
+{ "url": "https://your-blob-store.public.blob.vercel-storage.com/messages/…/1234-abc.jpg" }
+```
+
+Image constraints:
+
+- Accepted formats: JPEG, PNG, WebP, GIF (any `image/*` MIME type)
+- Automatically resized to fit within 1200×1200 pixels (aspect ratio preserved)
+- Output size capped at 1.4 MB; JPEG quality is reduced iteratively if needed
+- EXIF orientation is corrected automatically
+- Output format: JPEG for most inputs; PNG preserved if the PNG output fits within 1.4 MB
+- Returns **413** if the image cannot be brought within limits even at minimum JPEG quality
+
+Video constraints:
+
+- Accepted formats: MP4 (`video/mp4`), WebM (`video/webm`), QuickTime (`video/quicktime`), AVI (`video/x-msvideo`)
+- Maximum size: 3 MB (raw — no server-side transcoding)
+- Returns **400** if the format is unsupported or the file exceeds 3 MB
+
+#### Step 2 — create the message with the URL
+
+Pass the URL(s) returned in step 1 in the `imageUrls` or `videoUrls` fields of `POST /api/messages`:
+
+```json
+{
+  "content": "Check this out",
+  "publiclyVisible": true,
+  "imageUrls": [
+    "https://your-blob-store.public.blob.vercel-storage.com/messages/…/1234-abc.jpg",
+    "https://your-blob-store.public.blob.vercel-storage.com/messages/…/1235-def.jpg"
+  ]
+}
+```
+
+Up to **8 images** and **1 video** may be attached to a single message. Images and video may be combined in the same message.
+
+Error responses for upload endpoints:
+
+| Status | Meaning |
+| ------ | ------- |
+| 400 | No file provided, unsupported format, or video exceeds 3 MB |
+| 401 | Not authenticated |
+| 403 | Email not verified, or not a subscriber |
+| 413 | Image could not be resized to fit within limits |
+| 500 | Upload to blob storage failed |
 
 ---
 
