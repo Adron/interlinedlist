@@ -3,6 +3,7 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { getLinkedIdentitiesForUser } from '@/lib/auth/linked-identities';
 import Link from 'next/link';
 import IntegrationsClient from './IntegrationsClient';
+import GenerativeAISection from '@/components/settings/GenerativeAISection';
 
 interface IntegrationsPageProps {
   searchParams:
@@ -37,18 +38,24 @@ export default async function IntegrationsPage({ searchParams }: IntegrationsPag
             <h1 className="h3 mb-0">Integrations</h1>
           </div>
           <p className="text-muted mt-2 mb-0">
-            Link your GitHub, Mastodon, Bluesky, and LinkedIn accounts for sign-in and verification.
+            Manage all your external service connections in one place.
           </p>
         </div>
       </div>
 
-      <div className="row">
-        <div className="col-lg-8 col-12">
+      <div className="row g-4">
+        <div className="col-lg-6 col-12">
           <IntegrationsClient
             initialIdentities={serializedIdentities}
             initialGithubDefaultRepo={user.githubDefaultRepo ?? ''}
             initialError={params.error}
             initialSuccess={params.success}
+          />
+        </div>
+        <div className="col-lg-6 col-12">
+          <GenerativeAISection
+            hasOpenaiKey={!!user.openaiApiKey}
+            hasAnthropicKey={!!user.anthropicApiKey}
           />
         </div>
       </div>

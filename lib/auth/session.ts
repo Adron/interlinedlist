@@ -53,6 +53,8 @@ const userSelect = {
   isPrivateAccount: true,
   cleared: true,
   githubDefaultRepo: true,
+  openaiApiKey: true,
+  anthropicApiKey: true,
   customerStatus: true,
   stripeCustomerId: true,
   notificationTrayLimit: true,

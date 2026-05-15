@@ -65,6 +65,8 @@ export async function getCurrentUserOrSyncToken(
             isPrivateAccount: (u as { isPrivateAccount?: boolean }).isPrivateAccount ?? false,
             cleared: (u as { cleared?: boolean }).cleared ?? false,
             githubDefaultRepo: (u as { githubDefaultRepo?: string | null }).githubDefaultRepo ?? null,
+            openaiApiKey: (u as { openaiApiKey?: string | null }).openaiApiKey ?? null,
+            anthropicApiKey: (u as { anthropicApiKey?: string | null }).anthropicApiKey ?? null,
             customerStatus: (u as { customerStatus?: string | null }).customerStatus ?? null,
             stripeCustomerId: (u as { stripeCustomerId?: string | null }).stripeCustomerId ?? null,
             notificationTrayLimit:

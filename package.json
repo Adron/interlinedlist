@@ -14,6 +14,7 @@
     "vercel-build": "prisma generate && node scripts/migrate-deploy.js && next build",
     "db:migrate": "node scripts/safe-migrate.js",
     "db:migrate:deploy": "node scripts/migrate-deploy.js",
+    "db:migrate:neon": "node scripts/migrate-neon.js",
     "db:migrate:diagnose": "node scripts/migrate-diagnose.js",
     "db:migrate:force": "dotenv -e .env.local -- prisma migrate dev",
     "db:generate": "dotenv -e .env.local -- prisma generate",

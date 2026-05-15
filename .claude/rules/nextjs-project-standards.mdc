@@ -10,5 +10,6 @@ alwaysApply: false
 - **Before finishing a change**: run `npm run lint` and `npx tsc --noEmit`; fix new issues you introduce.
 - **Scope**: Touch only files needed for the task. No drive-by refactors, unrelated formatting sweeps, or new docs unless requested.
 - **Data & auth**: Use [`lib/auth/session`](lib/auth/session) and existing subscription helpers where applicable; respect Prisma models in [`prisma/schema.prisma`](prisma/schema.prisma).
+- **Database migrations**: All schema changes require a migration file under `prisma/migrations/`. Run `npm run db:migrate` locally and `npm run db:migrate:deploy` for production. Never use `prisma db push`, `prisma migrate dev` directly, or raw DDL (`$executeRawUnsafe`) to change the schema. Migrations must be additive (use `ADD COLUMN IF NOT EXISTS`, `CREATE TABLE IF NOT EXISTS`, etc.) — no `DROP`, `TRUNCATE`, or destructive `ALTER` without explicit approval. See `.claude/agents/db-migrations.md` and `.claude/skills/db-migrations/SKILL.md`.
 - **API routes**: Follow existing JSON error shapes and `getCurrentUser` checks in [`app/api/`](app/api/).
 - **UI**: Match spacing, typography, and Bootstrap patterns already used in similar screens.

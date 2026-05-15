@@ -146,10 +146,11 @@ export default function ConnectedAccountsSection({
   const mastodonIdentities = identities.filter((i) => i.provider.startsWith('mastodon:'));
 
   return (
-    <div className="mt-4">
-      <h4 className="h6 mb-3">Connected Accounts</h4>
-      <p className="text-muted small mb-3">
-        Link your GitHub, Mastodon, Bluesky, and LinkedIn accounts for sign-in and verification.
+    <div>
+      <h3 className="h5 mb-2">Connected Accounts</h3>
+      <p className="text-muted small mb-4">
+        Link your social and developer accounts to enable single sign-on, cross-posting, and
+        identity verification. Each provider unlocks specific features within the platform.
       </p>
 
       {message && (
@@ -222,6 +223,11 @@ export default function ConnectedAccountsSection({
               )}
             </div>
           </div>
+          <p className="text-muted small mt-2 mb-0">
+            Connect GitHub to sign in with your GitHub account and sync issues with your lists.
+            Reconnecting with the &ldquo;issues&rdquo; scope grants deeper list integration for
+            reading and writing issues directly from your GitHub repositories.
+          </p>
           {githubIdentity?.hasIssuesScope && (onGithubDefaultRepoChange != null || onGithubDefaultRepoSave != null) && (
             <div className="mt-3 pt-3 border-top">
               <label className="form-label small mb-1">Default GitHub repo (owner/repo)</label>
@@ -313,11 +319,11 @@ export default function ConnectedAccountsSection({
               )}
             </div>
           </div>
-          {!blueskyIdentity && (
-            <p className="text-muted small mt-2 mb-0">
-              Enter your Bluesky handle to pre-fill the sign-in form (e.g. adron.bsky.social).
-            </p>
-          )}
+          <p className="text-muted small mt-2 mb-0">
+            Connect Bluesky to sign in with your Bluesky account and automatically cross-post
+            messages to your Bluesky timeline. Enter your handle above to pre-fill the
+            sign-in form (e.g. adron.bsky.social).
+          </p>
         </div>
       </div>
 
@@ -378,15 +384,25 @@ export default function ConnectedAccountsSection({
               )}
             </div>
           </div>
+          <p className="text-muted small mt-2 mb-0">
+            Connect LinkedIn to use it as a sign-in and identity verification method. Your
+            LinkedIn profile is used to confirm your professional identity across the platform.
+          </p>
         </div>
       </div>
 
       {/* Mastodon - multiple instances */}
-      <div className="mb-3">
+      <div className="card mb-3">
+        <div className="card-body py-3">
         <div className="d-flex align-items-center gap-2 mb-2">
           <span className="badge bg-secondary">Mastodon</span>
           <span className="text-muted small">Add multiple instances</span>
         </div>
+        <p className="text-muted small mb-3">
+          Connect one or more Mastodon instances to sign in with Mastodon and cross-post
+          messages to your Mastodon timelines. Each instance is managed independently,
+          so you can broadcast to multiple communities at once.
+        </p>
         {mastodonIdentities.map((id) => (
           <div key={id.id} className="card mb-2">
             <div className="card-body py-3">
@@ -442,6 +458,7 @@ export default function ConnectedAccountsSection({
           >
             Add Mastodon instance
           </button>
+        </div>
         </div>
       </div>
     </div>

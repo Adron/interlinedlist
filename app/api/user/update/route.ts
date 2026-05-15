@@ -34,6 +34,8 @@ export async function PATCH(request: NextRequest) {
       isPrivateAccount,
       githubDefaultRepo,
       notificationTrayLimit,
+      openaiApiKey,
+      anthropicApiKey,
     } = body;
 
     // Validate maxMessageLength if provided
@@ -133,6 +135,12 @@ export async function PATCH(request: NextRequest) {
       }),
       ...(notificationTrayLimit !== undefined && {
         notificationTrayLimit: parseInt(notificationTrayLimit, 10),
+      }),
+      ...(openaiApiKey !== undefined && {
+        openaiApiKey: openaiApiKey === null || openaiApiKey === '' ? null : String(openaiApiKey).trim(),
+      }),
+      ...(anthropicApiKey !== undefined && {
+        anthropicApiKey: anthropicApiKey === null || anthropicApiKey === '' ? null : String(anthropicApiKey).trim(),
       }),
     };
     
