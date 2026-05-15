@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(`${APP_URL}/login?error=Must be logged in to link`);
       }
       if (existingLink && existingLink.userId !== user.id) {
-        return NextResponse.redirect(`${APP_URL}/settings?error=Bluesky account already linked`);
+        return NextResponse.redirect(`${APP_URL}/integrations?error=Bluesky account already linked`);
       }
       if (existingLink && existingLink.userId === user.id) {
         await prisma.linkedIdentity.update({
@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
         });
       }
       trackAction('oauth_connect', { userId: user.id, properties: { provider: 'bluesky' } }).catch(() => {});
-      return NextResponse.redirect(`${APP_URL}/settings?success=Bluesky+linked`);
+      return NextResponse.redirect(`${APP_URL}/integrations?success=Bluesky+linked`);
     }
 
     if (existingLink) {

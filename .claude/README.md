@@ -1,8 +1,8 @@
-# Cursor project config
+# Claude project config
 
 This folder is committed so the team shares **subagents**, **skills**, and **rules**.
 
-## Subagents (`.cursor/agents/`)
+## Subagents (`.claude/agents/`)
 
 Invoke from chat, for example:
 
@@ -10,11 +10,11 @@ Invoke from chat, for example:
 - `Use the unit-testing subagent to …` — Vitest unit tests after a change (`npm run test`).
 - `Use the e2e-testing subagent to …` — Playwright browser tests (`npm run test:e2e`).
 
-## Skills (`.cursor/skills/`)
+## Skills (`.claude/skills/`)
 
 Each skill is a `SKILL.md` with detailed procedures. Names align with agents: `nextjs-developer`, `unit-testing`, `e2e-testing`.
 
-## Rules (`.cursor/rules/`)
+## Rules (`.claude/rules/`)
 
 - `nextjs-project-standards.mdc` — applies to `**/*.{ts,tsx}`; lint/tsc and scope expectations.
 

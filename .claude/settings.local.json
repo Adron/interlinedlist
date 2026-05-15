@@ -8,7 +8,8 @@
       "Bash(xargs ls)",
       "Bash(npx playwright *)",
       "Bash(npx dotenv *)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(grep -E \"\\\\.tsx$\")"
     ]
   }
 }

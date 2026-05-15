@@ -3,40 +3,24 @@
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import ConnectedAccountsSection from '@/components/settings/ConnectedAccountsSection';
 
 type DeleteModalStep = 0 | 1 | 2;
 
 interface SecuritySectionProps {
   isPrivateAccount: boolean | null;
-  linkedIdentities: Array<{
-    id: string;
-    provider: string;
-    providerUsername: string | null;
-    profileUrl: string | null;
-    avatarUrl: string | null;
-    connectedAt: string;
-    lastVerifiedAt: string | null;
-    hasIssuesScope?: boolean;
-  }>;
-  githubDefaultRepo?: string;
-  initialError?: string;
-  initialSuccess?: string;
 }
 
-export default function SecuritySection({ isPrivateAccount: initialIsPrivateAccount, linkedIdentities, githubDefaultRepo: initialGithubDefaultRepo = '', initialError, initialSuccess }: SecuritySectionProps) {
+export default function SecuritySection({ isPrivateAccount: initialIsPrivateAccount }: SecuritySectionProps) {
   const router = useRouter();
   const [isPrivateAccount, setIsPrivateAccount] = useState(initialIsPrivateAccount ?? false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(initialError ?? '');
-  const [success, setSuccess] = useState(initialSuccess ?? '');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [deleteModalStep, setDeleteModalStep] = useState<DeleteModalStep>(0);
   const [deleteUsername, setDeleteUsername] = useState('');
   const [deleteEmail, setDeleteEmail] = useState('');
   const [deleteError, setDeleteError] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const [githubDefaultRepo, setGithubDefaultRepo] = useState(initialGithubDefaultRepo);
-  const [githubRepoSaving, setGithubRepoSaving] = useState(false);
 
   const handlePrivacyToggle = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -176,38 +160,19 @@ export default function SecuritySection({ isPrivateAccount: initialIsPrivateAcco
 
         <hr className="my-4" />
 
-        <ConnectedAccountsSection
-          initialIdentities={linkedIdentities}
-          githubDefaultRepo={githubDefaultRepo}
-          onGithubDefaultRepoChange={setGithubDefaultRepo}
-          onGithubDefaultRepoSave={async () => {
-            setGithubRepoSaving(true);
-            setError('');
-            setSuccess('');
-            try {
-              const res = await fetch('/api/user/update', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ githubDefaultRepo: githubDefaultRepo || null }),
-              });
-              const data = await res.json();
-              if (!res.ok) {
-                setError(data.error || 'Failed to save default repo');
-                return;
-              }
-              setSuccess('Default GitHub repo saved');
-              router.refresh();
-            } catch {
-              setError('Failed to save default repo');
-            } finally {
-              setGithubRepoSaving(false);
-            }
-          }}
-          githubRepoSaving={githubRepoSaving}
-        />
+        <div>
+          <h4 className="h6 mb-2">Connected Accounts</h4>
+          <p className="text-muted small mb-3">
+            Link your GitHub, Mastodon, Bluesky, and LinkedIn accounts for sign-in and verification.
+          </p>
+          <Link href="/integrations" className="btn btn-outline-secondary btn-sm">
+            <i className="bx bx-plug me-1"></i>
+            Manage integrations
+          </Link>
+        </div>
 
         <hr className="my-4" />
-        
+
         <div>
           <h4 className="h6 mb-2">Change Password</h4>
           <p className="text-muted small mb-3">

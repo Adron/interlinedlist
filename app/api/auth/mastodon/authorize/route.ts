@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Mastodon authorize error:', error);
     const message = error instanceof Error ? error.message : 'Mastodon authorization failed';
-    const redirectUrl = link ? '/settings' : '/login';
+    const redirectUrl = link ? '/integrations' : '/login';
     return NextResponse.redirect(
       `${APP_URL}${redirectUrl}?error=${encodeURIComponent(message)}`
     );

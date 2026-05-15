@@ -21,7 +21,7 @@ function redirectToLogin(error: string) {
 }
 
 function redirectToSettings(error?: string) {
-  const url = new URL(`${APP_URL}/settings`);
+  const url = new URL(`${APP_URL}/integrations`);
   if (error) url.searchParams.set('error', error);
   return NextResponse.redirect(url.toString());
 }

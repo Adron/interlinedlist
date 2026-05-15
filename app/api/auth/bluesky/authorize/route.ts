@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Bluesky authorize error:', error);
     const message = error instanceof Error ? error.message : 'Bluesky authorization failed';
-    const redirectUrl = link ? '/settings' : '/login';
+    const redirectUrl = link ? '/integrations' : '/login';
     return NextResponse.redirect(
       `${APP_URL}${redirectUrl}?error=${encodeURIComponent(message)}`
     );

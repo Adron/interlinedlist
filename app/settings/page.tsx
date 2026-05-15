@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
 import { isSubscriber } from '@/lib/subscription/is-subscriber';
-import { getLinkedIdentitiesForUser } from '@/lib/auth/linked-identities';
 import Link from 'next/link';
 import ProfileSettings from './ProfileSettings';
 import PermissionsSection from './PermissionsSection';
@@ -10,26 +9,12 @@ import ViewPreferencesSection from './ViewPreferencesSection';
 import MessageSettingsSection from './MessageSettingsSection';
 import SecuritySection from './SecuritySection';
 
-interface SettingsPageProps {
-  searchParams:
-    | Promise<{ error?: string; success?: string }>
-    | { error?: string; success?: string };
-}
-
-export default async function SettingsPage({ searchParams }: SettingsPageProps) {
+export default async function SettingsPage() {
   const user = await getCurrentUser();
 
   if (!user) {
     redirect('/login');
   }
-
-  const params = (searchParams instanceof Promise ? await searchParams : searchParams) ?? {};
-  const linkedIdentities = await getLinkedIdentitiesForUser(user.id);
-  const serializedIdentities = linkedIdentities.map((i) => ({
-    ...i,
-    connectedAt: i.connectedAt.toISOString(),
-    lastVerifiedAt: i.lastVerifiedAt?.toISOString() ?? null,
-  }));
 
   return (
     <div className="container-fluid container-fluid-max py-4">
@@ -39,6 +24,10 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             <Link href="/dashboard" className="btn btn-outline-secondary btn-sm">
               <i className="bx bx-arrow-back me-1"></i>
               Back to Dashboard
+            </Link>
+            <Link href="/integrations" className="btn btn-outline-secondary btn-sm">
+              <i className="bx bx-plug me-1"></i>
+              Integrations
             </Link>
             <h1 className="h3 mb-0">Settings</h1>
           </div>
@@ -77,10 +66,6 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         <div className="col-lg-4 col-md-6 col-12 order-3 order-md-3 d-flex flex-column gap-4">
           <SecuritySection
             isPrivateAccount={user.isPrivateAccount ?? false}
-            linkedIdentities={serializedIdentities}
-            githubDefaultRepo={user.githubDefaultRepo ?? ''}
-            initialError={params.error}
-            initialSuccess={params.success}
           />
         </div>
       </div>
