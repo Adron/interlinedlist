@@ -13,7 +13,7 @@ description: >-
 | Rule | Detail |
 |------|--------|
 | **No direct DB mutation** | Never use `prisma db push`, `$executeRawUnsafe` for DDL, or any out-of-band SQL to change the schema. |
-| **npm scripts only** | `npm run db:migrate` (local → localhost) · `npm run db:migrate:neon` (local → Neon) · `npm run db:migrate:deploy` (production/Vercel). Never invoke `prisma migrate *` commands directly. |
+| **npm scripts only** | `npm run db:migrate` (local → localhost) · `npm run db:migrate:remote` (local → remote) · `npm run db:migrate:deploy` (production/Vercel). Never invoke `prisma migrate *` commands directly. |
 | **Additive only** | Every migration adds things (`ADD COLUMN IF NOT EXISTS`, `CREATE TABLE IF NOT EXISTS`). Nothing removes or renames without explicit approval. |
 | **Idempotent SQL** | Every statement must be safe to re-run. See patterns below. |
 
@@ -80,10 +80,10 @@ ALTER TABLE "users" RENAME COLUMN "old" TO "new";
 | Target | Script | Notes |
 |--------|--------|-------|
 | Local (`localhost:5432`) | `npm run db:migrate` | Uses `.env.local` DATABASE_URL |
-| Neon (from local machine) | `npm run db:migrate:neon` | Reads `.env` only, ignores `.env.local` |
+| Remote DB (from local machine) | `npm run db:migrate:remote` | Reads `.env` only, ignores `.env.local` |
 | Vercel / production | `npm run db:migrate:deploy` | Run in CI; `.env.local` absent, uses `.env` |
 
-> **Why two Neon scripts?** `db:migrate` and `db:migrate:deploy` both load `.env.local` which overrides `DATABASE_URL` to `localhost:5432`. On a local machine, use `db:migrate:neon` to target Neon explicitly. On Vercel, `.env.local` is absent, so `db:migrate:deploy` correctly targets Neon.
+> **Why two remote scripts?** `db:migrate` and `db:migrate:deploy` both load `.env.local` which overrides `DATABASE_URL` to `localhost:5432`. On a local machine, use `db:migrate:remote` to target the remote database explicitly. On Vercel, `.env.local` is absent, so `db:migrate:deploy` correctly targets the remote database.
 
 After running, confirm the output shows the migration applied successfully. If the script prompts to reset the database, **stop and investigate** — do not proceed.
 

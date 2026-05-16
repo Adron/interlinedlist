@@ -1,20 +1,25 @@
 #!/usr/bin/env node
 
 /**
- * Apply pending migrations to the Neon (remote) database.
+ * Apply pending migrations to the remote database (Neon, Supabase, or any provider).
  *
  * Problem this solves:
  *   `npm run db:migrate` and `npm run db:migrate:deploy` both load .env.local,
  *   which overrides DATABASE_URL to localhost:5432. This means all local migration
- *   runs target the local database, never Neon. This script explicitly reads the
- *   Neon URL from .env without letting .env.local override it, then runs
- *   `prisma migrate deploy` against Neon's direct (non-pooler) connection.
+ *   runs target the local database, never the remote. This script reads only .env
+ *   (ignoring .env.local), so the remote DATABASE_URL is used.
  *
  * Usage:
- *   npm run db:migrate:neon
+ *   npm run db:migrate:remote
  *
- * The script never touches .env.local values. It derives the direct URL from .env
- * by replacing the Neon pooler hostname (-pooler.) with the direct hostname.
+ * Provider notes:
+ *   - Neon: if DATABASE_URL uses the pooler hostname (-pooler.), this script
+ *     automatically switches to the direct connection (replaces -pooler. with .)
+ *     to avoid P1002 advisory lock timeouts during DDL.
+ *   - Supabase: configure DATABASE_URL in .env with the direct port (5432), not
+ *     the PgBouncer port (6543). No hostname manipulation is needed.
+ *   - Other providers: ensure DATABASE_URL in .env points to a direct connection
+ *     (not a connection pooler) before running migrations.
  */
 
 const { spawnSync } = require('child_process');
@@ -60,7 +65,7 @@ const baseEnv = readEnvFile('.env');
 let dbUrl = process.env.DATABASE_URL || baseEnv.DATABASE_URL || '';
 
 if (!dbUrl) {
-  fail('DATABASE_URL not found in environment or .env. Cannot target Neon.');
+  fail('DATABASE_URL not found in environment or .env. Cannot target remote database.');
   process.exit(1);
 }
 
@@ -70,8 +75,8 @@ if (!(dbUrl.startsWith('postgresql://') || dbUrl.startsWith('postgres://'))) {
 }
 
 if (dbUrl.includes('localhost') || dbUrl.includes('127.0.0.1')) {
-  fail('DATABASE_URL resolves to localhost. This script must target Neon, not a local database.');
-  fail('Ensure your shell DATABASE_URL or .env points to the Neon database.');
+  fail('DATABASE_URL resolves to localhost. This script must target a remote database.');
+  fail('Ensure your shell DATABASE_URL or .env DATABASE_URL points to the remote database.');
   process.exit(1);
 }
 
