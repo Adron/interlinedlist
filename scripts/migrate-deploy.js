@@ -1,17 +1,27 @@
 #!/usr/bin/env node
 
 /**
- * Migration deploy script for production (Vercel, etc.).
- * Uses direct connection for Neon (avoids P1002 advisory lock timeout with pooler).
- * Retries on P1002 (advisory lock timeout).
+ * Migration deploy script — targets the remote database (Neon, Supabase, or any provider).
+ *
+ * Reads only .env; deliberately skips .env.local so a local DATABASE_URL override
+ * (typically localhost:5432) never takes precedence over the remote URL.
+ * On Vercel, .env.local is absent anyway, so behaviour is identical in both contexts.
+ *
+ * Use: npm run db:migrate:deploy (local → remote) or via vercel-build
+ *
+ * Provider notes:
+ *   - Neon: pooler hostnames (-pooler.) are automatically swapped to direct connections
+ *     to avoid P1002 advisory lock timeouts during DDL.
+ *   - Supabase: set DATABASE_URL in .env to the direct port (5432), not PgBouncer (6543).
+ *   - Other providers: ensure DATABASE_URL points to a direct connection, not a pooler.
+ *
+ * Set SKIP_DB_MIGRATE=1 to skip migrations (e.g. preview deploys without a DB).
+ * When DATABASE_URL is unset, migrations are skipped and the build continues.
+ *
  * Recovers from:
- * - P3009: a migration is marked failed in `_prisma_migrations` — resolve --rolled-back, redeploy.
- * - P3018 + duplicate/already exists: same resolve path when re-apply is safe (idempotent SQL).
- *
- * Use: npm run db:migrate:deploy or in vercel-build
- *
- * Set SKIP_DB_MIGRATE=1 to skip migrations (e.g. preview deploys without DB).
- * When DATABASE_URL is unset, migrations are skipped and build continues.
+ * - P1002 / advisory lock timeout: retries up to 3 times.
+ * - P3009: failed migration recorded in _prisma_migrations — resolve --rolled-back, redeploy.
+ * - P3018 + duplicate/already exists: same resolve path when SQL is idempotent (IF NOT EXISTS).
  */
 
 const { spawnSync } = require('child_process');
@@ -57,30 +67,26 @@ function isRecoverableAlreadyExistsFailure(output) {
   return false;
 }
 
-// Load .env and .env.local when running locally (Node does not auto-load these).
-// Existing env vars (e.g. from Vercel or shell) take precedence. .env.local overrides .env.
-function loadEnvFile(file, override = false) {
+// Load only .env — deliberately skip .env.local so a local DATABASE_URL (localhost)
+// never overrides the remote URL. Shell env vars always take precedence over .env.
+function loadEnvFile(file) {
   const p = path.resolve(process.cwd(), file);
-  if (fs.existsSync(p)) {
-    const content = fs.readFileSync(p, 'utf8');
-    for (const line of content.split('\n')) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) continue;
-      const eq = trimmed.indexOf('=');
-      if (eq > 0) {
-        const key = trimmed.slice(0, eq).trim();
-        if (!override && key in process.env) continue;
-        let val = trimmed.slice(eq + 1).trim();
-        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-          val = val.slice(1, -1);
-        }
-        process.env[key] = val;
-      }
+  if (!fs.existsSync(p)) return;
+  for (const line of fs.readFileSync(p, 'utf8').split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eq = trimmed.indexOf('=');
+    if (eq <= 0) continue;
+    const key = trimmed.slice(0, eq).trim();
+    if (key in process.env) continue;
+    let val = trimmed.slice(eq + 1).trim();
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      val = val.slice(1, -1);
     }
+    process.env[key] = val;
   }
 }
 loadEnvFile('.env');
-loadEnvFile('.env.local', true);
 
 if (process.env.SKIP_DB_MIGRATE === '1') {
   console.log('[migrate-deploy] Skipping migrations (SKIP_DB_MIGRATE=1)');
@@ -92,7 +98,13 @@ if (!process.env.DATABASE_URL) {
   process.exit(0);
 }
 
-// For Neon: use direct connection for migrations to avoid P1002 advisory lock timeout with pooler.
+if (process.env.DATABASE_URL.includes('localhost') || process.env.DATABASE_URL.includes('127.0.0.1')) {
+  console.error('[migrate-deploy] DATABASE_URL resolves to localhost. This script must target the remote database.');
+  console.error('[migrate-deploy] Ensure DATABASE_URL in .env (or the shell environment) points to the remote database.');
+  process.exit(1);
+}
+
+// Swap pooler hostname to direct connection for DDL — avoids P1002 advisory lock timeout (Neon).
 if (process.env.DATABASE_URL.includes('-pooler.')) {
   process.env.DATABASE_URL = process.env.DATABASE_URL.replace('-pooler.', '.');
 }

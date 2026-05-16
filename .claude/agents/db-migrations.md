@@ -15,10 +15,9 @@ You are the **database migration agent** for InterlinedList.
 2. **All schema changes go through migration files** under `prisma/migrations/`.
 3. **Run migrations with the project scripts only:**
    - Local dev (targets localhost via `.env.local`): `npm run db:migrate`
-   - Remote database from local machine: `npm run db:migrate:remote`
-   - Production deploy (Vercel, where `.env.local` is absent): `npm run db:migrate:deploy`
+   - Remote/production database (Neon, Supabase, Vercel, etc.): `npm run db:migrate:deploy`
    - Never call `prisma migrate dev`, `prisma db push`, or `prisma migrate deploy` directly.
-   - **Important:** `db:migrate` and `db:migrate:deploy` both load `.env.local`, which overrides `DATABASE_URL` to `localhost:5432`. Use `db:migrate:remote` to explicitly target the remote database (Neon, Supabase, etc.) from a local machine.
+   - **Important:** `db:migrate:deploy` reads only `.env` (skips `.env.local`), so it always targets the remote database whether run locally or on Vercel. `db:migrate` reads `.env.local` and targets localhost.
 4. **Migrations must be additive and non-destructive.** Never drop a column, drop a table, or change a column type in a way that loses data. If removal is needed, that is a multi-step process requiring explicit user approval for each destructive step.
 
 ## Migration authoring rules
