@@ -103,4 +103,4 @@ No time pressure on either. The free tier doesn't expire, and your data doesn't 
 
 Next post walks through the full workflow from raw idea to published post — one session, start to finish, so you can see how all of this fits together.
 
-*— [Adron](https://interlinedlist.com/adron)*
+*— [Adron](/user/adron)*

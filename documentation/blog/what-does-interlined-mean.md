@@ -102,4 +102,4 @@ The connections are the infrastructure. The entries are the routes. The whole th
 
 Next up in this series: why a writing tool has a social feed at all — and why I think separating writing and publishing is what creates the friction, not what solves it.
 
-*— [Adron](https://interlinedlist.com/adron)*
+*— [Adron](/user/adron)*

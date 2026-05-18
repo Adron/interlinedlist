@@ -92,4 +92,4 @@ Not a compromise. Not a marketing feature. Because the writing and the publishin
 
 Next post in this series covers what you can actually do before you pay anything. Spoiler: it's more than most tools give you for free.
 
-*— [Adron](https://interlinedlist.com/adron)*
+*— [Adron](/user/adron)*

@@ -32,10 +32,14 @@
       "Bash(grep -c \"^```\" /Users/adron/Codez/interlinedlist/documentation/help/api.md)",
       "WebFetch(domain:compositecode.blog)",
       "Bash(grep -v \"^--$\")",
-      "Bash(grep -v \"^$\")"
+      "Bash(grep -v \"^$\")",
+      "Bash(mkdir -p \"/Users/adron/Codez/interlinedlist/app/[username]\")",
+      "Bash(sed -i '' 's|https://interlinedlist.com/adron|/user/adron|g' /Users/adron/Codez/interlinedlist/documentation/blog/*.md)"
     ],
     "additionalDirectories": [
-      "/Users/adron/Codez/interlinedlist/.claude/skills"
+      "/Users/adron/Codez/interlinedlist/.claude/skills",
+      "/Users/adron/Codez/interlinedlist/app",
+      "/Users/adron/Codez/interlinedlist/documentation/blog"
     ]
   }
 }

@@ -117,4 +117,4 @@ That's the workflow.
 
 Next post in the series covers syndication in more depth — specifically how the platform-specific adaptation actually works across Mastodon, Bluesky, and LinkedIn.
 
-*— [Adron](https://interlinedlist.com/adron)*
+*— [Adron](/user/adron)*

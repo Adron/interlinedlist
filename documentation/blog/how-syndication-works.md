@@ -118,4 +118,4 @@ If you've read all five posts in order, you now know what "interlined" means, wh
 
 The next series covers individual features in depth. Start wherever the feature most relevant to where you are right now: the Dashboard, the Editor, Lists, Syndication, or Markdown Export.
 
-*— [Adron](https://interlinedlist.com/adron)*
+*— [Adron](/user/adron)*
