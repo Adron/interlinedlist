@@ -13,7 +13,6 @@ export const HELP_TOPICS = [
   { slug: 'export', title: 'Exporting Data' },
   { slug: 'settings', title: 'Settings' },
   { slug: 'account', title: 'Account & Security' },
-  { slug: 'tooling', title: 'Tooling (CLI)' },
 ] as const;
 
 export type HelpSlug = (typeof HELP_TOPICS)[number]['slug'];

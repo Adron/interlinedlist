@@ -4,7 +4,7 @@ title: Documents
 
 # Documents
 
-Documents let you create and organize markdown files with folders. Use them for notes, wikis, or any text content. Documents support images. Most people write and edit entirely in the browser; you can also **optionally** install the Document Sync CLI to keep a folder on your computer in sync with the same documents (see **Tooling (CLI)**).
+Documents let you create and organize markdown files with folders. Use them for notes, wikis, or any text content. Documents support images.
 
 ## What Are Documents?
 
@@ -58,19 +58,6 @@ Documents can be public (viewable by anyone) or private (only you).
 - **Paste** — Copy an image and paste (Ctrl+V / Cmd+V) into the editor
 - **Drag and drop** — Drag an image file onto the editor
 - Images are uploaded to cloud storage and embedded with a URL
-- When syncing with the CLI, local images (e.g. `![](./photo.png)`) are uploaded and the links are rewritten
-
-## Optional: syncing with the Document Sync CLI
-
-If you prefer a desktop editor, use the Document Sync CLI. It watches a folder on your computer and:
-
-- **Pushes** local changes to the website
-- **Pulls** changes from the website to your local folder
-- Handles images: uploads local images on push, downloads blob images on pull
-
-During setup (`il-sync init`), you enter your email and password. The CLI authenticates and stores a sync token automatically — no API key to manage.
-
-See **Tooling (CLI)** in the Help sidebar for setup and usage.
 
 ## Public vs Private
 
@@ -78,7 +65,3 @@ See **Tooling (CLI)** in the Help sidebar for setup and usage.
 - **Public** — Anyone with the link can view (read-only)
 
 Set visibility when creating or editing a document.
-
-## Related
-
-- **Tooling (CLI)** — Download, install, and configure the optional sync tool
