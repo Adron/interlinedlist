@@ -29,7 +29,10 @@
       "Bash(git *)",
       "Bash(npm install *)",
       "Bash(\" /Users/adron/Codez/interlinedlist/documentation/help/api.md)",
-      "Bash(grep -c \"^```\" /Users/adron/Codez/interlinedlist/documentation/help/api.md)"
+      "Bash(grep -c \"^```\" /Users/adron/Codez/interlinedlist/documentation/help/api.md)",
+      "WebFetch(domain:compositecode.blog)",
+      "Bash(grep -v \"^--$\")",
+      "Bash(grep -v \"^$\")"
     ],
     "additionalDirectories": [
       "/Users/adron/Codez/interlinedlist/.claude/skills"

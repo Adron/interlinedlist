@@ -34,7 +34,7 @@ export default async function Navigation() {
                 whiteSpace: 'nowrap',
               }}
             >
-              <i className="bx bx-pencil fs-18 align-middle"></i>
+              <i className="bx bx-news fs-18 align-middle"></i>
               <span className="align-middle">Blog</span>
             </Link>
           </div>
