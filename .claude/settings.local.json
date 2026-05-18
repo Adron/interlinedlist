@@ -34,12 +34,14 @@
       "Bash(grep -v \"^--$\")",
       "Bash(grep -v \"^$\")",
       "Bash(mkdir -p \"/Users/adron/Codez/interlinedlist/app/[username]\")",
-      "Bash(sed -i '' 's|https://interlinedlist.com/adron|/user/adron|g' /Users/adron/Codez/interlinedlist/documentation/blog/*.md)"
+      "Bash(sed -i '' 's|https://interlinedlist.com/adron|/user/adron|g' /Users/adron/Codez/interlinedlist/documentation/blog/*.md)",
+      "Bash(rm -rf \"/Users/adron/Codez/interlinedlist/app/[username]\")"
     ],
     "additionalDirectories": [
       "/Users/adron/Codez/interlinedlist/.claude/skills",
       "/Users/adron/Codez/interlinedlist/app",
-      "/Users/adron/Codez/interlinedlist/documentation/blog"
+      "/Users/adron/Codez/interlinedlist/documentation/blog",
+      "/Users/adron/Codez/interlinedlist/app/[username]"
     ]
   }
 }
