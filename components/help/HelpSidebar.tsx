@@ -81,9 +81,10 @@ export default function HelpSidebar({ searchEntries, inOffcanvas }: HelpSidebarP
     });
   }, [query, searchEntries]);
 
-  function handleResultClick(slug: string) {
+  function handleResultClick(slug: string, term: string) {
+    const encoded = encodeURIComponent(term.trim());
     setQuery('');
-    router.push(`/help/${slug}`);
+    router.push(`/help/${slug}?highlight=${encoded}`);
   }
 
   function handleClear() {
@@ -137,7 +138,7 @@ export default function HelpSidebar({ searchEntries, inOffcanvas }: HelpSidebarP
                 key={r.slug}
                 type="button"
                 className={`nav-link text-start border-0 bg-transparent w-100 ${pathname === `/help/${r.slug}` ? 'active' : ''}`}
-                onClick={() => handleResultClick(r.slug)}
+                onClick={() => handleResultClick(r.slug, query)}
                 {...(inOffcanvas ? { 'data-bs-dismiss': 'offcanvas' } : {})}
               >
                 <span className="d-block fw-semibold" style={{ fontSize: '0.875rem' }}>{r.title}</span>

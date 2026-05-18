@@ -26,7 +26,10 @@
       "Bash(git -C /Users/adron/Codez/interlinedlist log --oneline --all)",
       "Bash(git stash *)",
       "Bash(git -C /Users/adron/Codez/interlinedlist diff main..HEAD --name-only)",
-      "Bash(git *)"
+      "Bash(git *)",
+      "Bash(npm install *)",
+      "Bash(\" /Users/adron/Codez/interlinedlist/documentation/help/api.md)",
+      "Bash(grep -c \"^```\" /Users/adron/Codez/interlinedlist/documentation/help/api.md)"
     ],
     "additionalDirectories": [
       "/Users/adron/Codez/interlinedlist/.claude/skills"

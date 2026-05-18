@@ -109,6 +109,18 @@ export default async function MessageFeed({ filterTag }: MessageFeedProps = {}) 
             />
           </div>
         )}
+        {!user && (
+          <div className="alert alert-info d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3" role="alert">
+            <span>
+              <i className="bx bx-info-circle me-2"></i>
+              Reading is free — <strong>sign up</strong> to post, reply, and create lists.
+            </span>
+            <span className="d-flex gap-2">
+              <a href="/register" className="btn btn-sm btn-primary">Sign up</a>
+              <a href="/login" className="btn btn-sm btn-outline-secondary">Log in</a>
+            </span>
+          </div>
+        )}
         <MessageList
           initialMessages={messagesWithDugs as unknown as Message[]}
           currentUserId={user?.id}

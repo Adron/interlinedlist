@@ -27,9 +27,11 @@ You can reply to any message you can see. When logged in, click **Reply** under 
 
 ## Cross-Posting
 
-When posting a new message, use the **advanced settings** menu (gear icon) to cross-post to Mastodon and/or Bluesky. You can select which Mastodon instances to post to and whether to post to Bluesky. This requires linked identities in **Settings → Security** (Connected Accounts).
+When posting a new message, use the **advanced settings** menu (gear icon) to cross-post to Mastodon, Bluesky, and/or LinkedIn. You can select which connected Mastodon instances to post to and toggle Bluesky and LinkedIn individually. This requires linked accounts in **Settings → Security** (Connected Accounts) and an active subscriber plan.
 
-When **replying** to a message that was cross-posted: if you follow the original author on that platform (Mastodon or Bluesky), your reply may be cross-posted automatically. If cross-posting fails, a transient error toast appears for 5 seconds.
+When **replying** to a message that was cross-posted: if you follow the original author on that platform, your reply may be cross-posted automatically. If cross-posting fails, a transient error toast appears for 5 seconds; your reply still appears on InterlinedList.
+
+For a full explanation of how syndication works, what the platform labels in the feed mean, and how to set up each platform, see [Cross-Platform Syndication](/help/cross-posting).
 
 ## Viewing Preferences
 

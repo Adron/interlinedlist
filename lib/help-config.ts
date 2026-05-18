@@ -7,12 +7,15 @@ export const HELP_TOPICS = [
   { slug: 'getting-started', title: 'Getting Started' },
   { slug: 'lists', title: 'Lists' },
   { slug: 'messages', title: 'Messages' },
+  { slug: 'cross-posting', title: 'Cross-Platform Syndication' },
   { slug: 'people', title: 'People' },
   { slug: 'organizations', title: 'Organizations' },
   { slug: 'documents', title: 'Documents' },
+  { slug: 'tooling', title: 'Tooling (CLI)' },
   { slug: 'export', title: 'Exporting Data' },
   { slug: 'settings', title: 'Settings' },
   { slug: 'account', title: 'Account & Security' },
+  { slug: 'api', title: 'API for Developers' },
 ] as const;
 
 export type HelpSlug = (typeof HELP_TOPICS)[number]['slug'];
