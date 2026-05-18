@@ -406,6 +406,75 @@ Response `201`:
 
 ---
 
+## List connections
+
+Connections create labelled, directed relationships between two lists owned by the same user — useful for modelling related datasets, parent/child structures, or any graph of linked lists.
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/lists/connections` | Session | All connections between the current user's lists. Returns `{ connections }`. |
+| POST | `/api/lists/connections` | Session | Create a connection. Body: `fromListId`, `toListId`, optional `label`. Returns `201`. |
+| DELETE | `/api/lists/connections/[id]` | Session | Remove a connection by ID. |
+
+### Connection object
+
+```json
+{
+  "id": "conn_abc001",
+  "fromListId": "lst_abc001",
+  "toListId": "lst_abc002",
+  "label": "references",
+  "createdAt": "2025-06-11T10:00:00.000Z"
+}
+```
+
+The connection is directional: `fromListId` is the source, `toListId` is the target. `label` is optional free-form text (e.g. `"related"`, `"references"`, `"parent"`).
+
+### POST /api/lists/connections
+
+```http
+POST /api/lists/connections
+Content-Type: application/json
+
+{
+  "fromListId": "lst_abc001",
+  "toListId": "lst_abc002",
+  "label": "references"
+}
+```
+
+Response `201`: the created connection object.
+
+| Status | Meaning |
+|--------|---------|
+| 400 | `fromListId` or `toListId` missing, or both IDs are identical |
+| 403 | Current user does not own both lists |
+| 409 | A connection between these two lists already exists |
+
+### GET /api/lists/connections
+
+Returns all connections where either the source or target list belongs to the current user.
+
+```json
+{
+  "connections": [
+    {
+      "id": "conn_abc001",
+      "fromListId": "lst_abc001",
+      "toListId": "lst_abc002",
+      "label": "references",
+      "createdAt": "2025-06-11T10:00:00.000Z"
+    }
+  ]
+}
+```
+
+### DELETE /api/lists/connections/[id]
+
+Removes the connection. The server verifies the current user owns both lists before deleting. Returns `{ "success": true }` on success.
+
+---
+
 ## Documents and sync
 
 Document and folder CRUD is available via the **sync API**, which supports both session and Bearer token. This is the same API used by the Document Sync CLI.
@@ -456,9 +525,39 @@ Document and folder CRUD is available via the **sync API**, which supports both 
 | GET  | `/api/organizations/[id]` | Session | Get organization. |
 | PATCH | `/api/organizations/[id]` | Session | Update organization. |
 | GET  | `/api/organizations/[id]/members` | Session | List members. |
-| POST | `/api/organizations/[id]/members` | Session | Add member. |
+| POST | `/api/organizations/[id]/members` | Session | Add member. Body: `{ "userId": "...", "role": "member" }`. |
+| PUT | `/api/organizations/[id]/members/[userId]` | Session | Update member role. Body: `{ "role": "owner" \| "admin" \| "member" }`. Optional: `active` (boolean). |
 | DELETE | `/api/organizations/[id]/members/[userId]` | Session | Remove member. |
 | GET  | `/api/organizations/[id]/users` | Session | Users in org (with roles). |
+
+### Updating a member's role
+
+Valid roles are `"owner"`, `"admin"`, and `"member"`. Requires the caller to be an owner or admin of the organization. The last owner of an organization cannot be demoted or removed (returns `400`).
+
+```http
+PUT /api/organizations/org_001/members/clx9user00003
+Content-Type: application/json
+
+{ "role": "admin" }
+```
+
+Response `200`:
+
+```json
+{
+  "message": "Member role updated successfully",
+  "membership": {
+    "id": "mem_xyz001",
+    "userId": "clx9user00003",
+    "organizationId": "org_001",
+    "role": "admin",
+    "active": true,
+    "createdAt": "2025-06-11T10:00:00.000Z"
+  }
+}
+```
+
+Pass `"active": false` alongside `role` to suspend a member's access without removing them from the organization.
 
 ---
 
@@ -472,6 +571,75 @@ All export endpoints return CSV (or similar) and require a session.
 | GET | `/api/exports/lists` | Session | Export list definitions. |
 | GET | `/api/exports/list-data-rows` | Session | Export list data rows. |
 | GET | `/api/exports/follows` | Session | Export followers and following. |
+
+---
+
+## Notifications
+
+Notifications are generated server-side for events such as new followers, replies, and dig reactions. All notification endpoints require a session cookie.
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/notifications` | Session | Unread tray items. Required query: `scope=tray`. Returns `{ unreadCount, items }`. |
+| PATCH | `/api/notifications/[id]/read` | Session | Mark one notification read (idempotent). Returns `{ ok: true }`. |
+| POST | `/api/notifications/mark-all-read` | Session | Mark all unread notifications read. Returns `{ ok: true, updated: N }`. |
+
+### Notification object
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Unique notification ID. |
+| `title` | string | Short heading. |
+| `body` | string | Full notification text. |
+| `actionUrl` | string \| null | Relative URL to navigate to on click. |
+| `type` | string \| null | Category string (e.g. `"follow"`, `"dig"`, `"reply"`). |
+| `metadata` | object | Arbitrary structured data attached by the server. |
+| `createdAt` | string (ISO 8601) | Creation timestamp. |
+| `readAt` | string \| null | Read timestamp; `null` if unread. |
+
+### GET /api/notifications
+
+The `scope=tray` query parameter is required. Returns up to the user's configured tray limit (default 20, clamped 10–40) of the most recent unread items, plus a total `unreadCount`.
+
+```http
+GET /api/notifications?scope=tray
+```
+
+Response `200`:
+
+```json
+{
+  "unreadCount": 3,
+  "items": [
+    {
+      "id": "notif_abc001",
+      "title": "New follower",
+      "body": "someuser started following you.",
+      "actionUrl": "/profile/someuser",
+      "type": "follow",
+      "metadata": {},
+      "createdAt": "2025-06-11T10:00:00.000Z",
+      "readAt": null
+    }
+  ]
+}
+```
+
+Omitting `scope=tray` returns **400**.
+
+### Marking notifications read
+
+```http
+PATCH /api/notifications/notif_abc001/read
+```
+
+Response `200`: `{ "ok": true }`. Safe to call multiple times; idempotent.
+
+```http
+POST /api/notifications/mark-all-read
+```
+
+Response `200`: `{ "ok": true, "updated": 3 }`. `updated` is the count of rows changed from unread to read.
 
 ---
 
