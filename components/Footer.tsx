@@ -1,7 +1,10 @@
 import Link from 'next/link';
 import Logo from './Logo';
+import { getCurrentUser } from '@/lib/auth/session';
 
-export default function Footer() {
+export default async function Footer() {
+  const user = await getCurrentUser();
+
   return (
     <footer
       style={{
@@ -39,26 +42,86 @@ export default function Footer() {
             Home
           </Link>
           <Link
-            href="/dashboard"
+            href="/features"
             style={{
               color: 'var(--color-text-secondary)',
               textDecoration: 'none',
             }}
           >
-            Dashboard
+            Features
           </Link>
           <Link
-            href="/settings"
+            href="/about"
             style={{
               color: 'var(--color-text-secondary)',
               textDecoration: 'none',
             }}
           >
-            Settings
+            About
           </Link>
+          <Link
+            href="/blog"
+            style={{
+              color: 'var(--color-text-secondary)',
+              textDecoration: 'none',
+            }}
+          >
+            Blog
+          </Link>
+          <Link
+            href="/pricing"
+            style={{
+              color: 'var(--color-text-secondary)',
+              textDecoration: 'none',
+            }}
+          >
+            Pricing
+          </Link>
+          {user ? (
+            <>
+              <Link
+                href="/dashboard"
+                style={{
+                  color: 'var(--color-text-secondary)',
+                  textDecoration: 'none',
+                }}
+              >
+                Dashboard
+              </Link>
+              <Link
+                href="/settings"
+                style={{
+                  color: 'var(--color-text-secondary)',
+                  textDecoration: 'none',
+                }}
+              >
+                Settings
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/register"
+                style={{
+                  color: 'var(--color-text-secondary)',
+                  textDecoration: 'none',
+                }}
+              >
+                Sign Up
+              </Link>
+              <Link
+                href="/login"
+                style={{
+                  color: 'var(--color-text-secondary)',
+                  textDecoration: 'none',
+                }}
+              >
+                Login
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </footer>
   );
 }
-

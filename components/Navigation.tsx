@@ -131,6 +131,28 @@ export default async function Navigation() {
               <>
                 <div className="topbar-item">
                   <Link
+                    href="/features"
+                    className="topbar-button btn btn-link text-decoration-none"
+                    style={{
+                      color: 'var(--bs-topbar-item-color, var(--color-text))',
+                    }}
+                  >
+                    Features
+                  </Link>
+                </div>
+                <div className="topbar-item">
+                  <Link
+                    href="/about"
+                    className="topbar-button btn btn-link text-decoration-none"
+                    style={{
+                      color: 'var(--bs-topbar-item-color, var(--color-text))',
+                    }}
+                  >
+                    About
+                  </Link>
+                </div>
+                <div className="topbar-item">
+                  <Link
                     href="/login"
                     className="topbar-button btn btn-link text-decoration-none"
                     style={{

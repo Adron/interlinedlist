@@ -14,7 +14,17 @@
       "Bash(mkdir -p /Users/adron/Codez/interlinedlist/prisma/migrations/20260515000000_add_ai_api_keys && mkdir -p /Users/adron/Codez/interlinedlist/.claude/skills/db-migrations)",
       "Edit(/.claude/skills/db-migrations/**)",
       "Bash(node -e \"require\\('dotenv'\\).config\\({path:'/Users/adron/Codez/interlinedlist/.env'}\\); const u=process.env.DATABASE_URL; console.log\\(u.replace\\(/-pooler\\\\./,'.'\\)\\);\")",
-      "Bash(DATABASE_URL=__CMDSUB_OUTPUT__ npx prisma migrate status)"
+      "Bash(DATABASE_URL=__CMDSUB_OUTPUT__ npx prisma migrate status)",
+      "Bash(cat)",
+      "Read(//tmp/**)",
+      "Bash(awk '{print $NF}')",
+      "Bash(mkdir -p /Users/adron/Codez/interlinedlist/documentation/blog)",
+      "Bash(mkdir -p /Users/adron/Codez/interlinedlist/app/blog/\\\\[slug\\\\])",
+      "Bash(mkdir -p /Users/adron/Codez/interlinedlist/app/about)",
+      "Bash(npx eslint *)",
+      "Bash(npx next *)",
+      "Bash(git -C /Users/adron/Codez/interlinedlist log --oneline --all)",
+      "Bash(git stash *)"
     ],
     "additionalDirectories": [
       "/Users/adron/Codez/interlinedlist/.claude/skills"
