@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { DEFAULT_WEATHER_LOCATION } from '@/lib/config/weather';
 import type { ExtendedWeatherData } from '@/lib/types/weather';
 import RainNext60 from './weather/RainNext60';
 import RainToday from './weather/RainToday';
@@ -11,18 +10,6 @@ interface WeatherWidgetProps {
   latitude?: number;
   longitude?: number;
 }
-
-// Mock weather data - fallback for non-logged-in users
-const mockWeatherData: ExtendedWeatherData = {
-  location: DEFAULT_WEATHER_LOCATION.name,
-  temperature: 72,
-  condition: 'Partly Cloudy',
-  conditionIcon: 'bx-cloud',
-  high: 75,
-  low: 65,
-  humidity: 68,
-  windSpeed: 12,
-};
 
 export default function WeatherWidget({ latitude, longitude }: WeatherWidgetProps) {
   const [weather, setWeather] = useState<ExtendedWeatherData | null>(null);
@@ -71,10 +58,7 @@ export default function WeatherWidget({ latitude, longitude }: WeatherWidgetProp
     fetchWeather();
   }, [fetchWeather, latitude, longitude]);
 
-  // Use mock data only if weather fetch failed and coordinates are not available
-  // Otherwise, use fetched weather or show loading/error state
-  const displayWeather = weather || mockWeatherData;
-  const isMockData = !weather && (latitude === undefined || longitude === undefined);
+  if (latitude === undefined || longitude === undefined) return null;
 
   if (loading) {
     return (
@@ -91,7 +75,7 @@ export default function WeatherWidget({ latitude, longitude }: WeatherWidgetProp
     );
   }
 
-  if (error && !isMockData) {
+  if (error) {
     return (
       <div className="card">
         <div className="card-body">
@@ -103,6 +87,8 @@ export default function WeatherWidget({ latitude, longitude }: WeatherWidgetProp
       </div>
     );
   }
+
+  if (!weather) return null;
 
   const refreshButton = (
     <button
@@ -125,21 +111,21 @@ export default function WeatherWidget({ latitude, longitude }: WeatherWidgetProp
             <div>
               <p className="text-muted small mb-0">
                 <i className="bx bx-map-pin me-1"></i>
-                {displayWeather.location}
+                {weather.location}
               </p>
             </div>
             <div className="d-flex align-items-center gap-1">
               {refreshButton}
-              <i className={`bx ${displayWeather.conditionIcon} fs-32 text-primary`}></i>
+              <i className={`bx ${weather.conditionIcon} fs-32 text-primary`}></i>
             </div>
           </div>
 
           <div className="mb-2">
             <div className="d-flex align-items-baseline">
-              <span className="display-5 fw-bold me-1">{displayWeather.temperature}°</span>
+              <span className="display-5 fw-bold me-1">{weather.temperature}°</span>
               <span className="text-muted small">F</span>
             </div>
-            <p className="text-muted mb-0 small">{displayWeather.condition}</p>
+            <p className="text-muted mb-0 small">{weather.condition}</p>
           </div>
 
           <div className="border-top pt-2">
@@ -149,7 +135,7 @@ export default function WeatherWidget({ latitude, longitude }: WeatherWidgetProp
                   <i className="bx bx-up-arrow-alt text-success me-2"></i>
                   <div>
                     <small className="text-muted d-block">High</small>
-                    <strong>{displayWeather.high}°F</strong>
+                    <strong>{weather.high}°F</strong>
                   </div>
                 </div>
               </div>
@@ -158,27 +144,27 @@ export default function WeatherWidget({ latitude, longitude }: WeatherWidgetProp
                   <i className="bx bx-down-arrow-alt text-info me-2"></i>
                   <div>
                     <small className="text-muted d-block">Low</small>
-                    <strong>{displayWeather.low}°F</strong>
+                    <strong>{weather.low}°F</strong>
                   </div>
                 </div>
               </div>
-              {displayWeather.humidity !== null && (
+              {weather.humidity !== null && (
                 <div className="col-6">
                   <div className="d-flex align-items-center">
                     <i className="bx bx-droplet text-primary me-2"></i>
                     <div>
                       <small className="text-muted d-block">Humidity</small>
-                      <strong>{displayWeather.humidity}%</strong>
+                      <strong>{weather.humidity}%</strong>
                     </div>
                   </div>
                 </div>
               )}
-              <div className={displayWeather.humidity !== null ? 'col-6' : 'col-12'}>
+              <div className={weather.humidity !== null ? 'col-6' : 'col-12'}>
                 <div className="d-flex align-items-center">
                   <i className="bx bx-wind text-secondary me-2"></i>
                   <div>
                     <small className="text-muted d-block">Wind</small>
-                    <strong>{displayWeather.windSpeed} mph</strong>
+                    <strong>{weather.windSpeed} mph</strong>
                   </div>
                 </div>
               </div>
@@ -187,13 +173,13 @@ export default function WeatherWidget({ latitude, longitude }: WeatherWidgetProp
         </div>
       </div>
 
-      {weather?.hourly && weather.hourly.length > 0 && (
+      {weather.hourly && weather.hourly.length > 0 && (
         <RainNext60 hourly={weather.hourly} onRefresh={() => fetchWeather(true)} refreshing={loading} />
       )}
-      {weather?.hourly && weather.hourly.length > 0 && (
+      {weather.hourly && weather.hourly.length > 0 && (
         <RainToday hourly={weather.hourly} onRefresh={() => fetchWeather(true)} refreshing={loading} />
       )}
-      {weather?.weekly && weather.weekly.length > 0 && (
+      {weather.weekly && weather.weekly.length > 0 && (
         <WeekForecast weekly={weather.weekly} onRefresh={() => fetchWeather(true)} refreshing={loading} />
       )}
     </>

@@ -22,9 +22,21 @@ export default async function Navigation() {
             gap: '1rem'
           }}
         >
-          {/* Left - Logo + Title (Home link, always visible) */}
-          <div className="d-flex align-items-center" style={{ justifySelf: 'start' }}>
+          {/* Left - Logo + Title + Blog (always visible) */}
+          <div className="d-flex align-items-center gap-3" style={{ justifySelf: 'start' }}>
             <NavigationTitle />
+            <Link
+              href="/blog"
+              className="d-none d-md-flex align-items-center gap-1 text-decoration-none"
+              style={{
+                color: 'var(--bs-topbar-item-color, var(--color-text))',
+                fontSize: '0.9rem',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <i className="bx bx-news fs-18 align-middle"></i>
+              <span className="align-middle">Blog</span>
+            </Link>
           </div>
 
           {/* Right side - User actions */}
@@ -129,6 +141,28 @@ export default async function Navigation() {
               </>
             ) : (
               <>
+                <div className="topbar-item">
+                  <Link
+                    href="/features"
+                    className="topbar-button btn btn-link text-decoration-none"
+                    style={{
+                      color: 'var(--bs-topbar-item-color, var(--color-text))',
+                    }}
+                  >
+                    Features
+                  </Link>
+                </div>
+                <div className="topbar-item">
+                  <Link
+                    href="/about"
+                    className="topbar-button btn btn-link text-decoration-none"
+                    style={{
+                      color: 'var(--bs-topbar-item-color, var(--color-text))',
+                    }}
+                  >
+                    About
+                  </Link>
+                </div>
                 <div className="topbar-item">
                   <Link
                     href="/login"

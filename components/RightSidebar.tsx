@@ -1,8 +1,8 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import ClockWidget from './ClockWidget';
 import WeatherWidget from './WeatherWidget';
-import { DEFAULT_WEATHER_LOCATION } from '@/lib/config/weather';
 
 interface RightSidebarProps {
   latitude?: number;
@@ -10,27 +10,54 @@ interface RightSidebarProps {
 }
 
 export default function RightSidebar({ latitude, longitude }: RightSidebarProps) {
-  // Determine coordinates with fallback to San Francisco
-  const getWeatherCoordinates = () => {
-    // Priority 1: User's saved location
-    if (latitude !== null && latitude !== undefined && 
-        longitude !== null && longitude !== undefined) {
-      return { latitude, longitude };
-    }
-    
-    // Priority 2: San Francisco default (for logged-in users)
-    return { 
-      latitude: DEFAULT_WEATHER_LOCATION.latitude, 
-      longitude: DEFAULT_WEATHER_LOCATION.longitude 
-    };
-  };
+  const hasUserCoords = latitude !== undefined && longitude !== undefined;
 
-  const coords = getWeatherCoordinates();
+  const [geoCoords, setGeoCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [geoLocating, setGeoLocating] = useState(!hasUserCoords);
+
+  useEffect(() => {
+    if (hasUserCoords) return;
+
+    if (!navigator.geolocation) {
+      setGeoLocating(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setGeoCoords({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+        setGeoLocating(false);
+      },
+      () => {
+        setGeoLocating(false);
+      },
+      { timeout: 10000, maximumAge: 300000 }
+    );
+  }, [hasUserCoords]);
+
+  const weatherLat = hasUserCoords ? latitude : geoCoords?.latitude;
+  const weatherLon = hasUserCoords ? longitude : geoCoords?.longitude;
 
   return (
     <div className="sidebar-weather-panel">
       <ClockWidget />
-      <WeatherWidget latitude={coords.latitude} longitude={coords.longitude} />
+      {geoLocating ? (
+        <div className="card">
+          <div className="card-body">
+            <div className="d-flex align-items-center">
+              <div className="spinner-border spinner-border-sm me-2" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </div>
+              <span className="text-muted">Detecting your location...</span>
+            </div>
+          </div>
+        </div>
+      ) : weatherLat !== undefined && weatherLon !== undefined ? (
+        <WeatherWidget latitude={weatherLat} longitude={weatherLon} />
+      ) : null}
     </div>
   );
 }

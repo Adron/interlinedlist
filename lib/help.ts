@@ -11,6 +11,13 @@ export interface HelpContent {
   content: string;
 }
 
+export interface HelpSearchEntry {
+  slug: string;
+  title: string;
+  /** Markdown stripped to plain text for search matching */
+  plain: string;
+}
+
 /**
  * Get all valid help slugs from config.
  */
@@ -49,3 +56,30 @@ export function getHelpContent(slug: string): HelpContent | null {
   };
 }
 
+/** Strip markdown syntax to produce plain searchable text. */
+function stripMarkdown(md: string): string {
+  return md
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // [text](url) → text
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, '')     // images → nothing
+    .replace(/`{1,3}[^`]*`{1,3}/g, '')        // inline code / fenced code
+    .replace(/^```[\s\S]*?^```/gm, '')         // fenced code blocks
+    .replace(/#{1,6}\s/g, '')                  // headings
+    .replace(/[*_]{1,2}([^*_]+)[*_]{1,2}/g, '$1') // bold / italic
+    .replace(/^[-*+]\s/gm, '')                 // list bullets
+    .replace(/^\d+\.\s/gm, '')                 // ordered list numbers
+    .replace(/^>\s/gm, '')                     // blockquotes
+    .replace(/\n{2,}/g, '\n')                  // collapse blank lines
+    .trim();
+}
+
+/**
+ * Get plain-text search entries for all help topics.
+ * Safe to call at server render time only (uses fs).
+ */
+export function getAllHelpSearchEntries(): HelpSearchEntry[] {
+  return HELP_TOPICS.flatMap((topic) => {
+    const content = getHelpContent(topic.slug);
+    if (!content) return [];
+    return [{ slug: topic.slug, title: content.title, plain: stripMarkdown(content.content) }];
+  });
+}

@@ -47,6 +47,10 @@ export default function UserManagement({ initialUsers, initialTotal, currentUser
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [avatarPreviewUser, setAvatarPreviewUser] = useState<User | null>(null);
+  const [previewPos, setPreviewPos] = useState({ x: 100, y: 100 });
+  const isDraggingRef = useRef<boolean>(false);
+  const dragOffsetRef = useRef({ x: 0, y: 0 });
   const itemsPerPage = 10;
 
   const allInDbSelected = total > 0 && selectedIds.size === total;
@@ -60,6 +64,23 @@ export default function UserManagement({ initialUsers, initialTotal, currentUser
     const el = selectAllCheckboxRef.current;
     if (el) el.indeterminate = someOnPageSelected && !allOnPageSelected;
   }, [someOnPageSelected, allOnPageSelected]);
+
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isDraggingRef.current) return;
+      setPreviewPos({
+        x: e.clientX - dragOffsetRef.current.x,
+        y: e.clientY - dragOffsetRef.current.y,
+      });
+    };
+    const onMouseUp = () => { isDraggingRef.current = false; };
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+  }, []);
 
   const toggleSelectAll = () => {
     if (allOnPageSelected) {
@@ -550,8 +571,8 @@ export default function UserManagement({ initialUsers, initialTotal, currentUser
                 </thead>
                 <tbody>
                   {users.map((user) => (
-                    <tr key={user.id}>
-                      <td>
+                    <tr key={user.id} style={{ cursor: 'pointer' }} onClick={() => handleEditClick(user)}>
+                      <td onClick={(e) => e.stopPropagation()}>
                         <input
                           type="checkbox"
                           className="form-check-input"
@@ -563,11 +584,21 @@ export default function UserManagement({ initialUsers, initialTotal, currentUser
                       <td>
                         <div className="d-flex align-items-center gap-2">
                           {user.avatar ? (
-                            <Avatar
-                              src={user.avatar}
-                              alt={`${user.displayName || user.username}'s avatar`}
-                              size={32}
-                            />
+                            <span
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setAvatarPreviewUser(user);
+                                setPreviewPos({ x: e.clientX - 110, y: e.clientY - 60 });
+                              }}
+                              style={{ cursor: 'zoom-in', flexShrink: 0 }}
+                              title="View avatar"
+                            >
+                              <Avatar
+                                src={user.avatar}
+                                alt={`${user.displayName || user.username}'s avatar`}
+                                size={32}
+                              />
+                            </span>
                           ) : (
                             <div
                               className="rounded-circle d-flex align-items-center justify-content-center"
@@ -623,7 +654,7 @@ export default function UserManagement({ initialUsers, initialTotal, currentUser
                       <td>
                         {new Date(user.createdAt).toLocaleDateString()}
                       </td>
-                      <td>
+                      <td onClick={(e) => e.stopPropagation()}>
                         <div className="btn-group btn-group-sm">
                           <button
                             className="btn btn-outline-primary"
@@ -1246,6 +1277,63 @@ export default function UserManagement({ initialUsers, initialTotal, currentUser
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Avatar preview floater */}
+      {avatarPreviewUser && (
+        <div
+          style={{
+            position: 'fixed',
+            left: previewPos.x,
+            top: previewPos.y,
+            zIndex: 9999,
+            background: 'var(--bs-body-bg, #fff)',
+            border: '1px solid var(--bs-border-color)',
+            borderRadius: '10px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.22)',
+            userSelect: 'none',
+            minWidth: '240px',
+          }}
+        >
+          <div
+            style={{
+              padding: '8px 12px',
+              cursor: 'grab',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              borderBottom: '1px solid var(--bs-border-color)',
+              background: 'var(--bs-tertiary-bg, #f8f9fa)',
+              borderRadius: '10px 10px 0 0',
+            }}
+            onMouseDown={(e) => {
+              isDraggingRef.current = true;
+              dragOffsetRef.current = {
+                x: e.clientX - previewPos.x,
+                y: e.clientY - previewPos.y,
+              };
+              e.preventDefault();
+            }}
+          >
+            <span className="small fw-medium text-truncate" style={{ maxWidth: '160px' }}>
+              {avatarPreviewUser.displayName || avatarPreviewUser.username}
+            </span>
+            <button
+              type="button"
+              className="btn-close"
+              style={{ fontSize: '0.65rem' }}
+              onClick={() => setAvatarPreviewUser(null)}
+              aria-label="Close avatar preview"
+            />
+          </div>
+          <div style={{ padding: '16px', display: 'flex', justifyContent: 'center' }}>
+            <Avatar
+              src={avatarPreviewUser.avatar!}
+              alt={`${avatarPreviewUser.displayName || avatarPreviewUser.username}'s avatar`}
+              size={200}
+            />
           </div>
         </div>
       )}

@@ -2,8 +2,13 @@
 
 import { useRef } from 'react';
 import HelpSidebar from './HelpSidebar';
+import type { HelpSearchEntry } from '@/lib/help';
 
-export default function HelpNavWrapper() {
+interface HelpNavWrapperProps {
+  searchEntries: HelpSearchEntry[];
+}
+
+export default function HelpNavWrapper({ searchEntries }: HelpNavWrapperProps) {
   const offcanvasRef = useRef<HTMLDivElement>(null);
 
   return (
@@ -15,7 +20,7 @@ export default function HelpNavWrapper() {
             <h2 className="h6 mb-0">Help</h2>
           </div>
           <div className="card-body p-0">
-            <HelpSidebar />
+            <HelpSidebar searchEntries={searchEntries} />
           </div>
         </div>
       </div>
@@ -52,7 +57,7 @@ export default function HelpNavWrapper() {
           />
         </div>
         <div className="offcanvas-body p-0">
-          <HelpSidebar inOffcanvas />
+          <HelpSidebar searchEntries={searchEntries} inOffcanvas />
         </div>
       </div>
     </>

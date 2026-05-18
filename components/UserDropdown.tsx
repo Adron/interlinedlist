@@ -24,6 +24,7 @@ interface UserDropdownProps {
 export default function UserDropdown({ user, isSubscriber = false }: UserDropdownProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isLoginAsOpen, setIsLoginAsOpen] = useState(false);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -42,6 +43,7 @@ export default function UserDropdown({ user, isSubscriber = false }: UserDropdow
         })
         .catch(() => {});
     } else {
+      setIsSettingsOpen(false);
       setIsLoginAsOpen(false);
     }
   }, [isOpen]);
@@ -163,27 +165,59 @@ export default function UserDropdown({ user, isSubscriber = false }: UserDropdow
       >
         <h6 className="dropdown-header">Welcome!</h6>
 
+        {/* Settings accordion */}
         <a
-          className="dropdown-item"
-          href="/settings"
+          className="dropdown-item d-flex align-items-center justify-content-between"
+          href="#"
           onClick={(e) => {
             e.preventDefault();
-            setIsOpen(false);
-            router.push('/settings');
+            setIsSettingsOpen(!isSettingsOpen);
           }}
+          aria-expanded={isSettingsOpen}
         >
-          <i className="bx bx-cog align-middle me-2" style={{ fontSize: '18px' }}></i>
-          <span className="align-middle">Settings</span>
+          <span className="d-flex align-items-center">
+            <i className="bx bx-cog align-middle me-2" style={{ fontSize: '18px' }}></i>
+            <span className="align-middle">Settings</span>
+          </span>
+          <i
+            className={`bx align-middle ${isSettingsOpen ? 'bx-chevron-up' : 'bx-chevron-down'}`}
+            style={{ fontSize: '18px' }}
+            aria-hidden="true"
+          />
         </a>
-
-        <Link
-          className="dropdown-item"
-          href="/integrations"
-          onClick={() => setIsOpen(false)}
-        >
-          <i className="bx bx-plug align-middle me-2" style={{ fontSize: '18px' }}></i>
-          <span className="align-middle">Integrations</span>
-        </Link>
+        {isSettingsOpen && (
+          <>
+            <a
+              className="dropdown-item ps-4"
+              href="/settings"
+              onClick={(e) => {
+                e.preventDefault();
+                setIsOpen(false);
+                setIsSettingsOpen(false);
+                router.push('/settings');
+              }}
+            >
+              <i className="bx bx-slider-alt align-middle me-2" style={{ fontSize: '18px' }}></i>
+              <span className="align-middle">Preferences</span>
+            </a>
+            <Link
+              className="dropdown-item ps-4"
+              href="/integrations"
+              onClick={() => { setIsOpen(false); setIsSettingsOpen(false); }}
+            >
+              <i className="bx bx-plug align-middle me-2" style={{ fontSize: '18px' }}></i>
+              <span className="align-middle">Integrations</span>
+            </Link>
+            <Link
+              className="dropdown-item ps-4"
+              href="/subscription"
+              onClick={() => { setIsOpen(false); setIsSettingsOpen(false); }}
+            >
+              <i className="bx bx-credit-card align-middle me-2" style={{ fontSize: '18px' }}></i>
+              <span className="align-middle">Subscription</span>
+            </Link>
+          </>
+        )}
 
         <Link
           className="dropdown-item"
@@ -192,15 +226,6 @@ export default function UserDropdown({ user, isSubscriber = false }: UserDropdow
         >
           <i className="bx bx-bell align-middle me-2" style={{ fontSize: '18px' }}></i>
           <span className="align-middle">Notifications</span>
-        </Link>
-
-        <Link
-          className="dropdown-item"
-          href="/subscription"
-          onClick={() => setIsOpen(false)}
-        >
-          <i className="bx bx-credit-card align-middle me-2" style={{ fontSize: '18px' }}></i>
-          <span className="align-middle">Subscription</span>
         </Link>
 
         <Link
@@ -219,15 +244,6 @@ export default function UserDropdown({ user, isSubscriber = false }: UserDropdow
         >
           <i className="bx bx-note align-middle me-2" style={{ fontSize: '18px' }}></i>
           <span className="align-middle">Documents</span>
-        </Link>
-
-        <Link
-          className="dropdown-item"
-          href="/help/tooling"
-          onClick={() => setIsOpen(false)}
-        >
-          <i className="bx bx-sync align-middle me-2" style={{ fontSize: '18px' }}></i>
-          <span className="align-middle">Tooling</span>
         </Link>
 
         <Link

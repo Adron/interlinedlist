@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+// Matches /@username where username contains only word chars, digits, hyphens, dots
+const AT_USERNAME_RE = /^\/@([\w.-]+)$/;
+
 export async function middleware(request: NextRequest) {
   const sessionCookie = request.cookies.get('session');
   const { pathname } = request.nextUrl;
@@ -8,9 +11,17 @@ export async function middleware(request: NextRequest) {
   // Skip middleware for static assets and API routes
   const staticExtensions = ['.svg', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.woff', '.woff2', '.ttf', '.eot', '.css', '.js', '.json', '.map'];
   const isStaticAsset = staticExtensions.some(ext => pathname.endsWith(ext));
-  
+
   if (pathname.startsWith('/api') || pathname.startsWith('/_next') || isStaticAsset) {
     return NextResponse.next();
+  }
+
+  // Rewrite /@username → /user/username so parallel-route syntax doesn't block the URL
+  const atMatch = pathname.match(AT_USERNAME_RE);
+  if (atMatch) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/user/${atMatch[1]}`;
+    return NextResponse.redirect(url);
   }
 
   // Protected routes

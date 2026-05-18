@@ -122,6 +122,28 @@ export default function CreateListForm() {
 
   return (
     <>
+      {fromMessageId && (
+        <div
+          className="d-flex align-items-center justify-content-between rounded ps-3 pe-2 py-1 mb-3 small"
+          style={{
+            borderLeft: '3px solid var(--bs-primary)',
+            background: 'var(--bs-tertiary-bg)',
+          }}
+        >
+          <span className="d-flex align-items-center gap-2 flex-wrap">
+            <i className="bx bx-git-branch text-primary" aria-hidden />
+            <span className="text-muted">Created from</span>
+            <strong>@{fromUser ?? 'message'}</strong>
+            <a
+              href={fromUrl ?? '/dashboard'}
+              className="btn btn-sm btn-outline-primary py-0 px-2"
+              style={{ fontSize: '0.75rem', lineHeight: '1.4' }}
+            >
+              ↩ Return
+            </a>
+          </span>
+        </div>
+      )}
       {error && (
         <div className="alert alert-danger" role="alert">
           {error}
