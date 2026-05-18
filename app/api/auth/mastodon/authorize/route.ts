@@ -6,6 +6,7 @@ import {
   mastodonProvider,
 } from '@/lib/auth/oauth-mastodon';
 import { setOAuthStateCookie } from '@/lib/auth/oauth-state';
+import { isAllowedRedirectUri } from '@/lib/auth/pkce';
 import { APP_URL } from '@/lib/config/app';
 
 export const dynamic = 'force-dynamic';
@@ -22,6 +23,13 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const instanceRaw = searchParams.get('instance');
   const link = searchParams.get('link') === 'true';
+  const redirectUri = searchParams.get('redirect_uri') ?? undefined;
+
+  if (redirectUri && !isAllowedRedirectUri(redirectUri)) {
+    return NextResponse.redirect(
+      `${APP_URL}/login?error=${encodeURIComponent('Invalid redirect_uri')}`
+    );
+  }
 
   if (!instanceRaw) {
     return NextResponse.redirect(
@@ -42,10 +50,11 @@ export async function GET(request: NextRequest) {
 
     await setOAuthStateCookie({
       state,
-      codeVerifier: '', // Mastodon doesn't use PKCE
+      codeVerifier: '',
       link,
       provider: mastodonProvider(instance),
       instance,
+      redirectUri,
     });
 
     // Store client credentials in cookie for callback (they're needed for token exchange)

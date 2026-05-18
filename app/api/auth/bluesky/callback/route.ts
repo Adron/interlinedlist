@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { APP_URL, SESSION_COOKIE_NAME } from '@/lib/config/app';
 import { getBlueskyClientMetadata } from '@/lib/auth/oauth-bluesky';
+import { createSyncTokenForUser } from '@/lib/auth/sync-token';
+import { isMobileRedirectUri } from '@/lib/auth/pkce';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,6 +31,7 @@ export async function GET(request: NextRequest) {
 
     const stateData = JSON.parse(state || '{}');
     const link = stateData.link === true;
+    const mobileRedirectUri: string | undefined = stateData.redirectUri;
 
     const did = session.did;
     const storedSession = await blueskySessionStore.get(did);
@@ -113,6 +116,12 @@ export async function GET(request: NextRequest) {
           lastVerifiedAt: new Date(),
         },
       });
+      if (mobileRedirectUri && isMobileRedirectUri(mobileRedirectUri)) {
+        const token = await createSyncTokenForUser(existingLink.userId, 'Mobile-Bluesky');
+        const url = new URL(mobileRedirectUri);
+        url.searchParams.set('token', token);
+        return NextResponse.redirect(url.toString());
+      }
       const response = NextResponse.redirect(`${APP_URL}/dashboard`);
       const cookieValue = await createSession(existingLink.userId);
       response.cookies.set(SESSION_COOKIE_NAME, cookieValue, getSessionCookieOptions());
@@ -152,6 +161,12 @@ export async function GET(request: NextRequest) {
 
     trackAction('oauth_connect', { userId: user.id, properties: { provider: 'bluesky' } }).catch(() => {});
 
+    if (mobileRedirectUri && isMobileRedirectUri(mobileRedirectUri)) {
+      const token = await createSyncTokenForUser(user.id, 'Mobile-Bluesky');
+      const url = new URL(mobileRedirectUri);
+      url.searchParams.set('token', token);
+      return NextResponse.redirect(url.toString());
+    }
     const response = NextResponse.redirect(`${APP_URL}/dashboard`);
     const cookieValue = await createSession(user.id);
     response.cookies.set(SESSION_COOKIE_NAME, cookieValue, getSessionCookieOptions());

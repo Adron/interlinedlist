@@ -35,7 +35,11 @@
       "Bash(grep -v \"^$\")",
       "Bash(mkdir -p \"/Users/adron/Codez/interlinedlist/app/[username]\")",
       "Bash(sed -i '' 's|https://interlinedlist.com/adron|/user/adron|g' /Users/adron/Codez/interlinedlist/documentation/blog/*.md)",
-      "Bash(rm -rf \"/Users/adron/Codez/interlinedlist/app/[username]\")"
+      "Bash(rm -rf \"/Users/adron/Codez/interlinedlist/app/[username]\")",
+      "Bash(grep -E \"\\\\.\\(tsx|ts\\)$\")",
+      "Bash(xargs ls -1)",
+      "Skill(nextjs-developer)",
+      "Skill(nextjs-developer:*)"
     ],
     "additionalDirectories": [
       "/Users/adron/Codez/interlinedlist/.claude/skills",

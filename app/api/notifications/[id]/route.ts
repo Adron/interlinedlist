@@ -5,9 +5,9 @@ import { getCurrentUserOrSyncToken } from '@/lib/auth/sync-token';
 export const dynamic = 'force-dynamic';
 
 /**
- * PATCH /api/notifications/[id]/read — mark one notification read (idempotent).
+ * DELETE /api/notifications/[id] — delete a notification owned by the current user.
  */
-export async function PATCH(
+export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
@@ -25,23 +25,17 @@ export async function PATCH(
 
     const row = await prisma.userNotification.findFirst({
       where: { id, userId: user.id },
-      select: { id: true, readAt: true },
+      select: { id: true },
     });
     if (!row) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
 
-    const now = new Date();
-    if (!row.readAt) {
-      await prisma.userNotification.update({
-        where: { id: row.id },
-        data: { readAt: now },
-      });
-    }
+    await prisma.userNotification.delete({ where: { id: row.id } });
 
-    return NextResponse.json({ ok: true });
+    return new NextResponse(null, { status: 204 });
   } catch (error) {
-    console.error('PATCH /api/notifications/[id]/read error:', error);
+    console.error('DELETE /api/notifications/[id] error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

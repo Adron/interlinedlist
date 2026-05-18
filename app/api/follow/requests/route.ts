@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth/session';
+import { getCurrentUserOrSyncToken } from '@/lib/auth/sync-token';
 import { getFollowRequests } from '@/lib/follows/queries';
 
 export const dynamic = 'force-dynamic';
@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
-    const currentUser = await getCurrentUser();
+    const currentUser = await getCurrentUserOrSyncToken(request);
 
     if (!currentUser) {
       return NextResponse.json(

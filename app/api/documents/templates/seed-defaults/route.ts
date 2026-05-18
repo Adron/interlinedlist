@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth/session";
+import { NextRequest, NextResponse } from "next/server";
+import { getCurrentUserOrSyncToken } from "@/lib/auth/sync-token";
 import { isSubscriber } from "@/lib/subscription/is-subscriber";
 import {
   getOrCreateTemplatesFolder,
@@ -13,9 +13,9 @@ export const dynamic = "force-dynamic";
  * POST /api/documents/templates/seed-defaults
  * Idempotently adds default Recipe and Social Media Campaign templates.
  */
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
+    const user = await getCurrentUserOrSyncToken(request);
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

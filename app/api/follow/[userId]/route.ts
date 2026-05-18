@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth/session';
+import { getCurrentUserOrSyncToken } from '@/lib/auth/sync-token';
 import { followUser, unfollowUser } from '@/lib/follows/queries';
 
 export const dynamic = 'force-dynamic';
@@ -13,7 +13,7 @@ export async function POST(
   { params }: { params: { userId: string } }
 ) {
   try {
-    const currentUser = await getCurrentUser();
+    const currentUser = await getCurrentUserOrSyncToken(request);
 
     if (!currentUser) {
       return NextResponse.json(
@@ -88,7 +88,7 @@ export async function DELETE(
   { params }: { params: { userId: string } }
 ) {
   try {
-    const currentUser = await getCurrentUser();
+    const currentUser = await getCurrentUserOrSyncToken(request);
 
     if (!currentUser) {
       return NextResponse.json(

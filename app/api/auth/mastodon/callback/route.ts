@@ -10,6 +10,8 @@ import {
 } from '@/lib/auth/oauth-mastodon';
 import { getOAuthStateCookie, deleteOAuthStateCookie } from '@/lib/auth/oauth-state';
 import { getCurrentUser, createSession, getSessionCookieOptions } from '@/lib/auth/session';
+import { createSyncTokenForUser } from '@/lib/auth/sync-token';
+import { isMobileRedirectUri } from '@/lib/auth/pkce';
 import { ensureUserInPublicOrganization } from '@/lib/organizations/queries';
 import { trackAction } from '@/lib/analytics/track';
 import { APP_URL, SESSION_COOKIE_NAME } from '@/lib/config/app';
@@ -18,6 +20,19 @@ export const dynamic = 'force-dynamic';
 
 function redirectToLogin(error: string) {
   return NextResponse.redirect(`${APP_URL}/login?error=${encodeURIComponent(error)}`);
+}
+
+async function buildSuccessResponse(userId: string, redirectUri?: string) {
+  if (redirectUri && isMobileRedirectUri(redirectUri)) {
+    const token = await createSyncTokenForUser(userId, 'Mobile-Mastodon');
+    const url = new URL(redirectUri);
+    url.searchParams.set('token', token);
+    return NextResponse.redirect(url.toString());
+  }
+  const response = NextResponse.redirect(`${APP_URL}/dashboard`);
+  const cookieValue = await createSession(userId);
+  response.cookies.set(SESSION_COOKIE_NAME, cookieValue, getSessionCookieOptions());
+  return response;
 }
 
 function redirectToSettings(error?: string) {
@@ -137,10 +152,7 @@ export async function GET(request: NextRequest) {
           lastVerifiedAt: new Date(),
         },
       });
-      const response = NextResponse.redirect(`${APP_URL}/dashboard`);
-      const cookieValue = await createSession(existingLink.userId);
-      response.cookies.set(SESSION_COOKIE_NAME, cookieValue, getSessionCookieOptions());
-      return response;
+      return buildSuccessResponse(existingLink.userId, oauthState.redirectUri);
     }
 
     // New user
@@ -185,10 +197,7 @@ export async function GET(request: NextRequest) {
 
     trackAction('oauth_connect', { userId: user.id, properties: { provider } }).catch(() => {});
 
-    const response = NextResponse.redirect(`${APP_URL}/dashboard`);
-    const cookieValue = await createSession(user.id);
-    response.cookies.set(SESSION_COOKIE_NAME, cookieValue, getSessionCookieOptions());
-    return response;
+    return buildSuccessResponse(user.id, oauthState.redirectUri);
   } catch (error) {
     console.error('Mastodon callback error:', error);
     return redirectToLogin(

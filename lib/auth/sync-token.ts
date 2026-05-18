@@ -3,7 +3,7 @@
  * Supports Authorization: Bearer <token> on sync endpoints.
  */
 
-import { createHash } from "crypto";
+import { createHash, randomBytes } from "crypto";
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "./session";
@@ -81,4 +81,15 @@ export async function getCurrentUserOrSyncToken(
 
   // Fall back to session (web)
   return getCurrentUser();
+}
+
+/**
+ * Create a new sync token for a user and return the raw (unhashed) token string.
+ * Used after mobile OAuth to issue a Bearer token to the native app.
+ */
+export async function createSyncTokenForUser(userId: string, name: string = "Mobile"): Promise<string> {
+  const rawToken = randomBytes(32).toString("hex");
+  const tokenHash = hashToken(rawToken);
+  await prisma.syncToken.create({ data: { userId, tokenHash, name } });
+  return rawToken;
 }

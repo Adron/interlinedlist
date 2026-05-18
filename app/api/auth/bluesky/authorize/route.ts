@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { APP_URL } from '@/lib/config/app';
 import { getBlueskyClientMetadata } from '@/lib/auth/oauth-bluesky';
+import { isAllowedRedirectUri } from '@/lib/auth/pkce';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +13,12 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const link = searchParams.get('link') === 'true';
   const handle = searchParams.get('handle')?.trim();
+  const redirectUri = searchParams.get('redirect_uri') ?? undefined;
+
+  if (redirectUri && !isAllowedRedirectUri(redirectUri)) {
+    const dest = link ? '/integrations' : '/login';
+    return NextResponse.redirect(`${APP_URL}${dest}?error=${encodeURIComponent('Invalid redirect_uri')}`);
+  }
 
   try {
     const { NodeOAuthClient } = await import('@atproto/oauth-client-node');
@@ -30,6 +37,7 @@ export async function GET(request: NextRequest) {
       link,
       provider: 'bluesky',
       random: crypto.randomUUID(),
+      redirectUri,
     });
 
     const input = handle || 'https://bsky.social';

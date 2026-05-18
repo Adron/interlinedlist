@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth/session';
+import { getCurrentUserOrSyncToken } from '@/lib/auth/sync-token';
 import { put } from '@vercel/blob';
 import { resizeAvatarToLimit, getMaxSizeBytes, ImageTooLargeAfterResizeError } from '@/lib/avatar/resize';
 
@@ -9,7 +9,7 @@ const MAX_UPLOAD_BYTES = 1.4 * 1024 * 1024; // 1.4 MB
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
+    const user = await getCurrentUserOrSyncToken(request);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

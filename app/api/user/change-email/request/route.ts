@@ -7,7 +7,7 @@ import {
   getEmailChangeVerificationHtml,
   getEmailChangeVerificationText,
 } from '@/lib/email/templates/email-change-verification';
-import { getCurrentUser } from '@/lib/auth/session';
+import { getCurrentUserOrSyncToken } from '@/lib/auth/sync-token';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +19,7 @@ function isValidEmail(email: string): boolean {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
+    const user = await getCurrentUserOrSyncToken(request);
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

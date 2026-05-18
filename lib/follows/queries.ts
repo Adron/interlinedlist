@@ -6,6 +6,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { FollowStatus } from '@/lib/types';
+import { sendPushToUser } from '@/lib/push/apns';
 
 export interface PaginationParams {
   limit?: number;
@@ -50,13 +51,27 @@ export async function followUser(followerId: string, followingId: string) {
   // Determine status based on account privacy
   const status: FollowStatus = followingUser.isPrivateAccount ? 'pending' : 'approved';
 
-  return await prisma.follow.create({
+  const follow = await prisma.follow.create({
     data: {
       followerId,
       followingId,
       status,
     },
   });
+
+  // Notify the followed user — fire-and-forget
+  const follower = await prisma.user.findUnique({
+    where: { id: followerId },
+    select: { username: true, displayName: true },
+  });
+  const name = follower?.displayName || follower?.username || 'Someone';
+  const pushTitle = status === 'pending' ? 'New follow request' : 'New follower';
+  const pushBody = status === 'pending'
+    ? `${name} has requested to follow you`
+    : `${name} is now following you`;
+  sendPushToUser(followingId, { title: pushTitle, body: pushBody }).catch(() => {});
+
+  return follow;
 }
 
 /**

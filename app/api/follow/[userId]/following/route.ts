@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth/session';
+import { getCurrentUserOrSyncToken } from '@/lib/auth/sync-token';
 import { getFollowing } from '@/lib/follows/queries';
 import { FollowStatus } from '@/lib/types';
 
@@ -14,7 +14,7 @@ export async function GET(
   { params }: { params: { userId: string } }
 ) {
   try {
-    const currentUser = await getCurrentUser();
+    const currentUser = await getCurrentUserOrSyncToken(request);
 
     if (!currentUser) {
       return NextResponse.json(

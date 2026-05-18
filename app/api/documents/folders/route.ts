@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth/session";
+import { getCurrentUserOrSyncToken } from "@/lib/auth/sync-token";
 import { isSubscriber } from "@/lib/subscription/is-subscriber";
 import { getRootFolders, validateFolderParent } from "@/lib/documents/queries";
 import { trackAction } from "@/lib/analytics/track";
@@ -11,9 +11,9 @@ export const dynamic = "force-dynamic";
  * GET /api/documents/folders
  * Get root folders for the current user
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
+    const user = await getCurrentUserOrSyncToken(request);
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -32,7 +32,7 @@ export async function GET() {
  */
 export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
+    const user = await getCurrentUserOrSyncToken(request);
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

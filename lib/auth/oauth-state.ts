@@ -14,6 +14,7 @@ export interface OAuthState {
   link: boolean;
   provider: string;
   instance?: string; // For Mastodon
+  redirectUri?: string; // For mobile OAuth — custom scheme (e.g. interlinedlist://oauth/callback)
 }
 
 export async function setOAuthStateCookie(value: OAuthState): Promise<void> {

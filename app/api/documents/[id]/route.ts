@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth/session";
+import { getCurrentUserOrSyncToken } from "@/lib/auth/sync-token";
 import { getDocumentById, getPublicDocumentById, computeContentHash } from "@/lib/documents/queries";
 import { extractBlobUrlsFromMarkdown } from "@/lib/documents/extract-blob-urls";
 import { del } from "@vercel/blob";
@@ -16,11 +16,11 @@ async function resolveParams(params: Promise<{ id: string }> | { id: string }) {
  * Get a document by ID (owner or public)
  */
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
-    const user = await getCurrentUser();
+    const user = await getCurrentUserOrSyncToken(request);
     const { id } = await resolveParams(params);
 
     let document = user
@@ -53,7 +53,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
-    const user = await getCurrentUser();
+    const user = await getCurrentUserOrSyncToken(request);
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -96,11 +96,11 @@ export async function PUT(
  * Soft delete a document and cascade delete blob images
  */
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
-    const user = await getCurrentUser();
+    const user = await getCurrentUserOrSyncToken(request);
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

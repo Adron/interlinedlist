@@ -56,6 +56,7 @@ model User {
   sessions             Session[]
   messageDigs          MessageDig[]
   notifications        UserNotification[]
+  deviceTokens         DeviceToken[]
 
   @@map("users")
 }
@@ -430,6 +431,19 @@ model AnalyticsEvent {
   @@index([sessionId])
   @@index([createdAt])
   @@map("analytics_events")
+}
+
+model DeviceToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  platform  String   // "ios" | "android"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("device_tokens")
 }
 
 model ListConnection {
