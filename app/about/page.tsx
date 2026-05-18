@@ -159,7 +159,7 @@ export default async function AboutPage() {
           },
           {
             icon: 'bx-user-plus',
-            title: 'People &amp; followers',
+            title: 'People & followers',
             text: 'Follow individuals to see their public updates. Build an audience around your work.',
           },
           {
@@ -177,14 +177,8 @@ export default async function AboutPage() {
             <div className="card h-100">
               <div className="card-body">
                 <i className={`bx ${icon} fs-24 text-primary mb-2 d-block`}></i>
-                <h6
-                  className="card-title"
-                  dangerouslySetInnerHTML={{ __html: title }}
-                />
-                <p
-                  className="card-text text-muted small mb-0"
-                  dangerouslySetInnerHTML={{ __html: text }}
-                />
+                <h6 className="card-title">{title}</h6>
+                <p className="card-text text-muted small mb-0">{text}</p>
               </div>
             </div>
           </div>
