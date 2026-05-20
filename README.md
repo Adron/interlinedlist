@@ -214,10 +214,134 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - `npm run restore` - Restore local database from latest backup in ~/Downloads/BACKUP/
 - `npm run test-data:seed` - Seed test accounts and messages into the database
 - `node scripts/seed-initial-data.js` - Seed initial data ("The Public" organization and seed user)
+- `npm run test` - Run all unit tests (Vitest)
+- `npm run test:watch` - Run unit tests in watch mode (re-runs on file changes)
+- `npm run test:e2e` - Run all Playwright e2e tests (seeds test users, auto-starts dev server)
+- `npm run test:e2e:headed` - Run e2e tests with visible browser window
+- `npm run test:e2e:ui` - Open Playwright interactive UI for debugging tests
+- `npm run test:e2e:report` - Open HTML report from the last e2e run
 - `npm run cli:build` - Build the Document Sync CLI for all platforms and copy to `public/downloads/` (quiet; same as `deploy-all-production` with `--binaries-only`)
 - `npm run deploy-all-production` - Build all CLI binaries, install under `public/downloads/` for docs/static URLs, print next steps for commit and deploy
 - `npm run cli:test` - Run CLI unit tests
 - `npm run cli:test-local` - Run CLI integration tests against a local dev server
+
+## Testing
+
+### Unit Tests (Vitest)
+
+Unit tests live alongside the modules they cover as `*.test.ts` files inside `lib/`.
+
+**Run all unit tests once:**
+
+```bash
+npm run test
+```
+
+**Run in watch mode** (re-runs affected tests automatically as you edit):
+
+```bash
+npm run test:watch
+```
+
+**What is covered:**
+
+| File | What is tested |
+|------|----------------|
+| `lib/lists/dsl-validator.test.ts` | `validateFormData`, `getVisibleFields` (all 9 visibility operators), `getDefaultValues` |
+| `lib/lists/dsl-parser.test.ts` | `validateDSLSchema`, `parseDSLSchema`, `parsedSchemaToDSL` round-trip |
+| `lib/auth/pkce.test.ts` | PKCE code verifier/challenge generation, `isAllowedRedirectUri`, `isMobileRedirectUri` |
+| `lib/email/webhook-verify.test.ts` | Svix webhook signature verification, staleness, key rotation |
+| `lib/crosspost/text-splitter.test.ts` | Thread splitting, sentence-boundary detection, `🧵 N/M` suffixes |
+| `lib/lists/date-utils.test.ts` | `formatDateForInput`, `parseDateFromInput`, `parseDateFlexible`, `isValidDateString` |
+| `lib/lists/row-to-markdown.test.ts` | `buildRowMarkdownMarkdown`, `buildListMarkdown`, `slugifyForPath`, path builders |
+| `lib/bluesky/richtext-facets.test.ts` | AT Protocol link facets, UTF-8 byte offsets (emoji, CJK) |
+| `lib/lists/row-value-display.test.ts` | `formatListCellDisplay` for all field types |
+| `lib/utils/relativeTime.test.ts` | `formatDateTime` ordinal suffixes (11th–13th edge cases), `formatDatagridDateTime` |
+| `lib/lists/select-options.test.ts` | `getSelectOptionValues` |
+| `lib/messages/link-detector.test.ts` | `normalizeInstagramUrl`, `extractInstagramUrlsFromText` |
+
+No database connection is required to run unit tests. Tests are isolated to pure functions.
+
+### End-to-End Tests (Playwright)
+
+E2E tests run in a real browser against a live Next.js dev server. They live in `tests/e2e/`.
+
+#### Prerequisites
+
+- PostgreSQL running with `DATABASE_URL` set in `.env.local`
+- Playwright browsers installed:
+  ```bash
+  npx playwright install
+  ```
+
+#### Running the Tests
+
+```bash
+# Run all e2e tests (headless; auto-starts the dev server; seeds test users)
+npm run test:e2e
+
+# Run with a visible browser window
+npm run test:e2e:headed
+
+# Open the interactive Playwright UI (great for debugging individual tests)
+npm run test:e2e:ui
+
+# Open the HTML report from the last run
+npm run test:e2e:report
+```
+
+#### How It Works
+
+`npm run test:e2e` wraps `playwright test` with `dotenv -e .env.local` so the global setup can reach the database. Before any test runs, `tests/e2e/global-setup.ts` uses Prisma to create or upsert two test accounts:
+
+| Account | Email | Password | Role |
+|---------|-------|----------|------|
+| Free-tier user | `testuser@example.com` | `testpassword1` | `customerStatus: free` |
+| Subscriber user | `testsubscriber@example.com` | `testpassword2` | `customerStatus: subscriber` |
+
+Override any value via environment variable: `TEST_USER_EMAIL`, `TEST_USER_PASSWORD`, `TEST_SUBSCRIBER_EMAIL`, `TEST_SUBSCRIBER_PASSWORD`, `PLAYWRIGHT_BASE_URL`.
+
+The Playwright config (`playwright.config.ts`) auto-starts the dev server via `npm run dev` and reuses it if already running locally.
+
+#### Test Suite Structure
+
+```
+tests/e2e/
+├── global-setup.ts                              # Prisma user seeding (runs once before all tests)
+├── helpers/
+│   └── auth.ts                                  # loginAs() helper and credential constants
+├── auth/
+│   ├── login.spec.ts
+│   ├── register.spec.ts
+│   └── forgot-password.spec.ts
+├── api/                                         # Security boundary tests
+│   ├── lists-access-control.spec.ts             # All list endpoints reject unauthenticated requests (401)
+│   ├── list-cross-user-isolation.spec.ts        # IDOR prevention — User B cannot access User A's lists
+│   ├── admin-access-control.spec.ts             # Admin routes block regular users (403)
+│   ├── watcher-ownership-enforcement.spec.ts    # Watcher management is owner-only; role escalation blocked
+│   ├── subscription-gate-list-create.spec.ts    # Free-tier users cannot create lists (403)
+│   ├── list-connections-isolation.spec.ts       # Cross-user connection forgery blocked (403)
+│   ├── session-lifecycle.spec.ts                # Session cleared on logout; arbitrary account-switch blocked
+│   ├── sync-token-auth.spec.ts                  # Bearer tokens validated; forged tokens rejected (401)
+│   ├── public-list-data-boundary.spec.ts        # Private lists not exposed via unauthenticated public endpoint
+│   └── export-access-control.spec.ts            # CSV export scoped to caller's data; anon gets 401
+└── home.spec.ts
+```
+
+#### Adding New Tests
+
+- Add spec files anywhere under `tests/e2e/` — Playwright picks them up automatically.
+- Use `loginAs(page, TEST_USER)` or `loginAs(page, TEST_SUBSCRIBER)` for authenticated API calls.
+- For multi-user scenarios, create separate browser contexts: `const ctx = await browser.newContext()`.
+- Create test data in `test.beforeAll` and clean it up in `test.afterAll`.
+- API-only assertions use `page.request.get/post/put/delete` — no browser UI needed.
+
+### CLI Tests
+
+```bash
+npm run cli:test          # Go unit tests for the il-sync CLI
+npm run cli:test-local    # Integration tests against a local dev server
+```
 
 ## CLI (Document Sync)
 
