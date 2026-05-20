@@ -246,7 +246,91 @@ All endpoints require `Authorization: Bearer <token>`.
 
 ---
 
-## 7. Documents API
+## 7. Lists API
+
+All list endpoints accept `Authorization: Bearer <token>`. No session cookie is needed.
+
+### Fetching the user's lists
+
+```http
+GET /api/lists
+Authorization: Bearer <token>
+```
+
+Optional query parameters: `limit` (default 50), `offset` (default 0), `page`.
+
+Response `200`:
+
+```json
+{
+  "data": [
+    {
+      "id": "lst_abc001",
+      "title": "Books to Read",
+      "description": "My reading backlog.",
+      "isPublic": true,
+      "source": "local",
+      "createdAt": "2025-06-11T08:30:00.000Z"
+    }
+  ],
+  "pagination": { "total": 1, "limit": 50, "offset": 0, "hasMore": false }
+}
+```
+
+### Core list endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/lists` | GET | All lists for the authenticated user |
+| `/api/lists` | POST | Create a list: `{ title, description?, schema?, isPublic?, parentId? }` |
+| `/api/lists/[id]` | GET | Single list with metadata and schema |
+| `/api/lists/[id]` | PUT | Update list metadata: `{ title?, description?, parentId? }` |
+| `/api/lists/[id]` | DELETE | Delete a list (cascades rows and schema) |
+| `/api/lists/[id]/schema` | GET | List schema (field definitions) |
+| `/api/lists/[id]/schema` | PUT | Replace list schema |
+| `/api/lists/[id]/refresh` | POST | Re-sync a GitHub-backed list from source |
+
+### Row (data) endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/lists/[id]/data` | GET | All rows. Query: `limit`, `offset` |
+| `/api/lists/[id]/data` | POST | Add a row: `{ "rowData": { "Field": "value", ... } }` |
+| `/api/lists/[id]/data/[rowId]` | GET | Single row |
+| `/api/lists/[id]/data/[rowId]` | PATCH | Update a row's fields |
+| `/api/lists/[id]/data/[rowId]` | DELETE | Delete a row |
+
+### Watcher endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/lists/[id]/watchers` | GET | All users watching this list |
+| `/api/lists/[id]/watchers/me` | GET | Whether the current user is watching (`{ watching: bool, role? }`) |
+| `/api/lists/[id]/watchers/users` | GET | Users with explicit access (watchers, collaborators, managers) |
+| `/api/lists/[id]/watchers/[userId]` | PUT | Change a user's role: `{ "role": "watcher" \| "collaborator" \| "manager" }` |
+| `/api/lists/[id]/watchers/[userId]` | DELETE | Remove a user from list access |
+
+### Connection endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/lists/connections` | GET | All connections between the user's lists |
+| `/api/lists/connections` | POST | Create a connection: `{ fromListId, toListId, label? }` |
+| `/api/lists/connections/[id]` | DELETE | Remove a connection |
+
+### Public lists (no auth required)
+
+These endpoints return public lists and do not require a token:
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/users/[username]/lists` | GET | Public lists for a user |
+| `/api/users/[username]/lists/[id]` | GET | A specific public list |
+| `/api/users/[username]/lists/[id]/data` | GET | Rows from a public list |
+
+---
+
+## 8. Documents API
 
 All endpoints require `Authorization: Bearer <token>` and an active subscription.
 
@@ -273,7 +357,7 @@ Document `content` is plain Markdown. The server stores and returns it as-is —
 
 ---
 
-## 8. Media Upload API
+## 9. Media Upload API
 
 All upload endpoints require `Authorization: Bearer <token>`, a verified email address, and an active subscription.
 

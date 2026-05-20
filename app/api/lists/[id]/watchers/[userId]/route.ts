@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth/session";
+import { getCurrentUserOrSyncToken } from "@/lib/auth/sync-token";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +15,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string; userId: string }> }
 ) {
   try {
-    const user = await getCurrentUser();
+    const user = await getCurrentUserOrSyncToken(request);
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -79,11 +79,11 @@ export async function PUT(
  * Remove a user from list access. List owner only.
  */
 export async function DELETE(
-  _request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string; userId: string }> }
 ) {
   try {
-    const user = await getCurrentUser();
+    const user = await getCurrentUserOrSyncToken(request);
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

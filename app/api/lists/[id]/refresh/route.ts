@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth/session";
+import { getCurrentUserOrSyncToken } from "@/lib/auth/sync-token";
 import { prisma } from "@/lib/prisma";
 import { getGitHubIssuesContext } from "@/lib/github/issues";
 import { syncListCacheFromGitHub } from "@/lib/lists/github-list-adapter";
@@ -16,7 +16,7 @@ export async function POST(
 ) {
   try {
     const { id } = await Promise.resolve(params);
-    const user = await getCurrentUser();
+    const user = await getCurrentUserOrSyncToken(request);
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

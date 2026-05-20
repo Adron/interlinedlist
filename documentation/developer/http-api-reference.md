@@ -272,22 +272,28 @@ Error responses for upload endpoints:
 
 ## Lists
 
+All list endpoints support both session cookie and Bearer token authentication. Native clients (iOS, CLI, desktop) should use `Authorization: Bearer <token>`.
+
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET  | `/api/lists` | Session | Current user’s lists (query: `limit`, `offset`, `page`). |
-| POST | `/api/lists` | Session | Create list (title, description, schema DSL, optional parent). |
-| GET  | `/api/lists/[id]` | Session | Get list (metadata, schema). |
-| PATCH | `/api/lists/[id]` | Session | Update list. |
-| DELETE | `/api/lists/[id]` | Session | Delete list. |
-| GET  | `/api/lists/[id]/schema` | Session | Get list schema. |
-| PUT  | `/api/lists/[id]/schema` | Session | Update list schema. |
-| GET  | `/api/lists/[id]/data` | Session | List rows (query: pagination). |
-| POST | `/api/lists/[id]/data` | Session | Add row. |
-| GET  | `/api/lists/[id]/data/[rowId]` | Session | Get one row. |
-| PATCH | `/api/lists/[id]/data/[rowId]` | Session | Update row. |
-| DELETE | `/api/lists/[id]/data/[rowId]` | Session | Delete row. |
-| GET  | `/api/lists/[id]/watchers` | Session | List watchers. |
-| GET  | `/api/lists/[id]/watchers/users` | Session | Users with access (watchers, collaborators, managers). |
+| GET  | `/api/lists` | Session or Bearer | Current user’s lists (query: `limit`, `offset`, `page`). |
+| POST | `/api/lists` | Session or Bearer | Create list (title, description, schema DSL, optional parent). |
+| GET  | `/api/lists/[id]` | Session or Bearer | Get list (metadata, schema). |
+| PUT  | `/api/lists/[id]` | Session or Bearer | Update list metadata. |
+| DELETE | `/api/lists/[id]` | Session or Bearer | Delete list. |
+| GET  | `/api/lists/[id]/schema` | Session or Bearer | Get list schema. |
+| PUT  | `/api/lists/[id]/schema` | Session or Bearer | Update list schema. |
+| POST | `/api/lists/[id]/refresh` | Session or Bearer | Refresh a GitHub-backed list from source. |
+| GET  | `/api/lists/[id]/data` | Session or Bearer | List rows (query: pagination). |
+| POST | `/api/lists/[id]/data` | Session or Bearer | Add row. |
+| GET  | `/api/lists/[id]/data/[rowId]` | Session or Bearer | Get one row. |
+| PATCH | `/api/lists/[id]/data/[rowId]` | Session or Bearer | Update row. |
+| DELETE | `/api/lists/[id]/data/[rowId]` | Session or Bearer | Delete row. |
+| GET  | `/api/lists/[id]/watchers` | Session or Bearer | List watchers. |
+| GET  | `/api/lists/[id]/watchers/me` | Session or Bearer | Whether the current user is watching this list. |
+| GET  | `/api/lists/[id]/watchers/users` | Session or Bearer | Users with access (watchers, collaborators, managers). |
+| PUT  | `/api/lists/[id]/watchers/[userId]` | Session or Bearer | Change a user’s watcher role. |
+| DELETE | `/api/lists/[id]/watchers/[userId]` | Session or Bearer | Remove a user from list access. |
 | GET  | `/api/users/[username]/lists` | None | Public lists for a user (by username). |
 | GET  | `/api/users/[username]/lists/[id]` | None | Public list by ID (read-only). |
 | GET  | `/api/users/[username]/lists/[id]/data` | None | Public list rows (read-only). |
@@ -412,9 +418,9 @@ Connections create labelled, directed relationships between two lists owned by t
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | `/api/lists/connections` | Session | All connections between the current user's lists. Returns `{ connections }`. |
-| POST | `/api/lists/connections` | Session | Create a connection. Body: `fromListId`, `toListId`, optional `label`. Returns `201`. |
-| DELETE | `/api/lists/connections/[id]` | Session | Remove a connection by ID. |
+| GET | `/api/lists/connections` | Session or Bearer | All connections between the current user's lists. Returns `{ connections }`. |
+| POST | `/api/lists/connections` | Session or Bearer | Create a connection. Body: `fromListId`, `toListId`, optional `label`. Returns `201`. |
+| DELETE | `/api/lists/connections/[id]` | Session or Bearer | Remove a connection by ID. |
 
 ### Connection object
 
@@ -659,7 +665,7 @@ Response `200`: `{ "ok": true, "updated": 3 }`. `updated` is the count of rows c
 
 The Document Sync CLI and native clients (e.g. iOS app) use the sync token for API access. End users install the CLI from in-app **Help → Tooling (CLI)** on [interlinedlist.com/help/tooling](https://interlinedlist.com/help/tooling). Contributors testing against a local server: see [cli-against-local-server.md](./cli-against-local-server.md).
 
-Obtain a token via `POST /api/auth/sync-token`, then send `Authorization: Bearer <token>` on requests. Bearer auth is supported for: `GET /api/user`; `GET`, `POST`, and `GET /api/messages/scheduled` under the messages API; `GET`, `PUT`, and `DELETE /api/messages/[id]`; and `GET` and `POST /api/documents/sync`. All subscriber-only restrictions (images, video, cross-posting, scheduled posts) are enforced the same way for Bearer callers as for session callers.
+Obtain a token via `POST /api/auth/sync-token`, then send `Authorization: Bearer <token>` on requests. Bearer auth is supported for: `GET /api/user`; all messages endpoints (`GET`, `POST`, `PUT`, `DELETE`, `GET /api/messages/scheduled`); all lists endpoints (`GET /api/lists`, and every sub-path under `/api/lists/[id]/` including data rows, schema, watchers, connections, and refresh); and `GET` and `POST /api/documents/sync`. All subscriber-only restrictions (images, video, cross-posting, scheduled posts) are enforced the same way for Bearer callers as for session callers.
 
 ---
 

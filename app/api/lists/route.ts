@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth/session";
+import { getCurrentUserOrSyncToken } from "@/lib/auth/sync-token";
 import { isSubscriber } from "@/lib/subscription/is-subscriber";
 import { parseDSLSchema, validateDSLSchema } from "@/lib/lists/dsl-parser";
 import { getUserLists, validateParentRelationship } from "@/lib/lists/queries";
@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
+    const user = await getCurrentUserOrSyncToken(request);
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
+    const user = await getCurrentUserOrSyncToken(request);
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

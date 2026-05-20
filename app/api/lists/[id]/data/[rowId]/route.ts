@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth/session";
+import { getCurrentUserOrSyncToken } from "@/lib/auth/sync-token";
 import {
   getListDataRowById,
   updateListDataRow,
@@ -29,7 +29,7 @@ export async function GET(
 ) {
   try {
     const { id, rowId } = await resolveParams(params);
-    const user = await getCurrentUser();
+    const user = await getCurrentUserOrSyncToken(request);
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -58,7 +58,7 @@ export async function PUT(
 ) {
   try {
     const { id, rowId } = await resolveParams(params);
-    const user = await getCurrentUser();
+    const user = await getCurrentUserOrSyncToken(request);
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -155,7 +155,7 @@ export async function DELETE(
 ) {
   try {
     const { id, rowId } = await resolveParams(params);
-    const user = await getCurrentUser();
+    const user = await getCurrentUserOrSyncToken(request);
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

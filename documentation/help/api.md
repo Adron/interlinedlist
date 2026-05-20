@@ -317,7 +317,14 @@ Content-Type: application/json
 }
 ```
 
-### 5. Fetch your documents (delta sync)
+### 5. Fetch your lists
+
+```http
+GET /api/lists
+Authorization: Bearer il_tok_...
+```
+
+### 6. Fetch your documents (delta sync)
 
 ```http
 GET /api/documents/sync
@@ -616,22 +623,52 @@ Video constraints: MP4/WebM/QuickTime/AVI; max 3 MB; no server transcoding.
 
 ### Lists
 
+All list endpoints accept either a session cookie **or** a Bearer token, making them fully accessible from native iOS (and other non-browser) clients.
+
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | `/api/lists` | Session | Your lists. Query: `limit`, `offset`, `page`. |
-| POST | `/api/lists` | Session | Create a list. Body: `title`, `description`, `schema` (DSL), optional `parentId`, `isPublic`. |
-| GET | `/api/lists/[id]` | Session | List metadata and schema. |
-| PATCH | `/api/lists/[id]` | Session | Update list metadata or schema. |
-| DELETE | `/api/lists/[id]` | Session | Delete a list. |
-| GET | `/api/lists/[id]/data` | Session | List rows. Query: `limit`, `offset`. |
-| POST | `/api/lists/[id]/data` | Session | Add a row. Body: `{ "rowData": { "Field": "value", ... } }`. |
-| GET | `/api/lists/[id]/data/[rowId]` | Session | Get one row. |
-| PATCH | `/api/lists/[id]/data/[rowId]` | Session | Update a row. |
-| DELETE | `/api/lists/[id]/data/[rowId]` | Session | Delete a row. |
-| GET | `/api/lists/[id]/watchers` | Session | Users watching this list. |
+| GET | `/api/lists` | Session or Bearer | Your lists. Query: `limit`, `offset`, `page`. |
+| POST | `/api/lists` | Session or Bearer | Create a list. Body: `title`, `description`, `schema` (DSL), optional `parentId`, `isPublic`. |
+| GET | `/api/lists/[id]` | Session or Bearer | List metadata and schema. |
+| PUT | `/api/lists/[id]` | Session or Bearer | Update list metadata. |
+| DELETE | `/api/lists/[id]` | Session or Bearer | Delete a list. |
+| GET | `/api/lists/[id]/schema` | Session or Bearer | Get list schema. |
+| PUT | `/api/lists/[id]/schema` | Session or Bearer | Update list schema. |
+| POST | `/api/lists/[id]/refresh` | Session or Bearer | Refresh a GitHub-backed list from source. |
+| GET | `/api/lists/[id]/data` | Session or Bearer | List rows. Query: `limit`, `offset`. |
+| POST | `/api/lists/[id]/data` | Session or Bearer | Add a row. Body: `{ "rowData": { "Field": "value", ... } }`. |
+| GET | `/api/lists/[id]/data/[rowId]` | Session or Bearer | Get one row. |
+| PATCH | `/api/lists/[id]/data/[rowId]` | Session or Bearer | Update a row. |
+| DELETE | `/api/lists/[id]/data/[rowId]` | Session or Bearer | Delete a row. |
+| GET | `/api/lists/[id]/watchers` | Session or Bearer | Users watching this list. |
+| GET | `/api/lists/[id]/watchers/me` | Session or Bearer | Whether the current user is watching this list. |
+| GET | `/api/lists/[id]/watchers/users` | Session or Bearer | Users with access (watchers, collaborators, managers). |
+| PUT | `/api/lists/[id]/watchers/[userId]` | Session or Bearer | Change a user's watcher role. |
+| DELETE | `/api/lists/[id]/watchers/[userId]` | Session or Bearer | Remove a user from list access. |
 | GET | `/api/users/[username]/lists` | None | Public lists for any user by username (no auth required). |
 | GET | `/api/users/[username]/lists/[id]` | None | A specific public list (no auth required). |
 | GET | `/api/users/[username]/lists/[id]/data` | None | Rows from a public list (no auth required). |
+
+#### iOS / native client quick start
+
+```http
+GET /api/lists
+Authorization: Bearer il_tok_...
+```
+
+```json
+{
+  "data": [
+    {
+      "id": "lst_abc001",
+      "title": "Books to Read",
+      "isPublic": true,
+      "createdAt": "2025-06-11T08:30:00.000Z"
+    }
+  ],
+  "pagination": { "total": 1, "limit": 50, "offset": 0, "hasMore": false }
+}
+```
 
 #### Creating a list and adding rows
 
@@ -639,6 +676,7 @@ Video constraints: MP4/WebM/QuickTime/AVI; max 3 MB; no server transcoding.
 
 ```http
 POST /api/lists
+Authorization: Bearer il_tok_...
 Content-Type: application/json
 
 {
@@ -706,9 +744,9 @@ Connections create labelled, directed relationships between two lists you own â€
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | `/api/lists/connections` | Session | All connections between the current user's lists. Returns `{ connections }`. |
-| POST | `/api/lists/connections` | Session | Create a connection. Body: `fromListId`, `toListId`, optional `label`. Returns `201`. |
-| DELETE | `/api/lists/connections/[id]` | Session | Remove a connection. |
+| GET | `/api/lists/connections` | Session or Bearer | All connections between the current user's lists. Returns `{ connections }`. |
+| POST | `/api/lists/connections` | Session or Bearer | Create a connection. Body: `fromListId`, `toListId`, optional `label`. Returns `201`. |
+| DELETE | `/api/lists/connections/[id]` | Session or Bearer | Remove a connection. |
 
 #### Connection object
 

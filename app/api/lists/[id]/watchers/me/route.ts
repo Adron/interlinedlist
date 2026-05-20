@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth/session";
+import { getCurrentUserOrSyncToken } from "@/lib/auth/sync-token";
 
 export const dynamic = "force-dynamic";
 
@@ -10,11 +10,11 @@ export const dynamic = "force-dynamic";
  * Requires auth.
  */
 export async function GET(
-  _request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = await getCurrentUser();
+    const user = await getCurrentUserOrSyncToken(request);
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

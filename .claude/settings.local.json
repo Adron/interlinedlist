@@ -39,13 +39,21 @@
       "Bash(grep -E \"\\\\.\\(tsx|ts\\)$\")",
       "Bash(xargs ls -1)",
       "Skill(nextjs-developer)",
-      "Skill(nextjs-developer:*)"
+      "Skill(nextjs-developer:*)",
+      "Bash(sed -i '' 's/import { getCurrentUser } from \"@\\\\/lib\\\\/auth\\\\/session\";/import { getCurrentUserOrSyncToken } from \"@\\\\/lib\\\\/auth\\\\/sync-token\";/' \\\\ *)",
+      "Bash(sed -i '' 's/await getCurrentUser\\(\\)/await getCurrentUserOrSyncToken\\(request\\)/g' \\\\ *)",
+      "Bash(find *)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(grep -n \"Session or Bearer\\\\|Session$\\\\|Bearer\" documentation/help/api.md)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(k,':',v\\) for k,v in d.get\\('scripts',{}\\).items\\(\\)]\")",
+      "Bash(xargs cat *)"
     ],
     "additionalDirectories": [
       "/Users/adron/Codez/interlinedlist/.claude/skills",
       "/Users/adron/Codez/interlinedlist/app",
       "/Users/adron/Codez/interlinedlist/documentation/blog",
-      "/Users/adron/Codez/interlinedlist/app/[username]"
+      "/Users/adron/Codez/interlinedlist/app/[username]",
+      "/Users/adron/Codez/interlinedlist/app/api/lists/[id]/schema"
     ]
   }
 }
