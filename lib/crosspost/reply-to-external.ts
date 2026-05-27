@@ -165,9 +165,9 @@ export async function replyToBluesky(
   }
 
   try {
-    const { NodeOAuthClient, OAuthClient } = await import('@atproto/oauth-client-node');
+    const { NodeOAuthClient } = await import('@atproto/oauth-client-node');
     const { createProviderDataSessionStore } = await import('@/lib/bluesky/session-from-provider-data');
-    const { getBlueskyConfig } = await import('@/lib/auth/oauth-bluesky');
+    const { getBlueskyClientMetadata } = await import('@/lib/auth/oauth-bluesky');
     const { prisma } = await import('@/lib/prisma');
     const { blueskyStateStore } = await import('@/lib/auth/oauth-bluesky-stores');
     const { splitTextForPlatform } = await import('@/lib/crosspost/text-splitter');
@@ -175,10 +175,7 @@ export async function replyToBluesky(
     const BLUESKY_CHAR_LIMIT = 300;
     const textChunks = splitTextForPlatform(replyContent, BLUESKY_CHAR_LIMIT);
 
-    const { clientId } = getBlueskyConfig();
-    const metadata = await OAuthClient.fetchMetadata({
-      clientId: clientId as `https://${string}/${string}`,
-    });
+    const metadata = getBlueskyClientMetadata();
 
     const sessionStore = createProviderDataSessionStore(
       did,
@@ -188,7 +185,8 @@ export async function replyToBluesky(
     );
 
     const client = new NodeOAuthClient({
-      clientMetadata: metadata,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      clientMetadata: metadata as any,
       stateStore: blueskyStateStore,
       sessionStore,
     });
@@ -255,7 +253,7 @@ export async function replyToBluesky(
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(bodyObj),
+        body: new Blob([JSON.stringify(bodyObj)], { type: 'application/json' }),
       });
 
       if (!response.ok) {
