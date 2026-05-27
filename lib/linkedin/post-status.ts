@@ -1,9 +1,11 @@
 /**
  * Cross-post a message to LinkedIn.
- * Uses LinkedIn Posts API (REST). Supports text, single image, or multi-image (2-20) posts.
+ * Uses LinkedIn Posts API (REST). Supports text, single image, multi-image (2-20), and article (link preview) posts.
  */
 
 const LINKEDIN_CHAR_LIMIT = 3000;
+const LINKEDIN_ARTICLE_TITLE_LIMIT = 400;
+const LINKEDIN_ARTICLE_DESC_LIMIT = 256;
 const LINKEDIN_API_VERSION = '202510';
 const LINKEDIN_MAX_IMAGES = 20;
 
@@ -12,6 +14,14 @@ const LINKEDIN_HEADERS = {
   'X-Restli-Protocol-Version': '2.0.0',
   'Linkedin-Version': LINKEDIN_API_VERSION,
 } as const;
+
+function truncateForLinkedIn(content: string): string {
+  const trimmed = content.trim();
+  if (trimmed.length <= LINKEDIN_CHAR_LIMIT) return trimmed;
+  const candidate = trimmed.slice(0, LINKEDIN_CHAR_LIMIT);
+  const lastSpace = candidate.lastIndexOf(' ');
+  return (lastSpace > 0 ? candidate.slice(0, lastSpace) : candidate).trimEnd();
+}
 
 function inferMimeType(url: string, contentType: string | null): string {
   if (contentType && /^image\/(jpeg|png|gif)$/i.test(contentType)) {
@@ -99,6 +109,11 @@ export interface CrossPostResult {
   error?: string;
 }
 
+type LinkedInContent =
+  | { media: { id: string; altText: string } }
+  | { multiImage: { images: Array<{ id: string; altText: string }> } }
+  | { article: { source: string; title: string; description?: string; thumbnail?: string } };
+
 export async function postToLinkedIn(
   identity: LinkedIdentityWithData,
   options: CrossPostOptions
@@ -119,18 +134,17 @@ export async function postToLinkedIn(
   const visibility = options.publiclyVisible ? 'PUBLIC' : 'CONNECTIONS';
 
   try {
-    const { splitTextForPlatform } = await import('@/lib/crosspost/text-splitter');
-    const textChunks = splitTextForPlatform(options.content, LINKEDIN_CHAR_LIMIT);
-    const commentary = (textChunks[0] ?? options.content.trim()) || ' ';
+    const commentary = truncateForLinkedIn(options.content) || ' ';
 
     const imageUrls = options.imageUrls?.filter(
       (u): u is string => typeof u === 'string' && u.length > 0
     );
     const urlsToUpload = (imageUrls ?? []).slice(0, LINKEDIN_MAX_IMAGES);
 
-    let content: { media?: { id: string; altText: string }; multiImage?: { images: Array<{ id: string; altText: string }> } } | undefined;
+    let content: LinkedInContent | undefined;
 
     if (urlsToUpload.length > 0) {
+      // Images take priority over article previews
       const imageUrns: string[] = [];
       for (const url of urlsToUpload) {
         const urn = await uploadImageToLinkedIn(accessToken, authorUrn, url);
@@ -153,6 +167,43 @@ export async function postToLinkedIn(
             images: imageUrns.map((id) => ({ id, altText: '' })),
           },
         };
+      }
+    } else {
+      // No images — try to build a link preview card from the first URL in the post
+      const { extractUrls } = await import('@/lib/messages/link-detector');
+      const { fetchLinkMetadata } = await import('@/lib/messages/metadata-fetcher');
+
+      const urls = extractUrls(options.content);
+      if (urls.length > 0) {
+        try {
+          const firstUrl = urls[0];
+          const meta = await fetchLinkMetadata({ url: firstUrl, platform: 'other' });
+          const title = meta?.metadata?.title?.trim();
+
+          if (title) {
+            const article: { source: string; title: string; description?: string; thumbnail?: string } = {
+              source: firstUrl,
+              title: title.slice(0, LINKEDIN_ARTICLE_TITLE_LIMIT),
+            };
+
+            const description = meta?.metadata?.description?.trim();
+            if (description) {
+              article.description = description.slice(0, LINKEDIN_ARTICLE_DESC_LIMIT);
+            }
+
+            const thumbnailUrl = meta?.metadata?.thumbnail;
+            if (thumbnailUrl) {
+              const thumbnailUrn = await uploadImageToLinkedIn(accessToken, authorUrn, thumbnailUrl);
+              if (thumbnailUrn) {
+                article.thumbnail = thumbnailUrn;
+              }
+            }
+
+            content = { article };
+          }
+        } catch {
+          // Metadata fetch failed — fall through to text-only post
+        }
       }
     }
 

@@ -46,7 +46,8 @@
       "Bash(echo \"exit: $?\")",
       "Bash(grep -n \"Session or Bearer\\\\|Session$\\\\|Bearer\" documentation/help/api.md)",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(k,':',v\\) for k,v in d.get\\('scripts',{}\\).items\\(\\)]\")",
-      "Bash(xargs cat *)"
+      "Bash(xargs cat *)",
+      "Bash(node -e \"const u = require\\('undici'\\); console.log\\(require.resolve\\('undici'\\)\\)\")"
     ],
     "additionalDirectories": [
       "/Users/adron/Codez/interlinedlist/.claude/skills",
