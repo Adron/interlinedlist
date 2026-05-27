@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, FormEvent, useRef, useEffect } from 'react';
+import { useState, FormEvent, useRef, useEffect, useMemo } from 'react';
+import { extractUrls } from '@/lib/messages/link-detector';
 
 const MAX_IMAGES = 8;
 
@@ -126,6 +127,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
   const [selectedMastodonIds, setSelectedMastodonIds] = useState<Set<string>>(new Set());
   const [crossPostToBluesky, setCrossPostToBluesky] = useState(false);
   const [crossPostToLinkedIn, setCrossPostToLinkedIn] = useState(false);
+  const [linkedInLinkAsFirstComment, setLinkedInLinkAsFirstComment] = useState(false);
   const [crossPostResults, setCrossPostResults] = useState<Array<{ providerId: string; instanceName: string; success: boolean; error?: string }> | null>(null);
   const [scheduledAt, setScheduledAt] = useState<Date | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -138,6 +140,8 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
   const [quotePushedMessageId, setQuotePushedMessageId] = useState<string | null>(null);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
+
+  const detectedUrls = useMemo(() => extractUrls(content), [content]);
 
   // Create/revoke object URLs for pending file previews
   useEffect(() => {
@@ -228,7 +232,10 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
   };
 
   const toggleLinkedIn = () => {
-    setCrossPostToLinkedIn((prev) => !prev);
+    setCrossPostToLinkedIn((prev) => {
+      if (prev) setLinkedInLinkAsFirstComment(false);
+      return !prev;
+    });
     setCrossPostResults(null);
   };
 
@@ -265,6 +272,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
           ...(selectedMastodonIds.size > 0 && { mastodonProviderIds: Array.from(selectedMastodonIds) }),
           ...(crossPostToBluesky && { crossPostToBluesky: true }),
           ...(crossPostToLinkedIn && { crossPostToLinkedIn: true }),
+          ...(crossPostToLinkedIn && linkedInLinkAsFirstComment && { linkedInLinkAsFirstComment: true }),
           ...(scheduledAt && scheduledAt > new Date() && !quotePushedMessageId && {
             scheduledAt: scheduledAt.toISOString(),
           }),
@@ -294,6 +302,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
       setPendingVideoFile(null);
       setCrossPostToBluesky(false);
       setCrossPostToLinkedIn(false);
+      setLinkedInLinkAsFirstComment(false);
       setScheduledAt(null);
       setShowScheduleModal(false);
       setQuotePushedMessageId(null);
@@ -446,12 +455,8 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                   </span>
                 )}
                 {showSettingsMenu && (
-                  <div 
-                    className="d-flex flex-wrap align-items-center gap-2"
-                    style={{
-                      animation: 'slideIn 0.3s ease-in-out',
-                    }}
-                  >
+                  <div style={{ animation: 'slideIn 0.3s ease-in-out' }}>
+                  <div className="d-flex flex-wrap align-items-center gap-2">
                     <button
                       type="button"
                       className="btn btn-sm btn-link p-1 text-muted"
@@ -592,6 +597,21 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                       <i className="bx bx-calendar-alt" style={{ fontSize: '1.1rem' }}></i>
                     </button>
                   </div>
+                  {crossPostToLinkedIn && linkedinIdentity && detectedUrls.length > 0 && (
+                    <div className="form-check mt-1 ms-1">
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
+                        id="linkedin-first-comment"
+                        checked={linkedInLinkAsFirstComment}
+                        onChange={(e) => setLinkedInLinkAsFirstComment(e.target.checked)}
+                      />
+                      <label className="form-check-label small text-muted" htmlFor="linkedin-first-comment">
+                        Post link{detectedUrls.length > 1 ? 's' : ''} as first comment (LinkedIn)
+                      </label>
+                    </div>
+                  )}
+                  </div>
                 )}
               </div>
               <div className="form-check">
@@ -668,6 +688,11 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                   Posted to: {crossPostResults.filter((r) => r.success).map((r) => r.instanceName).join(', ')}
                 </small>
               )}
+              {crossPostResults.filter((r) => r.success && (r as { warning?: string }).warning).map((r, i) => (
+                <small key={i} className="text-warning d-block">
+                  {r.instanceName}: {(r as { warning?: string }).warning}
+                </small>
+              ))}
               {crossPostResults.filter((r) => !r.success).length > 0 && (
                 <small className="text-danger d-block">
                   Failed: {crossPostResults.filter((r) => !r.success).map((r) => `${r.instanceName}: ${r.error || 'Unknown error'}`).join('; ')}
@@ -1116,10 +1141,27 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                             type="checkbox"
                             id="schedule-linkedin"
                             checked={crossPostToLinkedIn}
-                            onChange={(e) => setCrossPostToLinkedIn(e.target.checked)}
+                            onChange={(e) => {
+                              setCrossPostToLinkedIn(e.target.checked);
+                              if (!e.target.checked) setLinkedInLinkAsFirstComment(false);
+                            }}
                           />
                           <label className="form-check-label small" htmlFor="schedule-linkedin">
                             LinkedIn
+                          </label>
+                        </div>
+                      )}
+                      {linkedinIdentity && crossPostToLinkedIn && detectedUrls.length > 0 && (
+                        <div className="form-check">
+                          <input
+                            className="form-check-input"
+                            type="checkbox"
+                            id="schedule-linkedin-first-comment"
+                            checked={linkedInLinkAsFirstComment}
+                            onChange={(e) => setLinkedInLinkAsFirstComment(e.target.checked)}
+                          />
+                          <label className="form-check-label small" htmlFor="schedule-linkedin-first-comment">
+                            Post link{detectedUrls.length > 1 ? 's' : ''} as first comment (LinkedIn)
                           </label>
                         </div>
                       )}
