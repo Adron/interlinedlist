@@ -41,11 +41,12 @@ export async function GET(request: NextRequest) {
 
   for (const message of due) {
     const config = message.scheduledCrossPostConfig as
-      | { mastodonProviderIds?: string[]; crossPostToBluesky?: boolean; crossPostToLinkedIn?: boolean }
+      | { mastodonProviderIds?: string[]; crossPostToBluesky?: boolean; crossPostToLinkedIn?: boolean; linkedInLinkAsFirstComment?: boolean }
       | null;
     const mastodonProviderIds = config?.mastodonProviderIds ?? [];
     const crossPostToBluesky = config?.crossPostToBluesky === true;
     const crossPostToLinkedIn = config?.crossPostToLinkedIn === true;
+    const linkedInLinkAsFirstComment = config?.linkedInLinkAsFirstComment === true;
 
     const imageUrls = message.imageUrls as string[] | null;
     const videoUrls = message.videoUrls as string[] | null;
@@ -161,6 +162,7 @@ export async function GET(request: NextRequest) {
             publiclyVisible: message.publiclyVisible,
             imageUrls: finalImageUrls,
             videoUrls: finalVideoUrls,
+            linkAsFirstComment: linkedInLinkAsFirstComment,
           });
           if (result.success && result.url) {
             crossPostUrls.push({

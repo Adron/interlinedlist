@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
       mastodonProviderIds,
       crossPostToBluesky,
       crossPostToLinkedIn,
+      linkedInLinkAsFirstComment,
       parentId,
       scheduledAt: scheduledAtRaw,
       pushedMessageId: pushedMessageIdRaw,
@@ -245,6 +246,7 @@ export async function POST(request: NextRequest) {
                 mastodonProviderIds: Array.isArray(mastodonProviderIds) ? mastodonProviderIds : [],
                 crossPostToBluesky: crossPostToBluesky === true,
                 crossPostToLinkedIn: crossPostToLinkedIn === true,
+                linkedInLinkAsFirstComment: linkedInLinkAsFirstComment === true,
               } as object,
             }),
             ...(Array.isArray(tags) && tags.length > 0 && { tags }),
@@ -422,6 +424,7 @@ export async function POST(request: NextRequest) {
           publiclyVisible: finalPubliclyVisible as boolean,
           imageUrls: finalImageUrls,
           videoUrls: finalVideoUrls,
+          linkAsFirstComment: linkedInLinkAsFirstComment === true,
         });
         crossPostResults.push(result);
         if (result.success && result.url) {
