@@ -50,9 +50,10 @@ export async function POST(request: NextRequest) {
           const subscription = await stripe.subscriptions.retrieve(subscriptionId);
           const customerId = subscription.customer as string;
           const customerStatus = getCustomerStatusFromSubscription(subscription);
+          const isSubscriber = customerStatus !== 'free';
           let result = await prisma.user.updateMany({
             where: { stripeCustomerId: customerId },
-            data: { customerStatus },
+            data: { customerStatus, ...(isSubscriber && { cleared: true }) },
           });
           if (result.count === 0) {
             const customer = await stripe.customers.retrieve(customerId);
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
             if (email) {
               result = await prisma.user.updateMany({
                 where: { email },
-                data: { stripeCustomerId: customerId, customerStatus },
+                data: { stripeCustomerId: customerId, customerStatus, ...(isSubscriber && { cleared: true }) },
               });
             }
           }
@@ -72,10 +73,11 @@ export async function POST(request: NextRequest) {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
         const customerStatus = getCustomerStatusFromSubscription(subscription);
+        const isSubscriber = customerStatus !== 'free';
 
         let result = await prisma.user.updateMany({
           where: { stripeCustomerId: customerId },
-          data: { customerStatus },
+          data: { customerStatus, ...(isSubscriber && { cleared: true }) },
         });
         if (result.count === 0) {
           const customer = await stripe.customers.retrieve(customerId);
@@ -83,7 +85,7 @@ export async function POST(request: NextRequest) {
           if (email) {
             result = await prisma.user.updateMany({
               where: { email },
-              data: { stripeCustomerId: customerId, customerStatus },
+              data: { stripeCustomerId: customerId, customerStatus, ...(isSubscriber && { cleared: true }) },
             });
           }
         }

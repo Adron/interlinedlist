@@ -40,9 +40,10 @@ export async function syncSubscriptionFromStripe(
     ? getCustomerStatusFromSubscription(activeSub)
     : 'free';
 
+  const isSubscriber = customerStatus !== 'free';
   const result = await prisma.user.updateMany({
     where: { stripeCustomerId },
-    data: { customerStatus },
+    data: { customerStatus, ...(isSubscriber && { cleared: true }) },
   });
 
   if (result.count === 0) return null;
