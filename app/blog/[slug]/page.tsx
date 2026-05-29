@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { getBlogContent, getBlogPosts } from '@/lib/blog';
 import type { Metadata } from 'next';
 
@@ -43,6 +44,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       )}
       <div className="help-content">
         <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
           components={{
             a: ({ href, children }) => (
               <a href={href ?? '#'} className="text-primary">

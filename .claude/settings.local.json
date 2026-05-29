@@ -54,7 +54,8 @@
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); all_deps={**d.get\\('dependencies',{}\\), **d.get\\('devDependencies',{}\\)}; [print\\(k,':',v\\) for k,v in sorted\\(all_deps.items\\(\\)\\)]\")",
       "Bash(xargs -I{} sh -c 'echo \"=== {} ===\"; head -5 {}; echo')",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('type:', d.get\\('type','commonjs'\\)\\)\")",
-      "WebFetch(domain:interlinedlist.com)"
+      "WebFetch(domain:interlinedlist.com)",
+      "Bash(npm show *)"
     ],
     "additionalDirectories": [
       "/Users/adron/Codez/interlinedlist/.claude/skills",
