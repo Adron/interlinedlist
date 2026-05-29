@@ -1,7 +1,7 @@
 ---
 title: "Free vs. Subscriber: Here's Exactly What You Get"
 date: 2026-05-28
-excerpt: Cross-posting to three platforms is free. That surprises people. Here's the full breakdown — grid and all — of what's on each side of the paywall and why the line is where it is.
+excerpt: The free tier is real and unlimited — but cross-posting to Mastodon, Bluesky, and LinkedIn lives behind the subscription. Here's the full breakdown — grid and all — of what's on each side of the paywall and why.
 ---
 
 The question I keep getting after someone signs up: okay, but where does it actually start charging me?
@@ -10,15 +10,15 @@ Which is the right question to ask. Subscription software has collectively train
 
 So here is the direct answer. No soft framing. The actual line, why it's there, and what's on each side.
 
-## The Part That Surprises People
+## The Part That Needs a Clear Answer
 
-Cross-posting to Mastodon, Bluesky, and LinkedIn is free.
+Cross-posting to Mastodon, Bluesky, and LinkedIn is a subscriber feature.
 
-I watch the hesitation every time I say this. People assume it's a trial mechanic — works three times, then you upgrade. It's not. Connect your accounts once in Settings and every post you write goes to all three simultaneously, forever, at no cost.
+I want to be direct about that because the free tier is genuinely substantial, and I don't want the paywall to feel like a bait-and-switch. The free tier lets you write, publish, build a feed, follow people, and export your data. It's a real writing environment, not a demo. But the external distribution layer — pushing to three platforms simultaneously — is what the $6.99/month actually buys.
 
-The reason it's free is that cross-posting isn't a premium add-on for InterlinedList. It's the whole point of the thing. Locking distribution behind a paywall would mean making you pay to find out whether this workflow actually fits how you write. That's a bad bet to force on someone. You should know before you decide.
+That's a straightforward trade. Connecting your accounts and firing posts to Mastodon, Bluesky, and LinkedIn on every publish is the primary reason most people subscribe. At $6.99/month, that's a pretty low bar if cross-platform reach is part of your workflow. And if it isn't yet, the free tier gives you the full InterlinedList writing experience to figure out whether it should be.
 
-Markdown export is also free, for the same reason. Your data shouldn't depend on a billing relationship to leave.
+Markdown export is free. Your data doesn't depend on a billing relationship to leave.
 
 ## The Full Grid
 
@@ -26,7 +26,7 @@ Markdown export is also free, for the same reason. Your data shouldn't depend on
 |---|:---:|:---:|
 | Text posts with full Markdown | ✓ | ✓ |
 | Reply threading and reactions | ✓ | ✓ |
-| Cross-post to Mastodon, Bluesky, LinkedIn | ✓ | ✓ |
+| Cross-post to Mastodon, Bluesky, LinkedIn | — | ✓ |
 | Follow system and public feed | ✓ | ✓ |
 | Public profile | ✓ | ✓ |
 | Markdown export | ✓ | ✓ |
@@ -49,13 +49,15 @@ Subscriber is $6.99/month or $60/year — the annual plan saves around 30%.
 
 Not a demo. Not a stripped preview designed to annoy you into upgrading.
 
-You can write posts, publish them to a live feed, push them to three external networks simultaneously, follow other writers, build an audience, and export everything as clean Markdown — all without a payment method on file. The free plan has no time limit. Nothing expires.
+You can write posts, publish them to a live InterlinedList feed, follow other writers, build an audience, and export everything as clean Markdown — all without a payment method on file. The free plan has no time limit. Nothing expires.
 
-That's a real publishing environment. If you write and you have opinions about where your work ends up, the free tier covers the core loop.
+That's a real publishing environment. If you write and want a home for your work, the free tier covers that loop completely. When you're ready to extend your reach to Mastodon, Bluesky, and LinkedIn, that's what the subscription is there for.
 
 ## What Subscriber Unlocks
 
-Everything beyond that core loop is about organizing and managing serious volumes of structured content.
+The headline subscriber benefit is cross-posting. Connect your Mastodon, Bluesky, and LinkedIn accounts in Settings and every post you write goes to all three simultaneously. One composer, three networks, no copying and pasting.
+
+Everything else in the subscription is about organizing and managing serious volumes of structured content.
 
 **Structured Lists** are the feature that earns the subscription for a lot of people. They're custom relational tables — define your own schema with text, number, date, select, boolean, URL, and Markdown field types. Connect lists as a graph. View data as cards, a grid, or an ERD diagram. Sync a list directly from a GitHub repository's open issues. For anyone who tracks things — research, projects, reading lists, decision logs — Lists are where InterlinedList becomes something closer to a thinking system than a posting tool.
 
