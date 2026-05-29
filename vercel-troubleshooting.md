@@ -71,6 +71,63 @@ That's it. If `response.uri` is undefined, something went wrong regardless of wh
 
 ---
 
+## The "Expected Non-Null Body Source" Error
+
+This one was harder to track down. Cross-posting was silently failing — the user saw a success, nothing appeared on Bluesky — and the error that eventually surfaced in the logs was: `expected non-null body source`. No indication of which library threw it, no indication of what the body was supposed to be.
+
+The stack trace made it readable:
+
+```
+[postToBluesky] error: Error: expected non-null body source
+    at n.from (/var/task/.next/server/chunks/6490.js:1:183096)
+    at d.<anonymous> (/var/task/.next/server/chunks/6490.js:3:428)
+    at async d.dpopFetch (/var/task/.next/server/chunks/6490.js:4:284531)
+    at async d.fetchHandler (/var/task/.next/server/chunks/6490.js:4:310523)
+    at async n (/var/task/.next/server/chunks/2100.js:1:2472)
+```
+
+`dpopFetch` is inside `@atproto/oauth-client-node`, the library that handles OAuth authentication for the AT Protocol. DPoP — Demonstrating Proof of Possession — is part of how the AT Protocol proves that a token is being used by the party it was issued to. The library generates and attaches the proof header automatically on every authenticated request.
+
+Here is where serverless breaks it. Bluesky's server requires a DPoP nonce on each request. On a cold start, there is no stored nonce. The library makes the first request without one, gets back a `use-dpop-nonce` response with the correct nonce, and then needs to retry the same request using that nonce.
+
+To retry, it needs to replay the request body.
+
+The problem: the library built a `Request` object from the original `RequestInit` when making the first attempt. That `Request`'s `.body` property becomes a `ReadableStream`. Making the first request consumes the stream. When the library attempts to extract the body for the retry — `n.from(request.body)` — the stream is already consumed. Node.js throws "expected non-null body source."
+
+This is a bug in the library. The correct behavior is to store the original `BodyInit` separately and use it to construct a fresh body for the retry, rather than attempting to re-read the consumed stream from the `Request` object.
+
+**What changed in the code while investigating:**
+
+Three call sites were sending body formats that are particularly bad for this scenario. The delete path was still using a raw `JSON.stringify` string. The image upload path was using a `Uint8Array`. Both were updated to `Blob` with an explicit MIME type, which is the correct input format regardless of the retry behavior:
+
+```typescript
+// Before
+body: JSON.stringify(bodyObj)
+body: new Uint8Array(arrayBuffer)
+
+// After
+body: new Blob([JSON.stringify(bodyObj)], { type: 'application/json' })
+body: new Blob([arrayBuffer], { type: mimeType })
+```
+
+This covered three call sites: `createRecord` for post creation, `deleteRecord` for deleting posts, and `uploadBlob` for image attachments. The delete and image upload paths had been missed in an earlier pass that fixed `createRecord`.
+
+**The actual fix: upgrade the library.**
+
+The project was pinned to `@atproto/oauth-client-node` 0.3.16. Version 0.4.0 was released May 19, 2026. Version 0.4.1 followed on May 26. The DPoP body replay behavior was corrected in the 0.4.x line. The `Blob` body changes are still correct defensive practice, but the library upgrade is what resolves the error at its root.
+
+```bash
+npm install @atproto/oauth-client-node@0.4.1
+```
+
+Update `package.json` to `"^0.4.1"` and commit the lockfile. The upgrade brought in 26 package changes and introduced no breaking changes against the existing code — TypeScript compiled clean against the new version without modification.
+
+One other log line appears alongside this error and is worth noting: `No lock mechanism provided. Credentials might get revoked.` This is unrelated. It is the library warning that there is no distributed lock for concurrent token refresh, which is expected on serverless. It is not the error, and it does not cause the error.
+
+The lesson here: when the stack trace puts you inside a third-party library's authentication layer, check the library version before writing workarounds. The bug was in the library. The fix was in the library. The code changes we made along the way were correct, but they were not what stopped the failure.
+
+---
+
 ## Vercel's Network Context
 
 Vercel functions run in AWS Lambda. The outbound IP address is not fixed — it can change per invocation, per region, per deployment. If you're integrating with any API that does IP allowlisting, Vercel's serverless functions will not work cleanly without an additional layer (a fixed-IP proxy, Vercel's own IP ranges if they publish them, or routing through a dedicated egress).
@@ -133,7 +190,9 @@ When something breaks in a Vercel-deployed integration, this is the order I go t
 
 8. **If the external API is returning errors**: distinguish between credentials issues (4xx, fast response), rate limits (429 with a retry-after header), and network issues (timeout, no response). Each one has a different fix.
 
-9. **Consider Log Drains for ongoing observability.** Vercel's built-in Logs tab only retains logs for a limited window — one hour on Hobby, longer on Pro. If you need logs to persist and be searchable, set up a Log Drain under **Settings → Log Drains** to ship to Datadog, Axiom, Papertrail, or any HTTPS endpoint. Do this before the next incident, not during it.
+9. **If the stack trace points inside a third-party authentication library**, check the library version before writing workarounds. Authentication libraries — especially ones that implement OAuth, DPoP, or token refresh — have subtle serverless edge cases that get fixed in patch and minor releases. The `@atproto/oauth-client-node` DPoP body replay bug is a concrete example: the stack trace was entirely inside the library, the error looked like a body format problem, and the real fix was a version upgrade. Check for updates, read the changelog, upgrade if a newer version addresses the failure mode you're seeing.
+
+10. **Consider Log Drains for ongoing observability.** Vercel's built-in Logs tab only retains logs for a limited window — one hour on Hobby, longer on Pro. If you need logs to persist and be searchable, set up a Log Drain under **Settings → Log Drains** to ship to Datadog, Axiom, Papertrail, or any HTTPS endpoint. Do this before the next incident, not during it.
 
 The Bluesky issue took about 40 minutes to diagnose and fix. Thirty of those were spent in the wrong place before I found the runtime logs. Now that I know the path, the same class of problem would take five minutes.
 

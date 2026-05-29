@@ -54,6 +54,11 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             pre: ({ children }) => (
               <pre className="help-pre">{children}</pre>
             ),
+            table: ({ children }) => (
+              <div className="help-table-wrapper">
+                <table className="help-table">{children}</table>
+              </div>
+            ),
           }}
         >
           {post.content}
