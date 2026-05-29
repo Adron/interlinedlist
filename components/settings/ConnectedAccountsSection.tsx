@@ -26,6 +26,7 @@ function getProviderLabel(provider: string): string {
   if (provider === 'github') return 'GitHub';
   if (provider === 'bluesky') return 'Bluesky';
   if (provider === 'linkedin') return 'LinkedIn';
+  if (provider === 'twitter') return 'Twitter / X';
   if (provider.startsWith('mastodon:')) {
     const instance = provider.replace('mastodon:', '');
     return `Mastodon @ ${instance}`;
@@ -44,6 +45,9 @@ function getProviderConnectUrl(provider: string, instance?: string, handle?: str
   }
   if (provider === 'linkedin') {
     return '/api/auth/linkedin/authorize?link=true';
+  }
+  if (provider === 'twitter') {
+    return '/api/auth/twitter/authorize?link=true';
   }
   if (provider.startsWith('mastodon:') || instance) {
     const inst = instance || provider.replace('mastodon:', '');
@@ -67,12 +71,20 @@ export default function ConnectedAccountsSection({
   const [disconnecting, setDisconnecting] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [linkedinConfigured, setLinkedinConfigured] = useState<boolean | null>(null);
+  const [twitterConfigured, setTwitterConfigured] = useState<boolean | null>(null);
 
   useEffect(() => {
     fetch('/api/auth/linkedin/status')
       .then((res) => res.json())
       .then((data) => setLinkedinConfigured(data.configured === true))
       .catch(() => setLinkedinConfigured(false));
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/auth/twitter/status')
+      .then((res) => res.json())
+      .then((data) => setTwitterConfigured(data.configured === true))
+      .catch(() => setTwitterConfigured(false));
   }, []);
 
   const hasIdentity = (provider: string) =>
@@ -143,6 +155,7 @@ export default function ConnectedAccountsSection({
   const githubIdentity = getIdentity('github');
   const blueskyIdentity = getIdentity('bluesky');
   const linkedinIdentity = getIdentity('linkedin');
+  const twitterIdentity = getIdentity('twitter');
   const mastodonIdentities = identities.filter((i) => i.provider.startsWith('mastodon:'));
 
   return (
@@ -459,6 +472,66 @@ export default function ConnectedAccountsSection({
             Add Mastodon instance
           </button>
         </div>
+        </div>
+      </div>
+
+      {/* Twitter / X */}
+      <div className="card mb-3">
+        <div className="card-body py-3">
+          <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div className="d-flex align-items-center gap-2">
+              <span className="badge" style={{ backgroundColor: '#000' }}>Twitter / X</span>
+              {twitterIdentity ? (
+                <>
+                  {twitterIdentity.avatarUrl && (
+                    <img
+                      src={twitterIdentity.avatarUrl}
+                      alt=""
+                      className="rounded-circle"
+                      width={24}
+                      height={24}
+                    />
+                  )}
+                  <span>{twitterIdentity.providerUsername || 'Connected'}</span>
+                </>
+              ) : (
+                <span className="text-muted">Not connected</span>
+              )}
+            </div>
+            <div className="d-flex gap-1">
+              {twitterIdentity ? (
+                <>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-secondary"
+                    onClick={() => handleVerify('twitter')}
+                    disabled={verifying === 'twitter'}
+                  >
+                    {verifying === 'twitter' ? 'Verifying...' : 'Verify'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-danger"
+                    onClick={() => handleDisconnect('twitter')}
+                    disabled={disconnecting === 'twitter'}
+                  >
+                    {disconnecting === 'twitter' ? 'Disconnecting...' : 'Disconnect'}
+                  </button>
+                </>
+              ) : twitterConfigured === true ? (
+                <a href={getProviderConnectUrl('twitter')} className="btn btn-sm btn-primary">
+                  Connect
+                </a>
+              ) : (
+                <span className="btn btn-sm btn-outline-secondary disabled">
+                  {twitterConfigured === null ? 'Loading...' : 'Coming soon'}
+                </span>
+              )}
+            </div>
+          </div>
+          <p className="text-muted small mt-2 mb-0">
+            Connect Twitter / X to cross-post messages to your timeline. Posts longer than 280 characters are automatically threaded.
+          </p>
         </div>
       </div>
     </div>

@@ -77,6 +77,12 @@ export default async function Footer() {
           >
             Pricing
           </Link>
+          <Link href="/terms" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}>
+            Terms
+          </Link>
+          <Link href="/privacy" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}>
+            Privacy
+          </Link>
           {user ? (
             <>
               <Link

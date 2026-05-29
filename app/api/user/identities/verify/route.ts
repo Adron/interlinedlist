@@ -60,6 +60,11 @@ export async function POST(request: NextRequest) {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (!res.ok) throw new Error('Token invalid');
+    } else if (identity.provider === 'twitter') {
+      const res = await fetch('https://api.twitter.com/2/users/me', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!res.ok) throw new Error('Token invalid');
     }
 
     await prisma.linkedIdentity.update({
