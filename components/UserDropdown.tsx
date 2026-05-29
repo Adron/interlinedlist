@@ -28,25 +28,36 @@ export default function UserDropdown({ user, isSubscriber = false }: UserDropdow
   const [isLoginAsOpen, setIsLoginAsOpen] = useState(false);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isLoadingAccounts, setIsLoadingAccounts] = useState(false);
+  const [accountsLoaded, setAccountsLoaded] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Fetch accounts when dropdown opens
+  // Close sub-menus when main dropdown closes
   useEffect(() => {
-    if (isOpen) {
-      fetch('/api/auth/accounts')
-        .then((res) => res.ok ? res.json() : null)
-        .then((data) => {
-          if (data?.accounts) {
-            setAccounts(data.accounts);
-            setCurrentUserId(data.currentUserId ?? null);
-          }
-        })
-        .catch(() => {});
-    } else {
+    if (!isOpen) {
       setIsSettingsOpen(false);
       setIsLoginAsOpen(false);
     }
   }, [isOpen]);
+
+  // Lazy-load accounts only when "Switch to" is first opened
+  useEffect(() => {
+    if (!isLoginAsOpen || accountsLoaded) return;
+    setIsLoadingAccounts(true);
+    fetch('/api/auth/accounts')
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data?.accounts) {
+          setAccounts(data.accounts);
+          setCurrentUserId(data.currentUserId ?? null);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        setIsLoadingAccounts(false);
+        setAccountsLoaded(true);
+      });
+  }, [isLoginAsOpen, accountsLoaded]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -105,7 +116,6 @@ export default function UserDropdown({ user, isSubscriber = false }: UserDropdow
   const displayName = user.displayName || user.username;
   const initials = displayName[0]?.toUpperCase() ?? '?';
   const hasMultipleAccounts = accounts.length > 1;
-  const showAccountsSection = accounts.length >= 1;
 
   return (
     <div className="dropdown topbar-item" ref={dropdownRef}>
@@ -255,29 +265,34 @@ export default function UserDropdown({ user, isSubscriber = false }: UserDropdow
           <span className="align-middle">Help</span>
         </Link>
 
-        {/* Switch to / Add account - inline accordion */}
-        {showAccountsSection && (
+        {/* Switch to / Add account - always visible, accounts lazy-loaded on first open */}
+        <a
+          className="dropdown-item d-flex align-items-center justify-content-between"
+          href="#"
+          onClick={(e) => {
+            e.preventDefault();
+            setIsLoginAsOpen(!isLoginAsOpen);
+          }}
+          aria-expanded={isLoginAsOpen}
+        >
+          <span className="d-flex align-items-center">
+            <i className="bx bx-user-circle align-middle me-2" style={{ fontSize: '18px' }}></i>
+            <span className="align-middle">Switch to</span>
+          </span>
+          <i
+            className={`bx align-middle ${isLoginAsOpen ? 'bx-chevron-up' : 'bx-chevron-down'}`}
+            style={{ fontSize: '18px' }}
+            aria-hidden="true"
+          />
+        </a>
+        {isLoginAsOpen && (
           <>
-            <a
-              className="dropdown-item d-flex align-items-center justify-content-between"
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                setIsLoginAsOpen(!isLoginAsOpen);
-              }}
-              aria-expanded={isLoginAsOpen}
-            >
-              <span className="d-flex align-items-center">
-                <i className="bx bx-user-circle align-middle me-2" style={{ fontSize: '18px' }}></i>
-                <span className="align-middle">Switch to</span>
-              </span>
-              <i
-                className={`bx align-middle ${isLoginAsOpen ? 'bx-chevron-up' : 'bx-chevron-down'}`}
-                style={{ fontSize: '18px' }}
-                aria-hidden="true"
-              />
-            </a>
-            {isLoginAsOpen && (
+            {isLoadingAccounts ? (
+              <div className="dropdown-item ps-4 d-flex align-items-center text-muted">
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                <span>Loading...</span>
+              </div>
+            ) : (
               <>
                 {accounts.map((acc) => {
                   const accDisplayName = acc.displayName || acc.username;
