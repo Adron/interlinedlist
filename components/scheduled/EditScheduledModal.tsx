@@ -36,12 +36,14 @@ export default function EditScheduledModal({
   const [selectedMastodonIds, setSelectedMastodonIds] = useState<Set<string>>(new Set(mastodonIds));
   const [crossPostToBluesky, setCrossPostToBluesky] = useState(config?.crossPostToBluesky ?? false);
   const [crossPostToLinkedIn, setCrossPostToLinkedIn] = useState(config?.crossPostToLinkedIn ?? false);
+  const [crossPostToTwitter, setCrossPostToTwitter] = useState(config?.crossPostToTwitter ?? false);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
   const mastodonIdentities = identities.filter((i) => i.provider.startsWith('mastodon:'));
   const blueskyIdentity = identities.find((i) => i.provider === 'bluesky');
   const linkedinIdentity = identities.find((i) => i.provider === 'linkedin');
+  const twitterIdentity = identities.find((i) => i.provider === 'twitter');
 
   useEffect(() => {
     if (message.scheduledAt) {
@@ -67,6 +69,7 @@ export default function EditScheduledModal({
             mastodonProviderIds: Array.from(selectedMastodonIds),
             crossPostToBluesky: !!blueskyIdentity && crossPostToBluesky,
             crossPostToLinkedIn: !!linkedinIdentity && crossPostToLinkedIn,
+            crossPostToTwitter: !!twitterIdentity && crossPostToTwitter,
           },
         }),
       });
@@ -156,7 +159,21 @@ export default function EditScheduledModal({
                   </label>
                 </div>
               )}
-              {mastodonIdentities.length === 0 && !blueskyIdentity && !linkedinIdentity && (
+              {twitterIdentity && (
+                <div className="form-check">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    id="edit-twitter"
+                    checked={crossPostToTwitter}
+                    onChange={(e) => setCrossPostToTwitter(e.target.checked)}
+                  />
+                  <label className="form-check-label small" htmlFor="edit-twitter">
+                    Twitter / X
+                  </label>
+                </div>
+              )}
+              {mastodonIdentities.length === 0 && !blueskyIdentity && !linkedinIdentity && !twitterIdentity && (
                 <span className="small text-muted">No cross-post accounts connected</span>
               )}
             </div>

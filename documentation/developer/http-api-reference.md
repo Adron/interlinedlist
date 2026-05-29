@@ -58,17 +58,229 @@ Endpoints that support **Bearer** are documented as “Session or Bearer”. All
 | GET  | `/api/auth/linkedin/authorize` | Redirect to LinkedIn OAuth. |
 | GET  | `/api/auth/linkedin/callback` | LinkedIn OAuth callback. |
 | GET  | `/api/auth/linkedin/status` | Check whether LinkedIn OAuth is configured on this instance. Returns `{ configured: boolean, redirectUri?: string }`. |
+| GET  | `/api/auth/twitter/authorize` | Redirect to Twitter/X OAuth. Query: `link` (boolean, `"true"` to link to existing account), `redirect_uri` (optional, mobile deep-link). |
+| GET  | `/api/auth/twitter/callback` | Twitter/X OAuth callback. Handled by the server; not called directly. |
+| GET  | `/api/auth/twitter/status` | Check whether Twitter/X OAuth is configured on this instance. Returns `{ configured: boolean, redirectUri?: string }`. |
 
 ### Social OAuth — sign-in vs. account linking
 
-All three social providers (Mastodon, Bluesky, LinkedIn) support two modes, controlled by the `?link=true` query parameter on the authorize endpoint:
+All social providers (Mastodon, Bluesky, LinkedIn, Twitter/X) support two modes, controlled by the `?link=true` query parameter on the authorize endpoint:
 
 - **Without `link=true`** (default): sign-in / register flow. On success the server creates or updates a session cookie and redirects to `/dashboard`. If no local account exists for the provider identity, a new account is created automatically.
-- **With `link=true`**: account-linking flow. The user must already be logged in. On success the provider identity is attached to the existing account as a `LinkedIdentity` and the server redirects to `/settings`. Use this when a signed-in user wants to connect a social account for cross-posting.
+- **With `link=true`**: account-linking flow. The user must already be logged in. On success the provider identity is attached to the existing account as a `LinkedIdentity` and the server redirects to `/integrations`. Use this when a signed-in user wants to connect a social account for cross-posting.
 
-Attempting `?link=true` without an active session redirects to `/login` with an error. Attempting to link a provider identity already linked to a different account returns an error redirect to `/settings`.
+Attempting `?link=true` without an active session redirects to `/login` with an error. Attempting to link a provider identity already linked to a different account returns an error redirect to `/integrations`.
 
-After linking, the identity's `id` from `GET /api/user/identities` is the value to supply in `mastodonProviderIds` when cross-posting. Bluesky and LinkedIn use the dedicated `crossPostToBluesky` / `crossPostToLinkedIn` boolean fields instead — the server resolves the linked identity automatically.
+After linking, the identity's `id` from `GET /api/user/identities` is the value to supply in `mastodonProviderIds` when cross-posting. Bluesky, LinkedIn, and Twitter/X use the dedicated `crossPostToBluesky` / `crossPostToLinkedIn` / `crossPostToTwitter` boolean fields instead — the server resolves the linked identity automatically.
+
+---
+
+## Twitter/X authentication and cross-posting
+
+Twitter/X integration uses **OAuth 2.0 with PKCE** (S256). It supports both sign-in/register and account-linking flows and requires the server-side environment variables `TWITTER_CLIENT_ID` and `TWITTER_CLIENT_SECRET` to be configured. When those variables are absent all three Twitter endpoints still respond, but authorize will throw an OAuth configuration error and status will return `{ "configured": false }`.
+
+### GET /api/auth/twitter/authorize
+
+**Auth required:** no (unauthenticated for sign-in flow; session required when `link=true`)
+
+Generates a PKCE code verifier and challenge, stores OAuth state in an HTTP-only cookie, then **redirects the browser** to `https://twitter.com/i/oauth2/authorize`. The client never receives a JSON body from this endpoint; it should navigate the browser (or a web-view) to this URL.
+
+Requested Twitter OAuth scopes: `tweet.read tweet.write users.read offline.access`.
+
+**Query parameters**
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `link` | `"true"` | no | When `"true"`, links the Twitter account to the currently authenticated user's InterlinedList account instead of creating/signing into an account. The user must have an active session. |
+| `redirect_uri` | string | no | Custom redirect URI. Must be on the server's allowlist. Intended for mobile deep-link flows that exchange the OAuth result for a sync token. If the value is not on the allowlist the server redirects to `/login?error=Invalid redirect_uri`. |
+
+**Success behavior**
+
+The endpoint performs a `302` redirect to Twitter. No JSON response is returned.
+
+**Error behavior**
+
+On configuration error (missing `TWITTER_CLIENT_ID` / `TWITTER_CLIENT_SECRET`) the server redirects to `/login?error=<message>` rather than returning a JSON error.
+
+---
+
+### GET /api/auth/twitter/callback
+
+**Auth required:** no (stateful via the OAuth state cookie set by `/authorize`)
+
+Handles the OAuth callback from Twitter. Validates the `state` parameter against the stored cookie, exchanges the authorization `code` for tokens via Twitter's token endpoint, fetches the Twitter user's profile, then either creates a new account, signs in to an existing account, or links the identity — matching the mode chosen in `/authorize`.
+
+This endpoint is called by Twitter's OAuth redirect; it is not called directly by API consumers.
+
+**Query parameters (provided by Twitter)**
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `code` | string | yes | Authorization code from Twitter. |
+| `state` | string | yes | Anti-CSRF state value, must match the cookie. |
+
+**Success behavior**
+
+| Mode | Result |
+|------|--------|
+| Sign-in / register (no `link`) | Browser is redirected to `/dashboard` with a session cookie set. For mobile `redirect_uri` flows, the server mints a sync token and appends `?token=<token>` to the redirect URI instead of setting a cookie. |
+| Account linking (`link=true`) | Browser is redirected to `/integrations?success=Twitter+account+linked+successfully`. |
+
+**Error responses (all as redirects)**
+
+| Condition | Redirect destination |
+|-----------|----------------------|
+| Missing `code` or `state` | `/login?error=Missing+code+or+state` |
+| State mismatch or wrong provider in cookie | `/login?error=Invalid+state` |
+| Twitter account already linked to a different user | `/integrations?error=This+Twitter+account+is+already+linked+to+another+user` |
+| `link=true` but no active session | `/login?error=You+must+be+logged+in+to+link+accounts` |
+| Token exchange or profile fetch failure | `/login?error=<message>` |
+
+---
+
+### GET /api/auth/twitter/status
+
+**Auth required:** no
+
+Returns whether the Twitter/X OAuth integration is configured on this server instance. Use this to determine whether to show the "Connect Twitter" option in the UI or to gate cross-posting logic in a client.
+
+**Response `200 OK`**
+
+```json
+{ "configured": true, "redirectUri": "https://interlinedlist.com/api/auth/twitter/callback" }
+```
+
+When `TWITTER_CLIENT_ID` / `TWITTER_CLIENT_SECRET` are not set:
+
+```json
+{ "configured": false }
+```
+
+`redirectUri` is only present when `configured` is `true`.
+
+---
+
+### Cross-posting to Twitter/X via POST /api/messages
+
+Once a user has linked their Twitter/X account (via the `link=true` flow above), set `crossPostToTwitter: true` in the `POST /api/messages` request body to cross-post alongside the InterlinedList message. This field is **subscriber-only**; free accounts receive a `403`.
+
+**Relevant request body fields**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `crossPostToTwitter` | boolean | `true` to cross-post to the user's linked Twitter/X account. |
+
+Cross-posting to Twitter is skipped automatically for:
+- Replies (`parentId` is set)
+- Push messages (`pushedMessageId` is set with no comment content and other cross-post/media constraints apply)
+- Scheduled messages (`scheduledAt` is set) — Twitter posting is deferred to the cron job (see below)
+
+**Example — post to InterlinedList and cross-post to Twitter/X immediately**
+
+```json
+{
+  "content": "My latest update, now on Twitter/X too!",
+  "publiclyVisible": true,
+  "crossPostToTwitter": true
+}
+```
+
+**Cross-post result in response**
+
+When Twitter posting is attempted, the `crossPostResults` array in the `201` response includes a Twitter entry:
+
+```json
+{
+  "message": "Message created successfully",
+  "data": { "id": "msg_abc001", "content": "My latest update...", "..." : "..." },
+  "crossPostResults": [
+    {
+      "providerId": "identity-uuid",
+      "instanceName": "Twitter",
+      "success": true,
+      "url": "https://twitter.com/yourhandle/status/1234567890",
+      "tweetId": "1234567890",
+      "tweetIds": ["1234567890"]
+    }
+  ]
+}
+```
+
+`tweetIds` is an array containing all tweet IDs when the content is split into a thread (content exceeding 280 characters is automatically broken into threaded tweets). `tweetId` is always the first tweet in the thread. `url` points to the first tweet.
+
+On failure (e.g. Twitter account not linked, API error):
+
+```json
+{
+  "providerId": "",
+  "instanceName": "Twitter",
+  "success": false,
+  "error": "Twitter account not linked. Please link in Settings."
+}
+```
+
+**Threading and media behavior**
+
+The posting library handles the following automatically:
+
+- Content longer than **280 characters** is split into a thread of reply-chained tweets, with a `(1/N)` counter appended to each tweet in the thread (only when there are multiple chunks).
+- Up to **4 images** are attached per tweet; if there are more, they are distributed across tweets in the thread.
+- **Video** is uploaded using Twitter's chunked media upload protocol (INIT / APPEND / FINALIZE / STATUS polling) before the tweet is posted. Video processing is polled for up to 30 seconds; if Twitter has not finished processing within that window, the cross-post fails.
+- Images and video cannot be mixed in the same tweet (Twitter API restriction). The distributor places video in a separate tweet if needed.
+
+---
+
+### Scheduled messages and Twitter/X cross-posting
+
+When `scheduledAt` is provided alongside `crossPostToTwitter: true`, the cross-post preference is stored in the message's `scheduledCrossPostConfig` field and **no immediate Twitter post is made**. The cron job at `GET /api/cron/publish-scheduled-messages` runs periodically, finds messages whose `scheduledAt` has passed, executes all configured cross-posting (including Twitter), then clears `scheduledAt` and `scheduledCrossPostConfig`.
+
+**Example — schedule a post for future delivery and cross-post to Twitter/X**
+
+```json
+{
+  "content": "Scheduled tweet thread test.",
+  "publiclyVisible": true,
+  "scheduledAt": "2026-06-01T14:00:00.000Z",
+  "crossPostToTwitter": true,
+  "crossPostToBluesky": true
+}
+```
+
+`scheduledCrossPostConfig` stored internally:
+
+```json
+{
+  "mastodonProviderIds": [],
+  "crossPostToBluesky": true,
+  "crossPostToLinkedIn": false,
+  "linkedInLinkAsFirstComment": false,
+  "crossPostToTwitter": true
+}
+```
+
+Use `GET /api/messages/scheduled` to inspect pending scheduled messages and verify the config before the cron fires.
+
+> **Cron endpoint** `GET /api/cron/publish-scheduled-messages` is an **internal endpoint** secured by `CRON_SECRET`. It is invoked by Vercel Cron (or equivalent scheduler) and should not be called directly by API consumers.
+
+---
+
+### Twitter/X error reference
+
+The table below covers errors specific to Twitter/X endpoints and cross-posting. For generic API errors (401, 403, 500) see **Common behavior** above.
+
+| Endpoint / context | Status | Error |
+|--------------------|--------|-------|
+| `/authorize` — `TWITTER_CLIENT_ID` / `TWITTER_CLIENT_SECRET` not set | redirect `/login?error=...` | `"OAuth configuration error"` (or the underlying message) |
+| `/authorize` — `redirect_uri` not on allowlist | redirect `/login?error=Invalid+redirect_uri` | |
+| `/callback` — `code` or `state` missing | redirect `/login?error=Missing+code+or+state` | |
+| `/callback` — state mismatch | redirect `/login?error=Invalid+state` | |
+| `/callback` — `link=true` without session | redirect `/login?error=You+must+be+logged+in+to+link+accounts` | |
+| `/callback` — Twitter identity linked to another user | redirect `/integrations?error=This+Twitter+account+is+already+linked+to+another+user` | |
+| `/callback` — Twitter API failure | redirect `/login?error=<twitter error message>` | |
+| `POST /api/messages` `crossPostToTwitter` — no linked identity | `201` body | `crossPostResults` entry with `success: false`, `error: "Twitter account not linked. Please link in Settings."` |
+| `POST /api/messages` `crossPostToTwitter` — missing credentials on identity | `201` body | `crossPostResults` entry with `success: false`, `error: "Missing Twitter credentials"` |
+| `POST /api/messages` `crossPostToTwitter` — tweet post failure | `201` body | `crossPostResults` entry with `success: false`, `error: "Failed to post tweet N/M"` |
+| `POST /api/messages` `crossPostToTwitter` as free user | `403` | `"Subscribe to unlock images, video, cross-posting, and scheduled posts."` |
 
 ---
 
@@ -121,20 +333,21 @@ All fields except `content` are optional.
 | `mastodonProviderIds` | string[] | IDs of linked Mastodon identities (from `GET /api/user/identities`) to cross-post to. Skipped for replies and push messages. **Subscriber only.** |
 | `crossPostToBluesky` | boolean | Cross-post to the user's linked Bluesky account. Skipped for replies and push messages. **Subscriber only.** |
 | `crossPostToLinkedIn` | boolean | Cross-post to the user's linked LinkedIn account. Skipped for replies and push messages. **Subscriber only.** |
+| `crossPostToTwitter` | boolean | Cross-post to the user's linked Twitter/X account. Skipped for replies and push messages. When combined with `scheduledAt`, posting is deferred to the cron job. **Subscriber only.** |
 
 ### Subscriber-only features
 
-The fields `imageUrls`, `videoUrls`, `scheduledAt`, `mastodonProviderIds`, `crossPostToBluesky`, and `crossPostToLinkedIn` are restricted to paid subscribers. Sending any of these fields as a free user returns **403** with the error `"Subscribe to unlock images, video, cross-posting, and scheduled posts."`.
+The fields `imageUrls`, `videoUrls`, `scheduledAt`, `mastodonProviderIds`, `crossPostToBluesky`, `crossPostToLinkedIn`, and `crossPostToTwitter` are restricted to paid subscribers. Sending any of these fields as a free user returns **403** with the error `"Subscribe to unlock images, video, cross-posting, and scheduled posts."`.
 
 The user's subscription status is available on `GET /api/user` as `customerStatus`. Active subscribers have a value of `"subscriber"`, `"subscriber:monthly"`, or `"subscriber:annual"`.
 
 ### Scheduled posts
 
-When `scheduledAt` is provided, the message is saved but not published immediately. The cron job at `GET /api/cron/publish-scheduled-messages` runs periodically and publishes due messages, executing any configured cross-posting at that time. Use `GET /api/messages/scheduled` to list pending scheduled posts.
+When `scheduledAt` is provided, the message is saved but not published immediately. The cron job at `GET /api/cron/publish-scheduled-messages` runs periodically and publishes due messages, executing any configured cross-posting (including Twitter/X) at that time. Use `GET /api/messages/scheduled` to list pending scheduled posts.
 
 ### Cross-posting
 
-Cross-posting sends the message to external platforms at post time (or at the scheduled time for deferred posts). The user must have the relevant accounts linked under `GET /api/user/identities`. The response includes a `crossPostResults` array reporting success or failure per platform. Plain push messages (no comment) do not support cross-posting.
+Cross-posting sends the message to external platforms at post time (or at the scheduled time for deferred posts). The user must have the relevant accounts linked under `GET /api/user/identities`. The response includes a `crossPostResults` array reporting success or failure per platform. Plain push messages (no comment) do not support cross-posting. For full details on Twitter/X cross-posting behavior (threading, media, scheduling) see the **Twitter/X authentication and cross-posting** section below.
 
 > **Coming soon:** Organization-scoped posting will allow publishing a message on behalf of an organization. The button is present in the posting UI but is not yet active.
 

@@ -108,6 +108,7 @@ export interface Message {
     mastodonProviderIds?: string[];
     crossPostToBluesky?: boolean;
     crossPostToLinkedIn?: boolean;
+    crossPostToTwitter?: boolean;
   } | null;
   tags?: string[] | null;
   user: MessageUser;

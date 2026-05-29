@@ -124,10 +124,12 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
   const [mastodonIdentities, setMastodonIdentities] = useState<Identity[]>([]);
   const [blueskyIdentity, setBlueskyIdentity] = useState<Identity | null>(null);
   const [linkedinIdentity, setLinkedinIdentity] = useState<Identity | null>(null);
+  const [twitterIdentity, setTwitterIdentity] = useState<Identity | null>(null);
   const [selectedMastodonIds, setSelectedMastodonIds] = useState<Set<string>>(new Set());
   const [crossPostToBluesky, setCrossPostToBluesky] = useState(false);
   const [crossPostToLinkedIn, setCrossPostToLinkedIn] = useState(false);
   const [linkedInLinkAsFirstComment, setLinkedInLinkAsFirstComment] = useState(false);
+  const [crossPostToTwitter, setCrossPostToTwitter] = useState(false);
   const [crossPostResults, setCrossPostResults] = useState<Array<{ providerId: string; instanceName: string; success: boolean; error?: string }> | null>(null);
   const [scheduledAt, setScheduledAt] = useState<Date | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -187,9 +189,11 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
           const mastodon = data.identities.filter((i: Identity) => i.provider?.startsWith?.('mastodon:'));
           const bluesky = data.identities.find((i: Identity) => i.provider === 'bluesky') ?? null;
           const linkedin = data.identities.find((i: Identity) => i.provider === 'linkedin') ?? null;
+          const twitter = data.identities.find((i: Identity) => i.provider === 'twitter') ?? null;
           setMastodonIdentities(mastodon);
           setBlueskyIdentity(bluesky);
           setLinkedinIdentity(linkedin);
+          setTwitterIdentity(twitter);
         }
       })
       .catch(() => {});
@@ -239,6 +243,11 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
     setCrossPostResults(null);
   };
 
+  const toggleTwitter = () => {
+    setCrossPostToTwitter((prev) => !prev);
+    setCrossPostResults(null);
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
@@ -273,6 +282,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
           ...(crossPostToBluesky && { crossPostToBluesky: true }),
           ...(crossPostToLinkedIn && { crossPostToLinkedIn: true }),
           ...(crossPostToLinkedIn && linkedInLinkAsFirstComment && { linkedInLinkAsFirstComment: true }),
+          ...(crossPostToTwitter && { crossPostToTwitter: true }),
           ...(scheduledAt && scheduledAt > new Date() && !quotePushedMessageId && {
             scheduledAt: scheduledAt.toISOString(),
           }),
@@ -303,6 +313,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
       setCrossPostToBluesky(false);
       setCrossPostToLinkedIn(false);
       setLinkedInLinkAsFirstComment(false);
+      setCrossPostToTwitter(false);
       setScheduledAt(null);
       setShowScheduleModal(false);
       setQuotePushedMessageId(null);
@@ -557,7 +568,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                         type="button"
                         className={`btn btn-sm btn-link p-1 ${crossPostToLinkedIn ? 'text-primary' : 'text-muted'}`}
                         aria-label={`Cross-post to LinkedIn${linkedinIdentity.providerUsername ? ` - ${linkedinIdentity.providerUsername}` : 'Cross-post to LinkedIn'}`}
-                        style={{ 
+                        style={{
                           border: 'none',
                           lineHeight: 1,
                           minWidth: 'auto',
@@ -566,6 +577,22 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                         onClick={toggleLinkedIn}
                       >
                         <i className="bx bxl-linkedin" style={{ fontSize: '1.1rem' }}></i>
+                      </button>
+                    )}
+                    {twitterIdentity && (
+                      <button
+                        type="button"
+                        className={`btn btn-sm btn-link p-1 ${crossPostToTwitter ? 'text-primary' : 'text-muted'}`}
+                        aria-label={`Cross-post to Twitter / X${twitterIdentity.providerUsername ? ` - @${twitterIdentity.providerUsername}` : ''}`}
+                        style={{
+                          border: 'none',
+                          lineHeight: 1,
+                          minWidth: 'auto',
+                        }}
+                        title={`Cross-post to Twitter / X${twitterIdentity.providerUsername ? ` - @${twitterIdentity.providerUsername}` : ''}`}
+                        onClick={toggleTwitter}
+                      >
+                        <i className="bx bxl-twitter" style={{ fontSize: '1.1rem' }}></i>
                       </button>
                     )}
                     <button
@@ -669,13 +696,14 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
             </div>
           )}
 
-          {(selectedMastodonIds.size > 0 || crossPostToBluesky || crossPostToLinkedIn) && (
+          {(selectedMastodonIds.size > 0 || crossPostToBluesky || crossPostToLinkedIn || crossPostToTwitter) && (
             <div className="mb-2 d-flex flex-wrap gap-1 align-items-center">
               <small className="text-muted">
                 Posting to: {[
                   ...mastodonIdentities.filter((m) => selectedMastodonIds.has(m.id)).map((m) => getMastodonInstanceName(m.provider)),
                   ...(crossPostToBluesky ? ['Bluesky'] : []),
                   ...(crossPostToLinkedIn ? ['LinkedIn'] : []),
+                  ...(crossPostToTwitter ? ['Twitter / X'] : []),
                 ].join(', ')}
               </small>
             </div>
@@ -1165,7 +1193,21 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                           </label>
                         </div>
                       )}
-                      {mastodonIdentities.length === 0 && !blueskyIdentity && !linkedinIdentity && (
+                      {twitterIdentity && (
+                        <div className="form-check">
+                          <input
+                            className="form-check-input"
+                            type="checkbox"
+                            id="schedule-twitter"
+                            checked={crossPostToTwitter}
+                            onChange={(e) => setCrossPostToTwitter(e.target.checked)}
+                          />
+                          <label className="form-check-label small" htmlFor="schedule-twitter">
+                            Twitter / X
+                          </label>
+                        </div>
+                      )}
+                      {mastodonIdentities.length === 0 && !blueskyIdentity && !linkedinIdentity && !twitterIdentity && (
                         <span className="small text-muted">No cross-post accounts connected</span>
                       )}
                     </div>
