@@ -105,11 +105,11 @@ export async function deletePostOnBluesky(
       const res = await session.fetchHandler('/xrpc/com.atproto.repo.deleteRecord', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: new Blob([JSON.stringify({
           repo: parsed.repo,
           collection: parsed.collection,
           rkey: parsed.rkey,
-        }),
+        })], { type: 'application/json' }),
       });
 
       if (!res.ok) {

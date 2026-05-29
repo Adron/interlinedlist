@@ -64,7 +64,7 @@ async function uploadImageToBluesky(
       headers: {
         'Content-Type': mimeType,
       },
-      body: new Uint8Array(arrayBuffer),
+      body: new Blob([arrayBuffer], { type: mimeType }),
     });
 
     if (!uploadRes.ok) return null;
@@ -266,6 +266,7 @@ export async function postToBluesky(
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error('[postToBluesky] error:', err instanceof Error ? err.stack : err);
     return {
       providerId: identity.id,
       instanceName: 'Bluesky',
