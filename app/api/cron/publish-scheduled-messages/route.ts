@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { postToMastodon } from "@/lib/mastodon/post-status";
 import { postToBluesky } from "@/lib/bluesky/post-status";
 import { postToLinkedIn } from "@/lib/linkedin/post-status";
+import { postToTwitter } from "@/lib/twitter/post-status";
 
 export const dynamic = "force-dynamic";
 
@@ -41,12 +42,13 @@ export async function GET(request: NextRequest) {
 
   for (const message of due) {
     const config = message.scheduledCrossPostConfig as
-      | { mastodonProviderIds?: string[]; crossPostToBluesky?: boolean; crossPostToLinkedIn?: boolean; linkedInLinkAsFirstComment?: boolean }
+      | { mastodonProviderIds?: string[]; crossPostToBluesky?: boolean; crossPostToLinkedIn?: boolean; linkedInLinkAsFirstComment?: boolean; crossPostToTwitter?: boolean }
       | null;
     const mastodonProviderIds = config?.mastodonProviderIds ?? [];
     const crossPostToBluesky = config?.crossPostToBluesky === true;
     const crossPostToLinkedIn = config?.crossPostToLinkedIn === true;
     const linkedInLinkAsFirstComment = config?.linkedInLinkAsFirstComment === true;
+    const crossPostToTwitter = config?.crossPostToTwitter === true;
 
     const imageUrls = message.imageUrls as string[] | null;
     const videoUrls = message.videoUrls as string[] | null;
@@ -63,6 +65,8 @@ export async function GET(request: NextRequest) {
       uri?: string;
       cid?: string;
       uris?: string[];
+      tweetId?: string;
+      tweetIds?: string[];
     }> = [];
 
     try {
@@ -170,6 +174,30 @@ export async function GET(request: NextRequest) {
               url: result.url,
               instanceName: "LinkedIn",
               ...(result.postId && { postId: result.postId }),
+            });
+          }
+        }
+      }
+
+      if (crossPostToTwitter) {
+        const twitterIdentity = await prisma.linkedIdentity.findFirst({
+          where: { userId: message.userId, provider: "twitter" },
+          select: { id: true, provider: true, providerUsername: true, providerData: true },
+        });
+        if (twitterIdentity) {
+          const result = await postToTwitter(twitterIdentity as Parameters<typeof postToTwitter>[0], {
+            content: message.content,
+            publiclyVisible: message.publiclyVisible,
+            imageUrls: finalImageUrls,
+            videoUrls: finalVideoUrls,
+          });
+          if (result.success && result.url) {
+            crossPostUrls.push({
+              platform: "twitter",
+              url: result.url,
+              instanceName: "Twitter",
+              ...(result.tweetId && { tweetId: result.tweetId }),
+              ...(result.tweetIds && { tweetIds: result.tweetIds }),
             });
           }
         }

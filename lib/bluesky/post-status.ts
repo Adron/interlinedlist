@@ -64,7 +64,7 @@ async function uploadImageToBluesky(
       headers: {
         'Content-Type': mimeType,
       },
-      body: new Blob([arrayBuffer], { type: mimeType }),
+      body: new Uint8Array(arrayBuffer),
     });
 
     if (!uploadRes.ok) return null;
@@ -213,7 +213,7 @@ export async function postToBluesky(
         headers: {
           'Content-Type': 'application/json',
         },
-        body: new Blob([JSON.stringify(bodyObj)], { type: 'application/json' }),
+        body: JSON.stringify(bodyObj),
       });
 
       if (!response.ok) {

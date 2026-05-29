@@ -9,6 +9,7 @@ import { attachDugByMeIncludingPushed } from '@/lib/messages/dig';
 import { postToMastodon } from '@/lib/mastodon/post-status';
 import { postToBluesky } from '@/lib/bluesky/post-status';
 import { postToLinkedIn } from '@/lib/linkedin/post-status';
+import { postToTwitter } from '@/lib/twitter/post-status';
 import { trackAction } from '@/lib/analytics/track';
 import { resolveCanonicalPushTargetId } from '@/lib/messages/push';
 import { notifyMessagePush } from '@/lib/notifications/message-engagement';
@@ -43,6 +44,7 @@ export async function POST(request: NextRequest) {
       mastodonProviderIds,
       crossPostToBluesky,
       crossPostToLinkedIn,
+      crossPostToTwitter,
       linkedInLinkAsFirstComment,
       parentId,
       scheduledAt: scheduledAtRaw,
@@ -60,7 +62,8 @@ export async function POST(request: NextRequest) {
     const hasCrossPost =
       (Array.isArray(mastodonProviderIds) && mastodonProviderIds.length > 0) ||
       crossPostToBluesky === true ||
-      crossPostToLinkedIn === true;
+      crossPostToLinkedIn === true ||
+      crossPostToTwitter === true;
     const hasImages =
       imageUrls !== undefined && imageUrls !== null && Array.isArray(imageUrls) && imageUrls.length > 0;
     const hasVideo =
@@ -247,6 +250,7 @@ export async function POST(request: NextRequest) {
                 crossPostToBluesky: crossPostToBluesky === true,
                 crossPostToLinkedIn: crossPostToLinkedIn === true,
                 linkedInLinkAsFirstComment: linkedInLinkAsFirstComment === true,
+                crossPostToTwitter: crossPostToTwitter === true,
               } as object,
             }),
             ...(Array.isArray(tags) && tags.length > 0 && { tags }),
@@ -441,6 +445,39 @@ export async function POST(request: NextRequest) {
           instanceName: 'LinkedIn',
           success: false,
           error: 'LinkedIn account not linked. Please link in Settings.',
+        });
+      }
+    }
+
+    // Cross-post to Twitter if enabled (skip for replies, pushes, scheduled)
+    if (!parentMessage && !canonicalPushTargetId && !isScheduled && crossPostToTwitter === true) {
+      const twitterIdentity = await prisma.linkedIdentity.findFirst({
+        where: { userId: user.id, provider: 'twitter' },
+        select: { id: true, provider: true, providerUsername: true, providerData: true },
+      });
+      if (twitterIdentity) {
+        const result = await postToTwitter(twitterIdentity as Parameters<typeof postToTwitter>[0], {
+          content: finalContent,
+          publiclyVisible: finalPubliclyVisible as boolean,
+          imageUrls: finalImageUrls,
+          videoUrls: finalVideoUrls,
+        });
+        crossPostResults.push(result);
+        if (result.success && result.url) {
+          crossPostUrls.push({
+            platform: 'twitter',
+            url: result.url,
+            instanceName: 'Twitter',
+            ...(result.tweetId && { tweetId: result.tweetId }),
+            ...(result.tweetIds && { tweetIds: result.tweetIds }),
+          });
+        }
+      } else {
+        crossPostResults.push({
+          providerId: '',
+          instanceName: 'Twitter',
+          success: false,
+          error: 'Twitter account not linked. Please link in Settings.',
         });
       }
     }
