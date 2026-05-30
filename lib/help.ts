@@ -3,7 +3,7 @@ import path from 'path';
 import matter from 'gray-matter';
 import { HELP_TOPICS } from './help-config';
 
-const HELP_DIR = path.join(process.cwd(), 'documentation', 'help');
+const HELP_DIR = path.join(process.cwd(), 'docs', 'help');
 
 export interface HelpContent {
   slug: string;

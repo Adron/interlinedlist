@@ -1,7 +1,7 @@
 /**
  * Help documentation topic configuration.
  * Defines the ordered list of topics for the Help sidebar.
- * Markdown sources live under documentation/help/{slug}.md unless sourceFile is set.
+ * Markdown sources live under docs/help/{slug}.md unless sourceFile is set.
  */
 export const HELP_TOPICS = [
   { slug: 'getting-started', title: 'Getting Started' },

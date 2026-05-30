@@ -55,7 +55,22 @@
       "Bash(xargs -I{} sh -c 'echo \"=== {} ===\"; head -5 {}; echo')",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('type:', d.get\\('type','commonjs'\\)\\)\")",
       "WebFetch(domain:interlinedlist.com)",
-      "Bash(npm show *)"
+      "Bash(npm show *)",
+      "Bash(cp -r /Users/adron/Codez/interlinedlist/documentation/admin /Users/adron/Codez/interlinedlist/docs/admin)",
+      "Bash(cp -r /Users/adron/Codez/interlinedlist/documentation/app-api-arch /Users/adron/Codez/interlinedlist/docs/architecture)",
+      "Bash(cp -r /Users/adron/Codez/interlinedlist/documentation/blog /Users/adron/Codez/interlinedlist/docs/blog)",
+      "Bash(cp -r /Users/adron/Codez/interlinedlist/documentation/developer /Users/adron/Codez/interlinedlist/docs/developer)",
+      "Bash(cp -r /Users/adron/Codez/interlinedlist/documentation/help /Users/adron/Codez/interlinedlist/docs/help)",
+      "Bash(echo \"Dev server PID: $!\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/help)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/blog)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3001/help)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3001/blog)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3001/help/getting-started)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3001/help/lists)",
+      "Bash(curl -s http://localhost:3001/help/getting-started)",
+      "Bash(curl -s http://localhost:3001/blog)"
     ],
     "additionalDirectories": [
       "/Users/adron/Codez/interlinedlist/.claude/skills",

@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
 
-const BLOG_DIR = path.join(process.cwd(), 'documentation', 'blog');
+const BLOG_DIR = path.join(process.cwd(), 'docs', 'blog');
 
 export interface BlogPost {
   slug: string;
@@ -16,7 +16,7 @@ export interface BlogContent extends BlogPost {
 }
 
 /**
- * Discover all blog posts from documentation/blog/*.md, sorted newest-first.
+ * Discover all blog posts from docs/blog/*.md, sorted newest-first.
  */
 export function getBlogPosts(): BlogPost[] {
   if (!fs.existsSync(BLOG_DIR)) {
