@@ -56,7 +56,25 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { title, description, messageId, metadata, parentId } = body;
+    const { title, description, messageId, metadata, parentId, isPublic, folderId } = body;
+
+    // Validate folderId if provided
+    if (folderId !== undefined) {
+      if (folderId !== null && typeof folderId !== "string") {
+        return NextResponse.json({ error: "Invalid folderId" }, { status: 400 });
+      }
+      if (folderId !== null) {
+        const folder = await prisma.listFolder.findFirst({
+          where: { id: folderId, userId: user.id, deletedAt: null },
+        });
+        if (!folder) {
+          return NextResponse.json(
+            { error: "Folder not found or access denied" },
+            { status: 404 }
+          );
+        }
+      }
+    }
 
     // Validate parentId if provided
     if (parentId !== undefined) {
@@ -100,6 +118,8 @@ export async function PUT(
         ...(messageId !== undefined && { messageId: messageId || null }),
         ...(metadata !== undefined && { metadata }),
         ...(parentId !== undefined && { parentId: parentId || null }),
+        ...(isPublic !== undefined && { isPublic: isPublic === true }),
+        ...(folderId !== undefined && { folderId: folderId || null }),
       },
       include: {
         properties: {

@@ -73,14 +73,23 @@
       "Bash(curl -s http://localhost:3001/blog)",
       "Skill(schedule)",
       "Skill(schedule:*)",
-      "Bash(python3 -c \"import uuid; print\\(str\\(uuid.uuid4\\(\\)\\)\\)\")"
+      "Bash(python3 -c \"import uuid; print\\(str\\(uuid.uuid4\\(\\)\\)\\)\")",
+      "Bash(dotenv -e /Users/adron/Codez/interlinedlist/.env.local -- npx prisma migrate status --schema=/Users/adron/Codez/interlinedlist/prisma/schema.prisma)",
+      "Bash(dotenv -e .env.local -- npx prisma migrate status)",
+      "Bash(dotenv --help)",
+      "Bash(dotenv -f .env.local run -- npx prisma migrate status)",
+      "Bash(dotenv -f .env.local run -- npx prisma migrate diff --from-schema-datasource prisma/schema.prisma --to-schema-datamodel prisma/schema.prisma --script)",
+      "Bash(dotenv -f .env.local run -- npx prisma migrate deploy)",
+      "Bash(dotenv -f .env.local run -- npx prisma generate)",
+      "Bash(mkdir -p /Users/adron/Codez/interlinedlist/app/api/folders/\\\\[id\\\\])"
     ],
     "additionalDirectories": [
       "/Users/adron/Codez/interlinedlist/.claude/skills",
       "/Users/adron/Codez/interlinedlist/app",
       "/Users/adron/Codez/interlinedlist/documentation/blog",
       "/Users/adron/Codez/interlinedlist/app/[username]",
-      "/Users/adron/Codez/interlinedlist/app/api/lists/[id]/schema"
+      "/Users/adron/Codez/interlinedlist/app/api/lists/[id]/schema",
+      "/Users/adron/Codez/interlinedlist/app/api/folders"
     ]
   }
 }

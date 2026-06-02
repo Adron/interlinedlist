@@ -66,7 +66,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { title, content, isPublic } = body;
+    const { title, content, isPublic, folderId } = body;
 
     const updates: Record<string, unknown> = {};
     if (title !== undefined) updates.title = String(title).trim();
@@ -74,6 +74,23 @@ export async function PUT(
     if (content !== undefined) {
       updates.content = content;
       updates.contentHash = computeContentHash(content);
+    }
+
+    if (folderId !== undefined) {
+      if (folderId === null) {
+        updates.folderId = null;
+      } else {
+        const folder = await prisma.folder.findFirst({
+          where: { id: folderId, userId: user.id, deletedAt: null },
+        });
+        if (!folder) {
+          return NextResponse.json(
+            { error: "Folder not found or access denied" },
+            { status: 403 }
+          );
+        }
+        updates.folderId = folderId;
+      }
     }
 
     const updated = await prisma.document.update({

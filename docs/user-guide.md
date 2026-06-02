@@ -28,7 +28,12 @@ Welcome to InterlinedList. This guide covers every feature available to you as a
    - [Twitter / X](#twitter--x)
 5. [Scheduled Posts](#scheduled-posts)
 6. [Lists](#lists)
+   - [Searching Your Lists](#searching-your-lists)
+   - [List Folders](#list-folders)
+   - [Toggling List Visibility](#toggling-list-visibility)
 7. [Documents](#documents)
+   - [Searching Your Documents](#searching-your-documents)
+   - [Moving a Document to a Different Folder](#moving-a-document-to-a-different-folder)
 8. [Organizations](#organizations)
 9. [Following Other Users](#following-other-users)
 10. [Notifications](#notifications)
@@ -286,6 +291,55 @@ Lists let you organize items — notes, links, tasks, or any structured data —
 - **Exporting a list:** Lists can be exported to common formats. See [Exporting Your Data](#exporting-your-data) for details.
 - **GitHub Issues sync:** If your GitHub account is connected with the issues scope, a list can be linked to a GitHub repository. Issues are pulled in and displayed as data rows.
 
+### Searching Your Lists
+
+A search bar on the Lists page lets you quickly find a list by name or description.
+
+1. On the Lists page, type a word or phrase into the search field.
+2. Results appear as you type — each matching list shows its name and whether it is public or private.
+3. By default the search returns up to 20 results. If there are more matches, use the **Next** button (or page controls) to page through them.
+4. Click any result to open that list.
+
+### List Folders
+
+Subscribers can group their lists into folders to keep them organised.
+
+#### Creating a folder
+
+1. On the Lists page, click **New Folder**.
+2. Type a name for the folder and click **Create**.
+3. The folder appears in the sidebar and in the folder view of your lists.
+
+Folders can be nested inside other folders. When creating a folder you can optionally select a parent folder, or leave that field blank to create a top-level folder.
+
+#### Renaming a folder
+
+1. Hover over or select the folder you want to rename.
+2. Click the **Rename** option that appears next to the folder name.
+3. Type the new name and confirm. Each folder name must be unique within its parent level.
+
+#### Moving a list into a folder
+
+1. Open the list you want to move, or find it on the Lists page.
+2. Click **Edit Schema** to open the edit view for that list.
+3. In the edit view, locate the **Folder** field and choose the folder you want to move the list into from the drop-down.
+4. Save your changes. The list will now appear inside the chosen folder.
+
+#### Deleting a folder
+
+1. Select the folder you want to remove.
+2. Click **Delete Folder** and confirm the prompt.
+3. The folder is removed. Any lists that were inside it are automatically moved back to the top level — they are not deleted.
+
+### Toggling List Visibility
+
+You can change a list between public and private at any time directly from the edit view, without having to rebuild the full schema.
+
+1. Open the list you want to change.
+2. Click **Edit Schema**.
+3. In the edit view, find the **Visibility** section and select either **Public** or **Private**.
+4. Click **Update Schema** to save. The new visibility takes effect immediately and is shown as a badge on the list card and in the list header.
+
 ---
 
 ## Documents
@@ -293,8 +347,26 @@ Lists let you organize items — notes, links, tasks, or any structured data —
 Documents give you a private writing space with folder organization.
 
 - **Creating a document:** Go to the Documents page and click **New Document**. Give it a title and start writing.
-- **Folders:** You can create folders and nest them to keep documents organized. Move a document into a folder by editing its location.
+- **Folders:** You can create folders and nest them to keep documents organized.
 - **Public documents:** Toggle the **Public** switch on a document to make it visible to anyone with the link.
+
+### Searching Your Documents
+
+A search feature on the Documents page lets you find any document by its title or by words in its content.
+
+1. On the Documents page, type a word or phrase into the search field.
+2. Results are sorted by most recently updated and show the document title and the folder it belongs to.
+3. By default up to 20 results are shown at once. If there are more matches, use the pagination controls to browse further pages.
+4. Click a result to open and continue editing that document.
+
+### Moving a Document to a Different Folder
+
+After a document is created you can move it into any folder you own, or bring it back to the root level so it is not in any folder.
+
+1. Open the document you want to move.
+2. In the document toolbar, look for the **Move to folder** option (or open the document settings menu).
+3. Choose a destination folder from the list. To remove the document from all folders, select **No folder (root)**.
+4. The change is saved automatically. The folder tree in the sidebar updates to reflect the new location.
 
 ---
 
@@ -355,6 +427,8 @@ Some advanced features require an active subscription. The gear icon in the comp
 - Cross-posting to social networks
 - Scheduled posts
 - Tags
+- Creating lists and list folders
+- Creating documents
 
 To subscribe, go to **Settings > Subscription** and follow the prompts to complete checkout. If you already subscribe and need to update billing details or cancel, the same page provides a link to the billing portal.
 
