@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserOrSyncToken } from "@/lib/auth/sync-token";
 import { isSubscriber } from "@/lib/subscription/is-subscriber";
-import { getRootFolders, validateFolderParent } from "@/lib/documents/queries";
+import { getAllFoldersForUser, validateFolderParent } from "@/lib/documents/queries";
 import { trackAction } from "@/lib/analytics/track";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const folders = await getRootFolders(user.id);
+    const folders = await getAllFoldersForUser(user.id);
     return NextResponse.json({ folders }, { status: 200 });
   } catch (error) {
     console.error("Get folders error:", error);

@@ -82,7 +82,10 @@
       "Bash(dotenv -f .env.local run -- npx prisma migrate deploy)",
       "Bash(dotenv -f .env.local run -- npx prisma generate)",
       "Bash(mkdir -p /Users/adron/Codez/interlinedlist/app/api/folders/\\\\[id\\\\])",
-      "Bash(grep -E \"\\\\.\\(tsx?|jsx?\\)$\")"
+      "Bash(grep -E \"\\\\.\\(tsx?|jsx?\\)$\")",
+      "Bash(grep -r \"getOrCreateTemplatesFolder\\\\|seedDefaultTemplates\\\\|LIST_TEMPLATES\" /Users/adron/Codez/interlinedlist --include=\"*.ts\" --include=\"*.tsx\" --include=\"*.js\" ! -path \"*/node_modules/*\" ! -path \"*/.git/*\")",
+      "Bash(grep *)",
+      "Bash(code /Users/adron/.claude/plans/come-up-with-a-breezy-bengio.md)"
     ],
     "additionalDirectories": [
       "/Users/adron/Codez/interlinedlist/.claude/skills",

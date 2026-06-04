@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useDocumentsTreeRefresh } from '@/components/documents/DocumentsTreeContext';
 import DeleteDocumentButton from '@/components/documents/DeleteDocumentButton';
+import MoveDocumentModal from '@/components/documents/MoveDocumentModal';
 import '@uiw/react-md-editor/markdown-editor.css';
 
 const MDEditor = dynamic(() => import('@uiw/react-md-editor'), { ssr: false });
@@ -21,6 +22,7 @@ interface DocumentEditorProps {
   initialContent: string;
   initialIsPublic: boolean;
   initialRelativePath: string;
+  initialFolderId?: string | null;
 }
 
 function snapshotsEqual(
@@ -36,6 +38,7 @@ export default function DocumentEditor({
   initialContent,
   initialIsPublic,
   initialRelativePath,
+  initialFolderId = null,
 }: DocumentEditorProps) {
   const router = useRouter();
   const { requestTreeRefresh } = useDocumentsTreeRefresh();
@@ -46,6 +49,8 @@ export default function DocumentEditor({
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [colorMode, setColorMode] = useState<'light' | 'dark'>('light');
+  const [showMoveModal, setShowMoveModal] = useState(false);
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(initialFolderId);
 
   const [isTitleEditing, setIsTitleEditing] = useState(false);
   const [draftTitle, setDraftTitle] = useState('');
@@ -544,6 +549,25 @@ export default function DocumentEditor({
                 >
                   Rename
                 </button>
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary btn-sm"
+                  onClick={() => setShowMoveModal(true)}
+                >
+                  Move
+                </button>
+                <MoveDocumentModal
+                  show={showMoveModal}
+                  documentId={documentId}
+                  currentFolderId={currentFolderId}
+                  onClose={() => setShowMoveModal(false)}
+                  onMoveSuccess={(newFolderId) => {
+                    setCurrentFolderId(newFolderId);
+                    setShowMoveModal(false);
+                    requestTreeRefresh();
+                    router.refresh();
+                  }}
+                />
                 <DeleteDocumentButton
                   documentId={documentId}
                   displayName={committedTitle.trim() || initialRelativePath}

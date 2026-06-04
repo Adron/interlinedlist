@@ -55,3 +55,6 @@ next-env.d.ts
 /prisma/migrations/*.sql
 !/prisma/migrations/.gitkeep
 
+# Claude
+.claude/worktrees/
+

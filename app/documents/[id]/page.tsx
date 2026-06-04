@@ -55,6 +55,7 @@ export default async function DocumentPage({
         initialContent={document.content}
         initialIsPublic={document.isPublic}
         initialRelativePath={document.relativePath}
+        initialFolderId={document.folderId ?? null}
       />
     </>
   );

@@ -34,6 +34,13 @@ export default async function FolderPage({
               <li className="breadcrumb-item">
                 <Link href="/documents">Documents</Link>
               </li>
+              {folder.parent && (
+                <li className="breadcrumb-item">
+                  <Link href={`/documents/folders/${folder.parent.id}`}>
+                    {folder.parent.name}
+                  </Link>
+                </li>
+              )}
               <li className="breadcrumb-item active" aria-current="page">
                 {folder.name}
               </li>
@@ -48,6 +55,13 @@ export default async function FolderPage({
             {isSubscriber(user.customerStatus) ? (
               <div className="d-flex gap-2 align-items-center">
                 <NewFromTemplateButton targetFolderId={folder.id} />
+                <Link
+                  href={`/documents/folders/${folder.id}/new-folder`}
+                  className="btn btn-outline-primary"
+                >
+                  <i className="bx bx-folder-plus me-2"></i>
+                  New Subfolder
+                </Link>
                 <Link
                   href={`/documents/folders/${folder.id}/new`}
                   className="btn btn-primary"
