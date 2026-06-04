@@ -81,7 +81,8 @@
       "Bash(dotenv -f .env.local run -- npx prisma migrate diff --from-schema-datasource prisma/schema.prisma --to-schema-datamodel prisma/schema.prisma --script)",
       "Bash(dotenv -f .env.local run -- npx prisma migrate deploy)",
       "Bash(dotenv -f .env.local run -- npx prisma generate)",
-      "Bash(mkdir -p /Users/adron/Codez/interlinedlist/app/api/folders/\\\\[id\\\\])"
+      "Bash(mkdir -p /Users/adron/Codez/interlinedlist/app/api/folders/\\\\[id\\\\])",
+      "Bash(grep -E \"\\\\.\\(tsx?|jsx?\\)$\")"
     ],
     "additionalDirectories": [
       "/Users/adron/Codez/interlinedlist/.claude/skills",
