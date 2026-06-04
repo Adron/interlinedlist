@@ -23,6 +23,7 @@
    - [Partial Mitigation: userId Scoping](#partial-mitigation-userid-scoping)
    - [Recommended Indexes for Tables Over ~10k Rows](#recommended-indexes-for-tables-over-10k-rows)
    - [Future Upgrade: Full-Text Search via tsvector](#future-upgrade-full-text-search-via-tsvector)
+   - [Folder Tree Query: GET /api/documents/folders](#folder-tree-query-get-apidocumentsfolders)
 
 ---
 
@@ -411,3 +412,15 @@ This would require changing the Prisma queries from `contains` / `mode: 'insensi
 3. Migrate the application queries to `plainto_tsquery` when ready, returning relevance-ranked results.
 
 Until that migration is done, the `pg_trgm` GIN indexes described above are the lowest-effort way to make `ILIKE` searches index-backed.
+
+### Folder Tree Query: GET /api/documents/folders
+
+Source: `app/api/documents/folders/route.ts`
+
+As of the folder nesting change, this endpoint returns **all** of the authenticated user's non-deleted folders in a single flat query — the previous filter on `parentId: null` (root-only) has been removed. The client is responsible for assembling the hierarchy from the flat list using the `parentId` field on each folder.
+
+Operational implications:
+
+- **Payload size**: The response grows linearly with the total number of folders a user has, not just the number of root folders. For users with up to a few hundred folders this is negligible, but it is worth monitoring if folder counts grow into the thousands.
+- **Query cost**: The underlying Prisma query scans all `folders` rows matching `userId` and `deletedAt: null`. The existing `@@index([userId, deletedAt])` composite index on the `folders` table covers this filter, so no additional index is required at current scale.
+- **No pagination**: The endpoint returns all folders in one response. If average folder counts grow significantly, consider adding `limit`/`offset` pagination or a cursor-based approach — the current design does not support it.

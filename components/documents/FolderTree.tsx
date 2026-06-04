@@ -7,12 +7,29 @@ import { useDocumentsTreeRefresh } from '@/components/documents/DocumentsTreeCon
 import RenameFolderInput from './RenameFolderInput';
 import DeleteFolderModal from './DeleteFolderModal';
 
-interface Folder {
+interface FolderFlat {
   id: string;
   name: string;
   parentId: string | null;
-  children: Folder[];
   documents: { id: string; title: string; relativePath: string }[];
+}
+
+interface Folder extends FolderFlat {
+  children: Folder[];
+}
+
+export function buildFolderTree(flat: FolderFlat[]): Folder[] {
+  const map = new Map<string, Folder>();
+  flat.forEach((f) => map.set(f.id, { ...f, children: [] }));
+  const roots: Folder[] = [];
+  flat.forEach((f) => {
+    if (f.parentId) {
+      map.get(f.parentId)?.children.push(map.get(f.id)!);
+    } else {
+      roots.push(map.get(f.id)!);
+    }
+  });
+  return roots;
 }
 
 export default function FolderTree() {
@@ -51,10 +68,11 @@ export default function FolderTree() {
         if (cancelled) return;
         if (foldersRes.ok) {
           const data = await foldersRes.json();
-          const nextFolders: Folder[] = data.folders || [];
+          const flat: FolderFlat[] = data.folders || [];
+          const nextFolders = buildFolderTree(flat);
           setFolders(nextFolders);
           if (useFullLoading) {
-            setExpanded(new Set(nextFolders.map((f) => f.id)));
+            setExpanded(new Set(flat.map((f) => f.id)));
           }
         }
         if (docsRes.ok) {
@@ -199,6 +217,15 @@ export default function FolderTree() {
                   >
                     <i className="bx bx-pencil" style={{ fontSize: '0.85rem' }}></i>
                   </button>
+                  <Link
+                    href={`/documents/folders/${folder.id}/new-folder`}
+                    className="btn btn-link btn-sm p-0 text-muted"
+                    style={{ lineHeight: 1 }}
+                    title="New subfolder"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <i className="bx bx-folder-plus" style={{ fontSize: '0.85rem' }}></i>
+                  </Link>
                   <button
                     type="button"
                     className="btn btn-link btn-sm p-0 text-danger"
@@ -242,9 +269,9 @@ export default function FolderTree() {
     <div className="card">
       <div className="card-body">
         <div className="d-flex align-items-center justify-content-between mb-3">
-          <h6 className="card-title mb-0">
+          <h6 className={`card-title mb-0${pathname === '/documents' ? ' fw-bold' : ''}`}>
             <i className="bx bx-folder me-2"></i>
-            Documents
+            <Link href="/documents">Documents</Link>
           </h6>
           {refreshing && (
             <span className="small text-muted" aria-live="polite">

@@ -32,6 +32,7 @@ Welcome to InterlinedList. This guide covers every feature available to you as a
    - [List Folders](#list-folders)
    - [Toggling List Visibility](#toggling-list-visibility)
 7. [Documents](#documents)
+   - [Creating Subfolders](#creating-subfolders)
    - [Searching Your Documents](#searching-your-documents)
    - [Moving a Document to a Different Folder](#moving-a-document-to-a-different-folder)
 8. [Organizations](#organizations)
@@ -347,8 +348,30 @@ You can change a list between public and private at any time directly from the e
 Documents give you a private writing space with folder organization.
 
 - **Creating a document:** Go to the Documents page and click **New Document**. Give it a title and start writing.
-- **Folders:** You can create folders and nest them to keep documents organized.
+- **Folders:** You can create folders and nest them to any depth to keep documents organized.
 - **Public documents:** Toggle the **Public** switch on a document to make it visible to anyone with the link.
+
+### Creating Subfolders
+
+Folders can be nested inside other folders to any depth, so you can build whatever hierarchy works best for you. There are two ways to create a subfolder.
+
+**From the folder page**
+
+1. Open the folder you want to create a subfolder inside. You are taken to that folder's page, which lists its contents.
+2. Click the **New Subfolder** button near the top of the page (it appears next to the **New Document** button).
+3. A form opens asking for the new subfolder's name. Type a name and click **Create**.
+4. The subfolder appears inside the current folder immediately.
+
+**From the Documents tree sidebar**
+
+1. Hover over any folder name in the left-side Documents tree. Three small icons appear next to the folder name: rename (pencil), new subfolder (folder-plus), and delete (trash).
+2. Click the **folder-plus** icon for the folder you want to add a subfolder inside.
+3. The subfolder creation form opens with the parent already selected. Type a name and click **Create**.
+4. The new subfolder appears nested beneath its parent in the tree.
+
+**Navigating nested folders**
+
+When you are inside a subfolder, the breadcrumb bar at the top of the page shows the full path back to the root. Each step in the path — for example, **Documents > Parent Folder > Subfolder** — is a clickable link so you can jump back to any level in one click.
 
 ### Searching Your Documents
 

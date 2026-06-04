@@ -38,12 +38,33 @@ export async function getRootFolders(userId: string) {
 }
 
 /**
+ * Get all non-deleted folders for a user as a flat list with parentId intact.
+ * The caller builds the tree to arbitrary depth.
+ */
+export async function getAllFoldersForUser(userId: string) {
+  return prisma.folder.findMany({
+    where: { userId, deletedAt: null },
+    include: {
+      documents: {
+        where: { deletedAt: null },
+        select: { id: true, title: true, relativePath: true },
+        orderBy: { relativePath: "asc" },
+      },
+    },
+    orderBy: { name: "asc" },
+  });
+}
+
+/**
  * Get a folder by ID with ownership check
  */
 export async function getFolderById(folderId: string, userId: string) {
   return prisma.folder.findFirst({
     where: { id: folderId, userId, deletedAt: null },
     include: {
+      parent: {
+        select: { id: true, name: true },
+      },
       children: {
         where: { deletedAt: null },
         orderBy: { name: "asc" },
