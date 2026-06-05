@@ -182,6 +182,70 @@ After the PR is created, report back:
 - PR URL.
 - If anything was skipped (e.g., nothing to commit, PR already existed), explain why.
 
+### 9. Trigger test agents in parallel
+
+Immediately after reporting the PR, spawn the `e2e-testing` and `unit-testing` agents **in parallel** using the Agent tool. Pass each agent the same context block so they can independently determine what's in their purview and write tests.
+
+Construct a shared context string containing:
+- The PR number and URL
+- The list of changed files (from `git diff --name-only origin/main..HEAD`)
+- The full diff stat summary
+- The test plan checklist items generated in step 7
+
+Prompt for the **e2e-testing** agent:
+
+```
+A pull request was just created: <PR_URL>
+
+You are being called as part of the PR workflow to identify and write Playwright E2E tests.
+
+## Changed files
+<paste git diff --name-only output>
+
+## Diff summary
+<paste git diff --stat output>
+
+## PR test plan (from the PR description)
+<paste the ## Test plan section verbatim>
+
+Your job:
+1. Review the changed files and test plan items.
+2. Identify which items are user-visible flows that belong in Playwright E2E specs (UI interactions, page navigation, form submissions, modal flows, etc.).
+3. For each applicable item, write or extend a spec under tests/e2e/ following the e2e-testing skill at .claude/skills/e2e-testing/SKILL.md.
+4. Run npm run test:e2e and fix failures until green (or report any blockers such as missing seed data or auth).
+5. Report: which test plan items you covered, which spec files were written/modified, and the test run result.
+
+Skip anything that is purely a logic/unit concern (lib/ pure functions, validators) — the unit-testing agent handles those.
+```
+
+Prompt for the **unit-testing** agent:
+
+```
+A pull request was just created: <PR_URL>
+
+You are being called as part of the PR workflow to identify and write Vitest unit tests.
+
+## Changed files
+<paste git diff --name-only output>
+
+## Diff summary
+<paste git diff --stat output>
+
+## PR test plan (from the PR description)
+<paste the ## Test plan section verbatim>
+
+Your job:
+1. Review the changed files and test plan items.
+2. Identify which items involve pure logic, lib/ utilities, validators, parsers, or data-transformation functions that belong in Vitest unit tests.
+3. For each applicable item, write or extend *.test.ts files colocated with the changed modules, following the unit-testing skill at .claude/skills/unit-testing/SKILL.md.
+4. Run npm run test and fix failures until green (or report exact failure output).
+5. Report: which test plan items you covered, which test files were written/modified, and the npm run test result.
+
+Skip UI flows and browser interactions — the e2e-testing agent handles those.
+```
+
+After both agents finish, summarize their findings: which test plan items each covered, any gaps neither agent could address, and whether both test suites pass.
+
 ## Safety rules
 
 | Rule | Reason |
