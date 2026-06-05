@@ -11,11 +11,11 @@ export const HELP_TOPICS = [
   { slug: 'people', title: 'People' },
   { slug: 'organizations', title: 'Organizations' },
   { slug: 'documents', title: 'Documents' },
-  { slug: 'tooling', title: 'Tooling (CLI)' },
   { slug: 'export', title: 'Exporting Data' },
   { slug: 'settings', title: 'Settings' },
   { slug: 'account', title: 'Account & Security' },
   { slug: 'api', title: 'API for Developers' },
+  { slug: 'branding', title: 'Branding & Style Guide' },
 ] as const;
 
 export type HelpSlug = (typeof HELP_TOPICS)[number]['slug'];

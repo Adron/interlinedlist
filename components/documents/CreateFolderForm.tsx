@@ -4,7 +4,12 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-export default function CreateFolderForm() {
+interface Props {
+  parentId?: string;
+  cancelHref?: string;
+}
+
+export default function CreateFolderForm({ parentId, cancelHref = '/documents' }: Props) {
   const router = useRouter();
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -18,7 +23,7 @@ export default function CreateFolderForm() {
       const res = await fetch('/api/documents/folders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim() }),
+        body: JSON.stringify({ name: name.trim(), ...(parentId ? { parentId } : {}) }),
       });
       const data = await res.json();
       if (res.ok && data.folder) {
@@ -61,7 +66,7 @@ export default function CreateFolderForm() {
             >
               {loading ? 'Creating...' : 'Create'}
             </button>
-            <Link href="/documents" className="btn btn-outline-secondary">
+            <Link href={cancelHref} className="btn btn-outline-secondary">
               Cancel
             </Link>
           </div>

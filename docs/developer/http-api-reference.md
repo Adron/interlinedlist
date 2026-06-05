@@ -23,7 +23,7 @@ Used by the web app. After **login**, the server sets an HTTP-only session cooki
 
 ### Sync token (Bearer)
 
-Used by the Document Sync CLI and other non-browser clients. You obtain a token once and send it on each request.
+Used by native and non-browser clients. You obtain a token once and send it on each request.
 
 - **Obtain a token**: `POST /api/auth/sync-token` with `{ "email", "password" }`. Response includes `{ "token": "..." }`. Store it securely.
 - **Use the token**: Send `Authorization: Bearer <your-token>` on requests. Only certain endpoints accept Bearer auth (see below).
@@ -696,7 +696,7 @@ Removes the connection. The server verifies the current user owns both lists bef
 
 ## Documents and sync
 
-Document and folder CRUD is available via the **sync API**, which supports both session and Bearer token. This is the same API used by the Document Sync CLI.
+Document and folder CRUD is available via the **sync API**, which supports both session and Bearer token.
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
@@ -874,11 +874,9 @@ Response `200`: `{ "ok": true, "updated": 3 }`. `updated` is the count of rows c
 
 ---
 
-## Document Sync CLI and Bearer auth
+## Bearer auth
 
-The Document Sync CLI and native clients (e.g. iOS app) use the sync token for API access. End users install the CLI from in-app **Help → Tooling (CLI)** on [interlinedlist.com/help/tooling](https://interlinedlist.com/help/tooling). Contributors testing against a local server: see [cli-against-local-server.md](./cli-against-local-server.md).
-
-Obtain a token via `POST /api/auth/sync-token`, then send `Authorization: Bearer <token>` on requests. Bearer auth is supported for: `GET /api/user`; all messages endpoints (`GET`, `POST`, `PUT`, `DELETE`, `GET /api/messages/scheduled`); all lists endpoints (`GET /api/lists`, and every sub-path under `/api/lists/[id]/` including data rows, schema, watchers, connections, and refresh); and `GET` and `POST /api/documents/sync`. All subscriber-only restrictions (images, video, cross-posting, scheduled posts) are enforced the same way for Bearer callers as for session callers.
+Native clients (e.g. iOS app) use the sync token for API access. Obtain a token via `POST /api/auth/sync-token`, then send `Authorization: Bearer <token>` on requests. Bearer auth is supported for: `GET /api/user`; all messages endpoints (`GET`, `POST`, `PUT`, `DELETE`, `GET /api/messages/scheduled`); all lists endpoints (`GET /api/lists`, and every sub-path under `/api/lists/[id]/` including data rows, schema, watchers, connections, and refresh); and `GET` and `POST /api/documents/sync`. All subscriber-only restrictions (images, video, cross-posting, scheduled posts) are enforced the same way for Bearer callers as for session callers.
 
 ---
 

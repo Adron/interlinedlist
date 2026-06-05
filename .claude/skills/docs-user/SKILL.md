@@ -136,6 +136,24 @@ One-paragraph product description.
 ...
 ```
 
+## Adding a new help page
+
+Any time this skill creates a new help topic that should be reachable at `/help/<slug>`:
+
+1. **Create the file** at `docs/help/<slug>.md` with YAML frontmatter:
+   ```markdown
+   ---
+   title: Your Page Title
+   ---
+   ```
+2. **Register it in the nav** by adding an entry to the `HELP_TOPICS` array in `lib/help-config.ts`:
+   ```ts
+   { slug: '<slug>', title: 'Your Page Title' },
+   ```
+   Place it at a logical position in the list — the array order controls sidebar order.
+
+Both steps are required. A file without a `HELP_TOPICS` entry is unreachable (returns 404). An entry without a file also returns 404. Always do both.
+
 ## Constraints
 
 - Do not mention infrastructure or deployment — that is `docs/operational.md`.
