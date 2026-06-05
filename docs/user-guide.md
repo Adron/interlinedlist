@@ -42,6 +42,16 @@ Welcome to InterlinedList. This guide covers every feature available to you as a
 12. [Subscriptions](#subscriptions)
 13. [Exporting Your Data](#exporting-your-data)
 14. [Mobile Push Notifications](#mobile-push-notifications)
+15. [Branding & Style Guide](#branding--style-guide)
+    - [Brand Story](#brand-story)
+    - [Logo Assets](#logo-assets)
+    - [Logo Usage Rules](#logo-usage-rules)
+    - [Brand Colors](#brand-colors)
+    - [Typography](#typography)
+    - [The Darkone Theme](#the-darkone-theme)
+    - [Branding Package for Partners](#branding-package-for-partners)
+    - [CSS Custom Properties Reference](#css-custom-properties-reference)
+    - [Dos and Donts](#dos-and-donts)
 
 ---
 
@@ -477,3 +487,266 @@ If you use InterlinedList on an iOS device, you can enable push notifications to
 3. Notifications are delivered through Apple's notification service and appear in your device's notification centre.
 
 If you stop receiving notifications, open the app and check that notifications are still allowed in your device's system settings under InterlinedList.
+
+---
+
+## Branding & Style Guide
+
+This section is for community members, content creators, newsletter authors, podcast hosts, fan-site builders, and partners who want to represent InterlinedList visually in their own work. Whether you are designing a Discord banner, writing a blog post, or building a community theme, the information below tells you exactly what to use and how to use it.
+
+---
+
+### Brand Story
+
+InterlinedList is a social list-management and cross-posting platform built around the idea of layers — lists within lists, connections between ideas, meaning threaded through everything. The name "Interlined" captures that spirit: content and structure woven together, not stacked on top of each other.
+
+The visual identity draws from two overlapping worlds. **Ocean Blue** comes from deep-sea exploration — depth, calm, and discovery. **Emerald Green** brings in lush natural growth — momentum, freshness, and life. **Amber Gold** ties them together as the warm highlight that catches your eye and invites action.
+
+Together these colours say: this is a thoughtful, organised, purposeful place to create.
+
+---
+
+### Logo Assets
+
+The following logo files are available for use in community content. Always use the version that best suits your background.
+
+| File | Best for |
+| --- | --- |
+| `logo-dark.svg` | Use on dark or coloured backgrounds |
+| `logo-light.svg` | Use on white or light backgrounds |
+| `logo-icon.png` | Small placements: avatars, favicons, app icons, profile pictures |
+| `interlinedlist-logo-text.png` | Full logotype with the InterlinedList name — newsletters, headers, show-note banners |
+| `interlinedlist-logo-only.png` | Clean icon without the text — good where the name appears separately nearby |
+| `interlinedlist.svg` | Canonical vector file — scale to any size without quality loss |
+| `interlinedlist.png` | Canonical raster — use when SVG is not supported |
+
+> **Where to find them:** The `logo-dark.svg`, `logo-light.svg`, and `logo-icon.png` files live in the site's public assets folder. The full logotype, icon-only, canonical SVG, and canonical PNG are included in the branding package described in [Branding Package for Partners](#branding-package-for-partners).
+
+---
+
+### Logo Usage Rules
+
+These rules keep the brand consistent and legible wherever it appears. They are written to be friendly, not legalistic — the goal is simply to make sure InterlinedList looks its best in your content.
+
+**Do:**
+
+- Use the dark logo variant on dark, coloured, or photographic backgrounds.
+- Use the light logo variant on white or light backgrounds.
+- Give the logo breathing room — leave clear space around it equal to roughly the height of the "I" in "Interlined."
+- Use the icon-only version when space is very tight (profile pictures, small app tiles).
+- Scale proportionally: hold shift when resizing to avoid distortion.
+
+**Minimum sizes:**
+
+| Version | Minimum height |
+| --- | --- |
+| Icon only | 24 px |
+| Full logotype | 120 px |
+
+**Do not:**
+
+- Recolour the logo — use only the provided files as-is.
+- Stretch, skew, rotate, or distort the logo in any direction.
+- Apply drop shadows, glows, outlines, or other effects.
+- Place the logo directly against a background that makes it hard to read (low contrast, busy patterns, clashing colours).
+- Place another brand's logo immediately adjacent to the InterlinedList logo without clear visual separation between them.
+
+---
+
+### Brand Colors
+
+#### Core logo colours
+
+These are the three colours that define InterlinedList's visual identity. Use them as the foundation whenever you are building something that represents the brand.
+
+| Colour name | Hex | When to use |
+| --- | --- | --- |
+| Ocean Blue | `#0F4C5F` | Primary brand colour — page headers, key call-to-action buttons, link accents |
+| Emerald Green | `#34A56D` | Active states, success messages, "go" actions, growth-themed imagery |
+| Amber Gold | `#F9AF36` | Highlights, badges, warm call-to-action buttons, anything that should draw the eye |
+| Near Black | `#1A1A1A` | Dark mode backgrounds, body text on light surfaces |
+| White | `#FFFFFF` | Light mode backgrounds, text on dark surfaces |
+
+#### Extended palette (Darkone theme)
+
+The interface uses additional colours for interactive states and feedback. These work well for community themes that want to feel native to the InterlinedList experience.
+
+| Colour name | Hex | Use |
+| --- | --- | --- |
+| Violet / Purple | `#7E67FE` | Secondary accent, interactive highlights |
+| Electric Blue | `#1A80F8` | Links, informational highlights |
+| Teal Cyan | `#1AB0F8` | Info badges, tooltips |
+| Vivid Green | `#21D760` | Confirmation states, live indicators |
+| Alert Red | `#ED321F` | Error messages, warnings, destructive actions |
+
+#### Dark mode background stack
+
+The dark theme uses three progressively lighter background tones to create visual depth between page layers, cards, and nested panels.
+
+| Level | Hex | Use |
+| --- | --- | --- |
+| Page / panel background | `#191E23` | Outermost background |
+| Card background | `#1D2329` | Cards, sidebars |
+| Nested panel / row | `#242B33` | Table rows, inner panels |
+
+#### Hero gradient
+
+The landing page hero uses a purple-violet gradient that adds warmth and energy to large background areas.
+
+- Start: `#667EEA`
+- End: `#764BA2`
+
+This gradient works well for event banners, social media headers, and email header backgrounds where you want to evoke the InterlinedList landing experience.
+
+---
+
+### Typography
+
+InterlinedList uses the **Play** typeface (available free from Google Fonts at `fonts.google.com`). Play is a clean, modern geometric sans-serif with a slightly technical character that complements the platform's data-forward personality without feeling cold.
+
+| Property | Value |
+| --- | --- |
+| Primary typeface | Play (Regular 400, Bold 700) |
+| Body line-height | 1.6 |
+| Fallback stack | `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif` (and more — see globals.css) |
+
+**Using Play in your own content:**
+
+1. Visit [fonts.google.com/specimen/Play](https://fonts.google.com/specimen/Play).
+2. Click **Get font**, then **Get embed code**.
+3. Paste the provided `<link>` tag into the `<head>` of your HTML, or download the font files for desktop publishing tools.
+
+For non-web contexts (presentations, print, video thumbnails), any clean geometric sans-serif such as Roboto, Inter, or Nunito reads similarly well as a stand-in when Play is not available.
+
+---
+
+### The Darkone Theme
+
+InterlinedList's interface is built on the **Darkone v1.0** Bootstrap admin theme. Understanding the theme helps community developers build tools and extensions that feel visually consistent with the platform.
+
+Key characteristics of the theme:
+
+- Deep, layered dark backgrounds designed to reduce eye strain during long sessions.
+- High-contrast text against those backgrounds for comfortable reading.
+- A consistent layout architecture: top navigation bar, collapsible sidebar, and content cards.
+- Smooth transitions and subtle gradients throughout interactive elements.
+
+The Darkone theme archive is included in the project for reference. If you are building a community tool or integration and want your UI to feel native to InterlinedList, the dark background stack in the [Brand Colors](#brand-colors) section above gives you the colour values you need without requiring a copy of the full theme.
+
+---
+
+### Branding Package for Partners
+
+Community creators, platform integrators, and promotional partners can assemble a self-contained branding package from the available public assets. The package includes:
+
+- **Logo files** — SVG (dark and light variants), PNG (full logotype and icon-only).
+- **Colour token reference** — hex values, RGB equivalents, and CSS variable names for all core and extended colours.
+- **Font reference** — Google Fonts URL and the full fallback stack.
+- **Favicon** — the site favicon in SVG format.
+- **Usage guidelines** — this document.
+
+**Suggested package layout:**
+
+```text
+interlinedlist-brand/
+  logos/
+    logo-dark.svg
+    logo-light.svg
+    logo-icon.png
+    logo-text.png
+    favicon.svg
+  colors/
+    brand-colors.json
+  fonts/
+    README.md       (Google Fonts link + fallback stack)
+  guidelines/
+    usage.md
+```
+
+To assemble the package, gather the logo files from the site's public assets folder, export the colour values into a JSON file using the hex values listed in [Brand Colors](#brand-colors), and copy the font information from [Typography](#typography). The favicon SVG (`favicon.svg`) is also in the public assets folder.
+
+If you are a partner who needs a pre-assembled ZIP, reach out through the InterlinedList contact page and the team can provide one.
+
+---
+
+### CSS Custom Properties Reference
+
+If you are building a community theme, browser extension, or embedded widget that should feel consistent with InterlinedList's visual design, the following CSS custom properties are what the site uses internally. Setting these variables in your own stylesheet will give you the full light and dark colour system.
+
+#### Light theme (default)
+
+| Variable | Value | Purpose |
+| --- | --- | --- |
+| `--color-bg` | `#ffffff` | Page background |
+| `--color-bg-secondary` | `#f8f9fa` | Secondary surfaces, alt table rows |
+| `--color-bg-tertiary` | `#f5f5f5` | Tertiary surfaces, hover backgrounds |
+| `--color-text` | `#333333` | Primary body text |
+| `--color-text-secondary` | `#666666` | Secondary / muted text |
+| `--color-text-tertiary` | `#999999` | Placeholder text, captions |
+| `--color-border` | `#e5e5e5` | Borders and dividers |
+| `--color-link` | `#0070f3` | Link colour |
+| `--color-link-hover` | `#0051cc` | Link hover state |
+| `--color-button-primary` | `#0070f3` | Primary button background |
+| `--color-button-primary-hover` | `#0051cc` | Primary button hover |
+| `--color-button-secondary` | `#6c757d` | Secondary button background |
+| `--color-button-secondary-hover` | `#5a6268` | Secondary button hover |
+| `--color-button-text` | `#ffffff` | Text on buttons |
+| `--color-nav-bg` | `#ffffff` | Navigation bar background |
+| `--color-nav-border` | `#e5e5e5` | Navigation bar border |
+| `--color-success` | `#28a745` | Success text / icon |
+| `--color-success-bg` | `#e6ffe6` | Success message background |
+| `--color-error` | `#dc3545` | Error text / icon |
+| `--color-error-bg` | `#ffe6e6` | Error message background |
+| `--color-hero-gradient-start` | `#667eea` | Hero gradient start |
+| `--color-hero-gradient-end` | `#764ba2` | Hero gradient end |
+
+#### Dark theme (`[data-theme="dark"]`)
+
+| Variable | Value | Purpose |
+| --- | --- | --- |
+| `--color-bg` | `#1a1a1a` | Page background |
+| `--color-bg-secondary` | `#2d2d2d` | Secondary surfaces |
+| `--color-bg-tertiary` | `#333333` | Tertiary surfaces |
+| `--color-text` | `#ffffff` | Primary body text |
+| `--color-text-secondary` | `#b3b3b3` | Secondary / muted text |
+| `--color-text-tertiary` | `#808080` | Placeholder text, captions |
+| `--color-border` | `#404040` | Borders and dividers |
+| `--color-link` | `#4a9eff` | Link colour |
+| `--color-link-hover` | `#6bb3ff` | Link hover state |
+| `--color-button-primary` | `#4a9eff` | Primary button background |
+| `--color-button-primary-hover` | `#6bb3ff` | Primary button hover |
+| `--color-button-secondary` | `#6c757d` | Secondary button background |
+| `--color-button-secondary-hover` | `#7d8489` | Secondary button hover |
+| `--color-button-text` | `#ffffff` | Text on buttons |
+| `--color-nav-bg` | `#1a1a1a` | Navigation bar background |
+| `--color-nav-border` | `#404040` | Navigation bar border |
+| `--color-success` | `#4ade80` | Success text / icon |
+| `--color-success-bg` | `#1a3a2a` | Success message background |
+| `--color-error` | `#f87171` | Error text / icon |
+| `--color-error-bg` | `#3a1a1a` | Error message background |
+| `--color-hero-gradient-start` | `#667eea` | Hero gradient start (same as light) |
+| `--color-hero-gradient-end` | `#764ba2` | Hero gradient end (same as light) |
+
+---
+
+### Dos and Donts
+
+A quick checklist to keep in mind whenever you are creating content that features InterlinedList.
+
+**Do:**
+
+- Use the provided logo files — do not recreate the logo by hand.
+- Match the logo variant to the background (dark logo on dark surfaces, light logo on light surfaces).
+- Use Ocean Blue (`#0F4C5F`), Emerald Green (`#34A56D`), and Amber Gold (`#F9AF36`) as your primary colour references.
+- Use the Play typeface for headings and display text to match the brand feel.
+- Give the logo adequate space — do not crowd it with other elements.
+- Credit InterlinedList by name when featuring it in reviews, tutorials, or promotional content.
+
+**Do not:**
+
+- Recolour, distort, rotate, or add effects to the logo.
+- Use the logo at sizes smaller than 24 px tall (icon) or 120 px tall (full logotype).
+- Place the logo on a background that makes it hard to read.
+- Imply official endorsement or partnership without written agreement from the InterlinedList team.
+- Use InterlinedList's name or logo in a way that could mislead people about the source of your content.
+- Combine the logo with other logos without clear visual separation.

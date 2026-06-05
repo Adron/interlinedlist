@@ -807,7 +807,7 @@ Returns every connection where either the source or target list belongs to the c
 
 ### Documents and sync
 
-The sync API is the primary interface for document management and is used by the Document Sync CLI.
+The sync API is the primary interface for document management.
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
@@ -1137,4 +1137,4 @@ curl https://interlinedlist.com/api/users/somehandle/lists/lst_abc001/data
 
 ## Further reading
 
-The Document Sync CLI uses the sync token and documents sync API. See [Tooling (CLI)](/help/tooling) for CLI installation and usage. A full developer reference with additional examples, the List to Doc export flow, and cross-posting details lives at `documentation/developer/http-api-reference.md` in the InterlinedList source repository.
+A full developer reference with additional examples, the List to Doc export flow, and cross-posting details lives at `documentation/developer/http-api-reference.md` in the InterlinedList source repository.
