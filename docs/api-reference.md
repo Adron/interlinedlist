@@ -5,23 +5,24 @@
 1. [Overview](#overview)
 2. [Quick Start](#quick-start)
 3. [Authentication](#authentication)
-4. [Messages](#messages)
-5. [Lists](#lists)
-6. [List Folders](#list-folders)
-7. [Documents](#documents)
-8. [Document Folders](#document-folders)
-9. [Users and Profile](#users-and-profile)
-10. [Following](#following)
-11. [Organizations](#organizations)
-12. [Notifications](#notifications)
-13. [Push Notifications](#push-notifications)
-14. [Exports](#exports)
-15. [Stripe / Subscriptions](#stripe--subscriptions)
-16. [GitHub Integration](#github-integration)
-17. [Utility Endpoints](#utility-endpoints)
-18. [OAuth Provider Flows](#oauth-provider-flows)
-19. [Cron Endpoints (Internal)](#cron-endpoints-internal)
-20. [Webhook Endpoints (Internal)](#webhook-endpoints-internal)
+4. [Branding & Style Guide](#branding--style-guide)
+5. [Messages](#messages)
+6. [Lists](#lists)
+7. [List Folders](#list-folders)
+8. [Documents](#documents)
+9. [Document Folders](#document-folders)
+10. [Users and Profile](#users-and-profile)
+11. [Following](#following)
+12. [Organizations](#organizations)
+13. [Notifications](#notifications)
+14. [Push Notifications](#push-notifications)
+15. [Exports](#exports)
+16. [Stripe / Subscriptions](#stripe--subscriptions)
+17. [GitHub Integration](#github-integration)
+18. [Utility Endpoints](#utility-endpoints)
+19. [OAuth Provider Flows](#oauth-provider-flows)
+20. [Cron Endpoints (Internal)](#cron-endpoints-internal)
+21. [Webhook Endpoints (Internal)](#webhook-endpoints-internal)
 
 ---
 
@@ -443,6 +444,201 @@ Store the token and send it as `Authorization: Bearer <token>` on subsequent req
 ```json
 { "configured": true, "redirectUri": "https://..." }
 ```
+
+---
+
+## Branding & Style Guide
+
+This section documents the visual identity and brand assets for InterlinedList. Developers building integrations, embedded widgets, or data-service experiences that surface InterlinedList data must follow these guidelines.
+
+### Brand Overview
+
+InterlinedList is a social list-management and cross-posting platform available in Free and Subscriber tiers. The visual identity combines the **Darkone_v1.0** Bootstrap-based admin theme with a custom InterlinedList primary palette. The three signature brand colors — Ocean Blue, Emerald Green, and Amber Gold — are drawn directly from the logo SVG and must be used consistently across all integrations.
+
+---
+
+### Logo Assets
+
+The following logo files are the canonical assets. Use them exactly as provided — do not recreate, re-export, or trace them.
+
+| File | Description |
+|------|-------------|
+| `public/logo-dark.svg` | Dark-mode vector logo, viewBox `0 0 2048 2048`, rendered at 512×512. Use on dark and near-black backgrounds. |
+| `public/logo-light.svg` | Light-mode vector logo, same geometry as the dark variant. White cutouts replace near-black fills. Use on light or white backgrounds. |
+| `public/logo-icon.png` | Icon-only raster asset for contexts that cannot render SVG. |
+| `public/favicon.svg` | SVG favicon. |
+| `.claude/logo/interlinedlist-logo-text.png` | Logotype with full "InterlinedList" wordmark. |
+| `.claude/logo/interlinedlist-logo-only.png` | Icon mark only, no wordmark. |
+| `.claude/logo/interlinedlist.svg` | Canonical SVG for general-purpose use. |
+| `.claude/logo/interlinedlist.png` | Canonical PNG for general-purpose use. |
+
+#### Logo Usage Rules
+
+- **Minimum size:** Never render the logo below 24 px on its shortest axis.
+- **Clear space:** Maintain a minimum clear space equal to the height of the letter "I" in the wordmark on all four sides.
+- **Dark vs. light variant:** Use `logo-dark.svg` on backgrounds darker than 50% luminance. Use `logo-light.svg` on backgrounds lighter than 50% luminance. Do not place either variant on a mid-tone background where contrast is insufficient.
+- **No recoloring:** Do not change any fill colors in the SVG. Do not apply CSS `filter`, `color`, or `fill` overrides that alter the logo's appearance.
+- **No geometric transforms:** Do not stretch, squish, rotate, skew, or add drop shadows, glows, or outlines.
+- **Attribution:** When surfacing InterlinedList data via the API, include the attribution "Powered by InterlinedList" adjacent to the logo. A text-only attribution is acceptable when the logo cannot be rendered.
+
+---
+
+### Brand Color Palette
+
+#### Primary Palette (logo-derived)
+
+These three colors are extracted directly from the fill values in `public/logo-dark.svg` and `public/logo-light.svg`. They are the definitive InterlinedList brand colors.
+
+| Name | Hex | RGB | Role |
+|------|-----|-----|------|
+| Ocean Blue | `#0F4C5F` | `rgb(15, 76, 95)` | Primary action color, links, buttons |
+| Emerald Green | `#34A56D` | `rgb(52, 165, 109)` | Success states, active indicators, live badges |
+| Amber Gold | `#F9AF36` | `rgb(249, 175, 54)` | Highlights, badges, calls-to-action |
+| Near Black | `#1A1A1A` | `rgb(26, 26, 26)` | Body text, dark backgrounds |
+| White | `#FFFFFF` | `rgb(255, 255, 255)` | Light cutouts, reversed text |
+
+#### Darkone Theme Palette
+
+These are the Bootstrap SCSS variables defined in `styles/darkone/scss/config/_variables.scss`. They govern the admin panel chrome and component defaults.
+
+| SCSS Variable | Hex | Semantic Role |
+|---------------|-----|---------------|
+| `$purple` | `#7E67FE` | Darkone primary (`$primary`) |
+| `$blue` | `#1A80F8` | Bootstrap blue |
+| `$cyan` | `#1AB0F8` | `$info` |
+| `$green` | `#21D760` | `$success` |
+| `$red` | `#ED321F` | `$danger` |
+| `$gray-900` | `#21252E` | `$dark`, darkest chrome |
+| `$gray-800` | `#36404A` | Secondary chrome, dropdown dark bg |
+| `$gray-700` | `#424E5A` | `$secondary`, borders, muted surfaces |
+
+#### Dark Mode CSS Custom Properties
+
+These variables are set on `[data-theme="dark"]` in `app/globals.css` and control the app's dark-mode surfaces.
+
+| CSS Variable | Value | Usage |
+|--------------|-------|-------|
+| `--color-bg` | `#1A1A1A` | Page background |
+| `--color-bg-secondary` | `#2D2D2D` | Card and panel backgrounds |
+| `--color-bg-tertiary` | `#333333` | Input and subtle surface backgrounds |
+| `--color-link` | `#4A9EFF` | Hyperlinks |
+| `--color-link-hover` | `#6BB3FF` | Hyperlink hover state |
+| `--color-hero-gradient-start` | `#667EEA` | Hero section gradient start |
+| `--color-hero-gradient-end` | `#764BA2` | Hero section gradient end |
+
+#### Darkone Dark Backgrounds (from `_variables-dark.scss`)
+
+| SCSS Variable | Hex | Darkone Usage |
+|---------------|-----|---------------|
+| `$body-bg-dark` | `#191E23` | Dark mode body background |
+| `$body-secondary-bg-dark` | `#1D2329` | Sidebar, topbar, secondary panels |
+| `$body-tertiary-bg-dark` | `#242B33` | Tertiary surfaces |
+
+---
+
+### Typography
+
+| Property | Value |
+|----------|-------|
+| Primary font family | `"Play"` (Google Fonts) |
+| Fallback stack | `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, sans-serif` |
+| Font smoothing | `-webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale` |
+| Base line-height | `1.6` |
+
+Load the Play font from Google Fonts:
+
+```html
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Play:wght@400;700&display=swap" rel="stylesheet">
+```
+
+Apply the complete font stack:
+
+```css
+body {
+  font-family: "Play", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
+}
+```
+
+---
+
+### Branding Package
+
+A full branding package ZIP is available at the project root: `Darkone_v1.0.zip`. This archive contains the complete Darkone Bootstrap admin theme — SCSS source, compiled CSS, and component examples. Partners building branded admin experiences or white-label integrations should use this as the theme foundation.
+
+**What to include in a partner branding bundle:**
+
+| Asset | Source |
+|-------|--------|
+| Logo SVG (dark variant) | `public/logo-dark.svg` |
+| Logo SVG (light variant) | `public/logo-light.svg` |
+| Favicon SVG | `public/favicon.svg` |
+| Canonical PNG logo | `.claude/logo/interlinedlist.png` |
+| Logotype PNG | `.claude/logo/interlinedlist-logo-text.png` |
+| Color tokens JSON | Derive from the Primary Palette table above |
+| Font reference | `"Play"` via Google Fonts (see Typography section) |
+| Usage guidelines | These docs, or a PDF export of this section |
+
+**Sample color tokens JSON** for design-system tooling:
+
+```json
+{
+  "brand": {
+    "oceanBlue":    { "value": "#0F4C5F", "role": "primary" },
+    "emeraldGreen": { "value": "#34A56D", "role": "success" },
+    "amberGold":    { "value": "#F9AF36", "role": "highlight" },
+    "nearBlack":    { "value": "#1A1A1A", "role": "text-dark" },
+    "white":        { "value": "#FFFFFF", "role": "text-light" }
+  },
+  "darkMode": {
+    "bgBody":       { "value": "#191E23" },
+    "bgSecondary":  { "value": "#1D2329" },
+    "bgTertiary":   { "value": "#242B33" }
+  }
+}
+```
+
+---
+
+### Integration Guidelines for API Consumers
+
+When building widgets, embedded lists, or dashboards that display InterlinedList data, apply the palette as follows.
+
+#### Color Application
+
+| Context | Color | Hex |
+|---------|-------|-----|
+| Primary buttons and action links | Ocean Blue | `#0F4C5F` |
+| Success states, active/live indicators | Emerald Green | `#34A56D` |
+| Badges, highlights, calls-to-action | Amber Gold | `#F9AF36` |
+| Dark mode panel background | Darkone body dark | `#191E23` |
+| Dark mode card/sidebar background | Darkone secondary dark | `#1D2329` |
+| Dark mode page body (app CSS) | `--color-bg` | `#1A1A1A` |
+| Dark mode card (app CSS) | `--color-bg-secondary` | `#2D2D2D` |
+
+#### Attribution Requirement
+
+Any surface that retrieves and displays InterlinedList data via the API must include attribution. The preferred form is the logo mark followed by the text "Powered by InterlinedList". A plain-text "Powered by InterlinedList" with a link to `https://interlinedlist.com` is acceptable when logo rendering is not feasible (for example, plain-text email or CLI output).
+
+**Do not use the Darkone purple (`#7E67FE`) or the hero gradient (`#667EEA` → `#764BA2`) as primary brand colors in partner integrations.** Those colors belong to the admin panel chrome and are not part of the public InterlinedList brand palette.
+
+---
+
+### Branding Package Contents Checklist
+
+Partners who receive or build a branded integration bundle should verify it contains the following:
+
+- [ ] `logo-dark.svg` — vector logo for dark backgrounds
+- [ ] `logo-light.svg` — vector logo for light backgrounds
+- [ ] `interlinedlist.png` — canonical raster logo
+- [ ] `interlinedlist-logo-text.png` — logotype with wordmark
+- [ ] `favicon.svg` — favicon asset
+- [ ] `color-tokens.json` — color tokens derived from this section
+- [ ] Font reference — "Play" from Google Fonts, with fallback stack
+- [ ] Link to or PDF of these usage guidelines
 
 ---
 
