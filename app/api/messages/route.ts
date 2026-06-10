@@ -314,7 +314,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Cross-post to selected Mastodon accounts (skip for replies, skip for scheduled - cron will handle)
-    const crossPostResults: Array<{ providerId: string; instanceName: string; success: boolean; url?: string; error?: string }> = [];
+    const crossPostResults: Array<{ providerId: string; instanceName: string; success: boolean; url?: string; error?: string; errorCode?: string; statusCode?: number }> = [];
     const crossPostUrls: Array<{ platform: string; url: string; instanceName: string; statusId?: string; statusIds?: string[]; instanceUrl?: string; uri?: string; cid?: string; uris?: string[] }> = [];
     const providerIds =
       !parentMessage &&

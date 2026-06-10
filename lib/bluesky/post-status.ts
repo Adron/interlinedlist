@@ -40,6 +40,10 @@ export interface CrossPostResult {
   /** All URIs in the thread (for delete); single post = [uri] */
   uris?: string[];
   error?: string;
+  /** Bluesky AT Protocol error code (e.g. "InvalidToken", "ExpiredToken") */
+  errorCode?: string;
+  /** HTTP status code from the Bluesky API response */
+  statusCode?: number;
 }
 
 interface BlobRef {
@@ -67,11 +71,43 @@ async function uploadImageToBluesky(
       body: new Uint8Array(arrayBuffer),
     });
 
-    if (!uploadRes.ok) return null;
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text().catch(() => '');
+      console.error(`[postToBluesky] image upload failed HTTP ${uploadRes.status}: ${errText}`);
+      return null;
+    }
     const data = (await uploadRes.json()) as { blob?: BlobRef };
     return data.blob ?? null;
-  } catch {
+  } catch (err) {
+    console.error('[postToBluesky] image upload error:', err instanceof Error ? err.message : err);
     return null;
+  }
+}
+
+/** Extract a human-readable error string from a Bluesky API error response. */
+async function extractBlueskyError(
+  response: Response
+): Promise<{ message: string; errorCode?: string }> {
+  const status = response.status;
+  const statusText = response.statusText || String(status);
+  try {
+    const errText = await response.text();
+    try {
+      const errJson = JSON.parse(errText) as { error?: string; message?: string };
+      const errorCode = errJson.error;
+      const detail = errJson.message || errText;
+      const message = errorCode
+        ? `HTTP ${status} (${errorCode})${detail ? `: ${detail}` : ''}`
+        : `HTTP ${status} ${statusText}${detail ? `: ${detail}` : ''}`;
+      return { message, errorCode };
+    } catch {
+      const message = errText
+        ? `HTTP ${status} ${statusText}: ${errText}`
+        : `HTTP ${status} ${statusText}`;
+      return { message };
+    }
+  } catch {
+    return { message: `HTTP ${status} ${statusText}` };
   }
 }
 
@@ -114,6 +150,10 @@ export async function postToBluesky(
     const { distributeMedia } = await import('@/lib/crosspost/media-distributor');
     const { getThreadPostText } = await import('@/lib/crosspost/thread-text');
     const { buildBlueskyLinkFacets } = await import('@/lib/bluesky/richtext-facets');
+    // Use undici's fetch directly to bypass Next.js's fetch patching.
+    // Next.js re-wraps Request objects with body:ReadableStream (source=null), which
+    // causes Node.js 25 to throw "expected non-null body source" on any HTTP redirect.
+    const { fetch: undiciFetch } = await import('undici');
 
     const metadata = getBlueskyClientMetadata();
 
@@ -129,6 +169,8 @@ export async function postToBluesky(
       clientMetadata: metadata as any,
       stateStore: blueskyStateStore,
       sessionStore,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      fetch: undiciFetch as any,
     });
 
     const session = await client.restore(did);
@@ -217,19 +259,15 @@ export async function postToBluesky(
       });
 
       if (!response.ok) {
-        const errText = await response.text();
-        let errMessage: string;
-        try {
-          const errJson = JSON.parse(errText) as { error?: string; message?: string };
-          errMessage = errJson.error || errJson.message || errText || `HTTP ${response.status}`;
-        } catch {
-          errMessage = errText || `HTTP ${response.status}`;
-        }
+        const { message: errMessage, errorCode } = await extractBlueskyError(response);
+        console.error(`[postToBluesky] createRecord failed (post ${i + 1}/${numPosts}): ${errMessage}`);
         return {
           providerId: identity.id,
           instanceName: 'Bluesky',
           success: false,
           error: errMessage,
+          errorCode,
+          statusCode: response.status,
         };
       }
 
@@ -266,12 +304,18 @@ export async function postToBluesky(
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
+    const hint =
+      message.includes('TokenInvalidError') || message.includes('TokenRevoked')
+        ? ' — please re-link your Bluesky account in Settings'
+        : message.includes('TokenRefreshError')
+          ? ' — token refresh failed; please re-link your Bluesky account in Settings'
+          : '';
     console.error('[postToBluesky] error:', err instanceof Error ? err.stack : err);
     return {
       providerId: identity.id,
       instanceName: 'Bluesky',
       success: false,
-      error: message,
+      error: `${message}${hint}`,
     };
   }
 }
