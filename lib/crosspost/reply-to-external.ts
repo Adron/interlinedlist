@@ -171,6 +171,7 @@ export async function replyToBluesky(
     const { prisma } = await import('@/lib/prisma');
     const { blueskyStateStore } = await import('@/lib/auth/oauth-bluesky-stores');
     const { splitTextForPlatform } = await import('@/lib/crosspost/text-splitter');
+    const { fetch: undiciFetch } = await import('undici');
 
     const BLUESKY_CHAR_LIMIT = 300;
     const textChunks = splitTextForPlatform(replyContent, BLUESKY_CHAR_LIMIT);
@@ -189,6 +190,8 @@ export async function replyToBluesky(
       clientMetadata: metadata as any,
       stateStore: blueskyStateStore,
       sessionStore,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      fetch: undiciFetch as any,
     });
 
     const session = await client.restore(did);

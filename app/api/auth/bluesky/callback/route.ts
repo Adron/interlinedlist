@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
   try {
     const { NodeOAuthClient } = await import('@atproto/oauth-client-node');
     const { blueskyStateStore, blueskySessionStore } = await import('@/lib/auth/oauth-bluesky-stores');
+    const { fetch: undiciFetch } = await import('undici');
 
     const metadata = getBlueskyClientMetadata();
 
@@ -24,6 +25,8 @@ export async function GET(request: NextRequest) {
       clientMetadata: metadata as any,
       stateStore: blueskyStateStore,
       sessionStore: blueskySessionStore,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      fetch: undiciFetch as any,
     });
 
     const params = new URLSearchParams(searchParams);

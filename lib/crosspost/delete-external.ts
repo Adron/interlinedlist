@@ -72,10 +72,13 @@ export async function deletePostOnBluesky(
     const { getBlueskyConfig } = await import('@/lib/auth/oauth-bluesky');
     const { prisma } = await import('@/lib/prisma');
     const { blueskyStateStore } = await import('@/lib/auth/oauth-bluesky-stores');
+    const { fetch: undiciFetch } = await import('undici');
 
     const { clientId } = getBlueskyConfig();
     const metadata = await OAuthClient.fetchMetadata({
       clientId: clientId as `https://${string}/${string}`,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      fetch: undiciFetch as any,
     });
 
     const sessionStore = createProviderDataSessionStore(
@@ -89,6 +92,8 @@ export async function deletePostOnBluesky(
       clientMetadata: metadata,
       stateStore: blueskyStateStore,
       sessionStore,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      fetch: undiciFetch as any,
     });
 
     const session = await client.restore(did);
