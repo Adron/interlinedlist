@@ -205,7 +205,7 @@ git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null
 
 Never force-push. If the push is rejected because the remote has diverged, stop and tell the user — do not rebase or reset without explicit instruction.
 
-### 6. Check for an existing PR
+### 7. Check for an existing PR
 
 Before creating a new PR, check whether one already exists for this branch:
 
@@ -216,7 +216,7 @@ gh pr view --json number,url,state 2>/dev/null
 - **PR already exists**: report its URL and state. Ask the user if they want to update the PR description or just leave it. Do not create a duplicate.
 - **No PR exists**: proceed to step 7.
 
-### 7. Draft the PR description
+### 8. Draft the PR description
 
 Use the full diff and commit history to write a thorough PR body. Structure it as:
 
@@ -253,7 +253,7 @@ EOF
 )"
 ```
 
-### 8. Confirm and report
+### 9. Confirm and report
 
 After the PR is created, report back:
 
@@ -262,7 +262,7 @@ After the PR is created, report back:
 - PR URL.
 - If anything was skipped (e.g., nothing to commit, PR already existed), explain why.
 
-### 9. Trigger test agents in parallel
+### 10. Trigger test agents in parallel
 
 Immediately after reporting the PR, spawn the `e2e-testing` and `unit-testing` agents **in parallel** using the Agent tool. Pass each agent the same context block so they can independently determine what's in their purview and write tests.
 
@@ -330,6 +330,9 @@ After both agents finish, summarize their findings: which test plan items each c
 
 | Rule | Reason |
 |------|--------|
+| Always sync before staging | Staging on a stale branch produces PRs that will conflict on merge |
+| Never stash automatically without asking | Stash pops can conflict; the user must decide |
+| Never rebase or reset to resolve divergence | Data loss risk; always stop and ask |
 | Never use `--no-verify` | Pre-commit hooks exist for a reason — fix failures, don't skip them |
 | Never force-push | Rewrites shared history; ask the user explicitly if they need it |
 | Never amend a published commit | Creates divergence with remote; create a new commit instead |
@@ -340,6 +343,10 @@ After both agents finish, summarize their findings: which test plan items each c
 ## Error handling
 
 - **`gh` not installed or not authenticated**: stop immediately and give setup instructions.
+- **Pull rejected (non-fast-forward / remote diverged)**: stop, report the divergence, and ask the user how to proceed. Do not rebase or reset without explicit instruction.
+- **Uncommitted changes block the pull**: ask the user before stashing. Default recommendation is stash → pull → unstash, but always confirm first.
+- **`git stash pop` conflicts after pull**: stop and ask the user to resolve the stash conflicts before continuing.
+- **Merge of integration branch (develop/main) produces conflicts**: stop, list all conflicting files, and ask the user to resolve them before re-running the skill.
 - **Push rejected (non-fast-forward)**: stop, report the divergence, and ask the user how to proceed.
 - **No `origin` remote**: stop and ask the user to add one.
 - **Pre-commit hook fails**: fix the issue, re-stage, create a new commit.

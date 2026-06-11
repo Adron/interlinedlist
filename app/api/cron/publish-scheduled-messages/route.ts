@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { postToMastodon } from "@/lib/mastodon/post-status";
 import { postToBluesky } from "@/lib/bluesky/post-status";
 import { postToLinkedIn } from "@/lib/linkedin/post-status";
+import { resolveLinkedInTarget } from "@/lib/linkedin/resolve-linkedin-target";
 import { postToTwitter } from "@/lib/twitter/post-status";
 
 export const dynamic = "force-dynamic";
@@ -146,22 +147,10 @@ export async function GET(request: NextRequest) {
       }
 
       if (crossPostToLinkedIn) {
-        const linkedInIdentity = await prisma.linkedIdentity.findFirst({
-          where: {
-            userId: message.userId,
-            provider: "linkedin",
-          },
-          select: {
-            id: true,
-            provider: true,
-            providerUserId: true,
-            providerUsername: true,
-            providerData: true,
-          },
-        });
+        const linkedInTarget = await resolveLinkedInTarget(message.userId);
 
-        if (linkedInIdentity) {
-          const result = await postToLinkedIn(linkedInIdentity as Parameters<typeof postToLinkedIn>[0], {
+        if (linkedInTarget) {
+          const result = await postToLinkedIn(linkedInTarget, {
             content: message.content,
             publiclyVisible: message.publiclyVisible,
             imageUrls: finalImageUrls,
