@@ -9,6 +9,7 @@ import { attachDugByMeIncludingPushed } from '@/lib/messages/dig';
 import { postToMastodon } from '@/lib/mastodon/post-status';
 import { postToBluesky } from '@/lib/bluesky/post-status';
 import { postToLinkedIn } from '@/lib/linkedin/post-status';
+import { resolveLinkedInTarget } from '@/lib/linkedin/resolve-linkedin-target';
 import { postToTwitter } from '@/lib/twitter/post-status';
 import { trackAction } from '@/lib/analytics/track';
 import { resolveCanonicalPushTargetId } from '@/lib/messages/push';
@@ -408,22 +409,10 @@ export async function POST(request: NextRequest) {
 
     // Cross-post to LinkedIn if enabled (skip for replies, pushes, scheduled)
     if (!parentMessage && !canonicalPushTargetId && !isScheduled && crossPostToLinkedIn === true) {
-      const linkedInIdentity = await prisma.linkedIdentity.findFirst({
-        where: {
-          userId: user.id,
-          provider: 'linkedin',
-        },
-        select: {
-          id: true,
-          provider: true,
-          providerUserId: true,
-          providerUsername: true,
-          providerData: true,
-        },
-      });
+      const linkedInTarget = await resolveLinkedInTarget(user.id);
 
-      if (linkedInIdentity) {
-        const result = await postToLinkedIn(linkedInIdentity as Parameters<typeof postToLinkedIn>[0], {
+      if (linkedInTarget) {
+        const result = await postToLinkedIn(linkedInTarget, {
           content: finalContent,
           publiclyVisible: finalPubliclyVisible as boolean,
           imageUrls: finalImageUrls,

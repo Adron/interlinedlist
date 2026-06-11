@@ -119,17 +119,10 @@ async function postLinkedInComment(
   }
 }
 
-interface LinkedInProviderData {
-  access_token: string;
-  expires_in?: number;
-}
-
-interface LinkedIdentityWithData {
-  id: string;
-  provider: string;
-  providerUserId: string;
-  providerUsername: string | null;
-  providerData: LinkedInProviderData | null;
+export interface LinkedInPostTarget {
+  accessToken: string;
+  authorUrn: string;
+  credentialId: string;
 }
 
 export interface CrossPostOptions {
@@ -158,22 +151,10 @@ type LinkedInContent =
   | { article: { source: string; title: string; description?: string; thumbnail?: string } };
 
 export async function postToLinkedIn(
-  identity: LinkedIdentityWithData,
+  target: LinkedInPostTarget,
   options: CrossPostOptions
 ): Promise<CrossPostResult> {
-  const providerData = identity.providerData as LinkedInProviderData | null;
-
-  if (!providerData?.access_token) {
-    return {
-      providerId: identity.id,
-      instanceName: 'LinkedIn',
-      success: false,
-      error: 'Missing LinkedIn credentials',
-    };
-  }
-
-  const accessToken = providerData.access_token;
-  const authorUrn = `urn:li:person:${identity.providerUserId}`;
+  const { accessToken, authorUrn, credentialId } = target;
   const visibility = options.publiclyVisible ? 'PUBLIC' : 'CONNECTIONS';
 
   try {
@@ -200,7 +181,7 @@ export async function postToLinkedIn(
         const urn = await uploadImageToLinkedIn(accessToken, authorUrn, url);
         if (!urn) {
           return {
-            providerId: identity.id,
+            providerId: credentialId,
             instanceName: 'LinkedIn',
             success: false,
             error: `Failed to upload image to LinkedIn`,
@@ -285,7 +266,7 @@ export async function postToLinkedIn(
         errMessage = errText || errMessage;
       }
       return {
-        providerId: identity.id,
+        providerId: credentialId,
         instanceName: 'LinkedIn',
         success: false,
         error: errMessage,
@@ -311,7 +292,7 @@ export async function postToLinkedIn(
     }
 
     return {
-      providerId: identity.id,
+      providerId: credentialId,
       instanceName: 'LinkedIn',
       success: true,
       url,
@@ -321,7 +302,7 @@ export async function postToLinkedIn(
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     return {
-      providerId: identity.id,
+      providerId: credentialId,
       instanceName: 'LinkedIn',
       success: false,
       error: message,

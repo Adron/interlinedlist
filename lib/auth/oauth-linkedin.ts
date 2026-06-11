@@ -110,3 +110,68 @@ export async function fetchLinkedInUser(accessToken: string): Promise<LinkedInUs
   }
   return response.json();
 }
+
+export function getLinkedInOrgRedirectUri(): string {
+  return (
+    process.env.LINKEDIN_ORG_REDIRECT_URI ||
+    `${APP_URL}/api/auth/linkedin/org-callback`
+  );
+}
+
+export function buildLinkedInOrgAuthUrl(state: string): string {
+  const { clientId } = getLinkedInConfig();
+  const redirectUri = getLinkedInOrgRedirectUri();
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: LINKEDIN_ORG_SCOPES,
+    state,
+  });
+  return `${LINKEDIN_AUTH_URL}?${params.toString()}`;
+}
+
+export interface LinkedInAdminPage {
+  id: string;
+  name: string;
+  logoUrl?: string;
+}
+
+export async function fetchLinkedInAdminPages(accessToken: string): Promise<LinkedInAdminPage[]> {
+  const url = new URL('https://api.linkedin.com/v2/organizationalEntityAcls');
+  url.searchParams.set('q', 'roleAssignee');
+  url.searchParams.set('role', 'ADMINISTRATOR');
+  url.searchParams.set('projection', '(elements*(organizationalTarget~(id,localizedName)))');
+
+  const response = await fetch(url.toString(), {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Linkedin-Version': '202510',
+      'X-Restli-Protocol-Version': '2.0.0',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch LinkedIn admin pages: HTTP ${response.status}`);
+  }
+
+  const data = await response.json() as {
+    elements?: Array<{
+      'organizationalTarget~'?: {
+        id?: number;
+        localizedName?: string;
+      };
+    }>;
+  };
+
+  const pages: LinkedInAdminPage[] = [];
+  for (const element of data.elements ?? []) {
+    const orgData = element['organizationalTarget~'];
+    if (!orgData?.id) continue;
+    pages.push({
+      id: String(orgData.id),
+      name: orgData.localizedName ?? `Organization ${orgData.id}`,
+    });
+  }
+  return pages;
+}
