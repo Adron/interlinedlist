@@ -15,6 +15,7 @@ export interface OAuthState {
   provider: string;
   instance?: string; // For Mastodon
   redirectUri?: string; // For mobile OAuth — custom scheme (e.g. interlinedlist://oauth/callback)
+  organizationId?: string; // For org-level LinkedIn flow
 }
 
 export async function setOAuthStateCookie(value: OAuthState): Promise<void> {

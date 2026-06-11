@@ -13,6 +13,7 @@ const LINKEDIN_USERINFO_URL = 'https://api.linkedin.com/v2/userinfo';
 export const LINKEDIN_PROVIDER = 'linkedin';
 
 const LINKEDIN_SCOPES = 'openid profile email w_member_social';
+const LINKEDIN_ORG_SCOPES = 'openid profile email w_member_social rw_organization_admin';
 
 export function isLinkedInConfigured(): boolean {
   const clientId = process.env.LINKEDIN_CLIENT_ID;
