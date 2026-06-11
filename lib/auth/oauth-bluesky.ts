@@ -56,6 +56,8 @@ export async function getBlueskyFetch(): Promise<typeof fetch> {
       method: req.method,
       headers,
       body: req.body ?? undefined,
+      // duplex is required when sending a streaming body (Node.js / undici)
+      ...(req.body ? { duplex: 'half' } : {}),
       signal: req.signal ?? undefined,
       redirect: req.redirect as RequestRedirect,
       ...init,
