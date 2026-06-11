@@ -150,10 +150,8 @@ export async function postToBluesky(
     const { distributeMedia } = await import('@/lib/crosspost/media-distributor');
     const { getThreadPostText } = await import('@/lib/crosspost/thread-text');
     const { buildBlueskyLinkFacets } = await import('@/lib/bluesky/richtext-facets');
-    // Use undici's fetch directly to bypass Next.js's fetch patching.
-    // Next.js re-wraps Request objects with body:ReadableStream (source=null), which
-    // causes Node.js 25 to throw "expected non-null body source" on any HTTP redirect.
-    const { fetch: undiciFetch } = await import('undici');
+    const { getBlueskyFetch } = await import('@/lib/auth/oauth-bluesky');
+    const blueskyFetch = await getBlueskyFetch();
 
     const metadata = getBlueskyClientMetadata();
 
@@ -170,7 +168,7 @@ export async function postToBluesky(
       stateStore: blueskyStateStore,
       sessionStore,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      fetch: undiciFetch as any,
+      fetch: blueskyFetch as any,
     });
 
     const session = await client.restore(did);
