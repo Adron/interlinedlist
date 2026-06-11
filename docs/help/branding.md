@@ -75,16 +75,22 @@ Full horizontal logotype with the InterlinedList wordmark.
 
 ### SVG Source Files
 
-Vector files that scale to any size without quality loss.
+Vector files that scale to any size without quality loss. Each SVG contains the full combined wordmark — logo mark plus the "InterlinedList" name — not the icon mark alone. For the standalone icon mark, download `interlinedlist-logo-only.png` from the icon table above.
 
 | File | Description | Download |
 | --- | --- | --- |
-| logo-dark.svg | Icon mark — brand colours on transparent | [logo-dark.svg](/brand/svg/logo-dark.svg) |
-| logo-light.svg | Icon mark — white fills on transparent | [logo-light.svg](/brand/svg/logo-light.svg) |
+| logo-dark.svg | Full wordmark — brand colours, near-black counters (for dark surfaces) | [logo-dark.svg](/brand/svg/logo-dark.svg) |
+| logo-light.svg | Full wordmark — brand colours, white counters (for light/white surfaces) | [logo-light.svg](/brand/svg/logo-light.svg) |
 
 ---
 
 ## Logo Previews
+
+### Primary logo mark — `interlinedlist-logo-only.png`
+
+This is the logo. Use it wherever a standalone icon is needed.
+
+![InterlinedList primary logo mark](/brand/icon/icon-dark-transparent-256.png)
 
 ### Icon mark — transparent background (dark)
 
@@ -132,12 +138,30 @@ Together these colours say: this is a thoughtful, organised, purposeful place to
 
 ## Logo Assets
 
-Two SVG variants are provided as master source files. All PNG assets in the [Downloads](#download-assets) section above are derived from these.
+### Primary Logo Mark — `interlinedlist-logo-only.png`
+
+**This is the canonical logo.** When you need the InterlinedList logo in isolation — app icons, favicons, social avatars, navigation bars, or any context where the icon stands alone — use `interlinedlist-logo-only.png`. It is the definitive, production-ready form of the mark.
+
+The logo mark is the interlocked chain/knot symbol rendered in the three brand colours: Ocean Blue (`#0F4C5F`), Emerald Green (`#34A56D`), and Amber Gold (`#F9AF36`), on a transparent background.
+
+Do not substitute a screenshot, re-export from another source, or derive a new version. Use the file as-is.
+
+### SVG Variants
+
+Two SVG files are provided. Each contains the full combined wordmark — the logo mark on the left plus the "InterlinedList" text on the right. The text is two-colour: **Interlined** in Ocean Blue (`#0F4C5F`) and **List** in Emerald Green (`#34A56D`).
+
+| File | Counter fills | Best for |
+| --- | --- | --- |
+| `logo-dark.svg` | Near-black (`#1a1a1a`) | Dark backgrounds — counters blend into the dark surface |
+| `logo-light.svg` | White (`#ffffff`) | Light/white backgrounds — counters blend into the white surface |
+
+Use the SVG wordmark when you need the icon and the name together at large display sizes (headers, presentations, print). For everything else — favicons, app icons, nav bars — use `interlinedlist-logo-only.png`.
+
+### Other PNG Assets
 
 | File | Best for |
 | --- | --- |
-| `logo-dark.svg` | Transparent bg — use on light/white surfaces |
-| `logo-light.svg` | Transparent bg, white fills — use on dark or coloured surfaces |
+| `interlinedlist-logo-only.png` | **Canonical logo mark** — nav bars, favicons, app icons, social avatars |
 | `icon-on-white-*` PNGs | Ready-to-use on white backgrounds, no compositing needed |
 | `icon-on-black-*` PNGs | Ready-to-use on black/dark backgrounds |
 | `icon-on-ocean-*` PNGs | Ready-to-use on Ocean Blue brand backgrounds |
@@ -153,10 +177,11 @@ Two SVG variants are provided as master source files. All PNG assets in the [Dow
 
 **Do:**
 
-- Use the dark logo variant on light/white backgrounds.
-- Use the light logo variant (`logo-light.svg` or `icon-light-transparent-*`) on dark, coloured, or photographic backgrounds.
+- Use `interlinedlist-logo-only.png` as the logo mark in all app, web, and product contexts — it is the canonical file.
+- Use `logo-light.svg` (white counters) on light/white backgrounds when displaying the full wordmark.
+- Use `logo-dark.svg` (dark counters) on dark or coloured backgrounds when displaying the full wordmark.
 - Give the logo breathing room — leave clear space around it equal to roughly the height of the "I" in "Interlined."
-- Use the icon-only version when space is very tight (profile pictures, small app tiles).
+- Use the icon-only PNG when space is very tight (profile pictures, small app tiles, favicons).
 - Scale proportionally: hold shift when resizing to avoid distortion.
 
 **Minimum sizes:**
@@ -344,8 +369,9 @@ If you are building a community theme, browser extension, or embedded widget tha
 
 **Do:**
 
-- Use the provided logo files — do not recreate the logo by hand.
-- Match the logo variant to the background (dark logo on light surfaces, light logo on dark surfaces).
+- Use `interlinedlist-logo-only.png` as the canonical logo mark — it is the definitive file for the InterlinedList icon.
+- Use the provided logo files as-is — do not recreate the logo by hand.
+- Match the SVG wordmark variant to the background (`logo-light.svg` on light surfaces, `logo-dark.svg` on dark surfaces).
 - Use Ocean Blue (`#0F4C5F`), Emerald Green (`#34A56D`), and Amber Gold (`#F9AF36`) as your primary colour references.
 - Use the Play typeface for headings and display text to match the brand feel.
 - Give the logo adequate space — do not crowd it with other elements.
