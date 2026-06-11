@@ -31,6 +31,38 @@ export function getBlueskyConfig() {
   return { clientId };
 }
 
+/**
+ * Returns a fetch function backed by undici that works with NodeOAuthClient.
+ *
+ * Undici's fetch rejects Request objects that weren't created by undici's own
+ * Request constructor (e.g. the global Request class patched by Next.js on
+ * Node.js 25). This wrapper decomposes any Request object into a plain URL +
+ * init before forwarding to undici, so the OAuth metadata / token requests
+ * never touch Next.js's patched globalThis.fetch.
+ */
+export async function getBlueskyFetch(): Promise<typeof fetch> {
+  const { fetch: undiciFetch } = await import('undici');
+
+  return function blueskyFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+    if (typeof input === 'string' || input instanceof URL) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (undiciFetch as any)(input, init);
+    }
+    const req = input as Request;
+    const headers: Record<string, string> = {};
+    req.headers.forEach((v, k) => { headers[k] = v; });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (undiciFetch as any)(req.url, {
+      method: req.method,
+      headers,
+      body: req.body ?? undefined,
+      signal: req.signal ?? undefined,
+      redirect: req.redirect as RequestRedirect,
+      ...init,
+    });
+  } as typeof fetch;
+}
+
 /** OAuth client metadata object. Use this instead of fetching to avoid network failures. */
 export function getBlueskyClientMetadata() {
   const { clientId } = getBlueskyConfig();
