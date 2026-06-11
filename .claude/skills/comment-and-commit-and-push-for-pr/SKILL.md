@@ -25,7 +25,87 @@ which gh && gh auth status
 
 ## Step-by-step
 
-### 1. Snapshot current state
+### 1. Sync with remote before touching anything
+
+Before staging a single file, make sure the working branch is up to date. Run these in parallel:
+
+```bash
+git rev-parse --abbrev-ref HEAD
+git fetch --all --prune
+git status --short
+```
+
+Use the results to determine the sync strategy:
+
+#### 1a. Pull the current branch's remote counterpart (if it exists)
+
+```bash
+git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null
+```
+
+- **Tracking branch exists and working tree is clean**: pull normally.
+
+  ```bash
+  git pull
+  ```
+
+- **Tracking branch exists but there are uncommitted changes**: do **not** stash automatically. Tell the user that local changes are present and ask whether to stash-pull-unstash or skip the pull. Default recommendation: stash, pull, unstash.
+
+  ```bash
+  # Only run these three commands if user agrees:
+  git stash push -m "pre-sync stash"
+  git pull
+  git stash pop
+  ```
+
+  If `git stash pop` produces conflicts, stop and ask the user to resolve them before continuing.
+
+- **No tracking branch**: skip the pull; the branch is local-only and there is nothing to pull from yet.
+
+- **Pull rejected (non-fast-forward / diverged)**: stop immediately. Report the divergence and ask the user how to proceed. Do **not** rebase or reset without explicit instruction.
+
+#### 1b. Merge the integration branch if behind it
+
+After pulling the current branch, check whether it is behind `develop` (or `main` if `develop` doesn't exist):
+
+```bash
+# determine integration branch (prefer develop, fall back to main/master)
+git rev-parse --verify origin/develop 2>/dev/null && echo "develop" || \
+  git rev-parse --verify origin/main 2>/dev/null && echo "main" || echo "master"
+```
+
+Then count how many commits the integration branch has that the current branch does not:
+
+```bash
+git rev-list --count HEAD..origin/<integration-branch>
+```
+
+- **Count > 0 (current branch is behind)**: merge the integration branch in.
+
+  ```bash
+  git merge origin/<integration-branch> --no-edit
+  ```
+
+  - If the merge succeeds cleanly, report the number of commits pulled in and continue.
+  - If the merge produces **conflicts**: stop immediately. List the conflicting files and ask the user to resolve them, then re-run the skill.
+
+- **Count = 0 (current branch is up to date or ahead)**: no action needed; continue.
+
+- **Current branch IS the integration branch** (e.g., you are on `develop`): skip this sub-step entirely.
+
+#### 1c. Confirm the working tree is ready
+
+After syncing, verify the tree is in a state suitable for staging:
+
+```bash
+git status --short
+```
+
+If merge conflict markers (`<<<<<<<`) appear in any tracked file, stop and ask the user to resolve them.
+
+---
+
+### 2. Snapshot current state
 
 Run these four commands **in parallel**:
 
@@ -47,7 +127,7 @@ If no `origin` remote exists, stop and ask the user to add one:
 git remote add origin <url>
 ```
 
-### 2. Analyse the diff
+### 3. Analyse the diff
 
 Read the diff carefully. For each changed file identify:
 
@@ -55,7 +135,7 @@ Read the diff carefully. For each changed file identify:
 - **Why** it changed — infer from context, variable names, surrounding code, and file paths.
 - Whether any file should **not** be committed (`.env`, secrets, large binaries, untracked lock files). If spotted, pause and ask.
 
-### 3. Stage the files
+### 4. Stage the files
 
 Prefer explicit file names over `git add -A` so accidental inclusions are visible:
 
@@ -69,7 +149,7 @@ Do **not** stage:
 - `.env`, `.env.*`, or any file likely to contain secrets
 - Large binary files unless explicitly requested
 
-### 4. Draft and create the commit
+### 5. Draft and create the commit
 
 Follow conventions from `git log`. Default structure when no convention is evident:
 
@@ -97,7 +177,7 @@ EOF
 
 If the pre-commit hook fails: fix the issue, re-stage, and create a **new** commit. Never use `--no-verify`.
 
-### 5. Determine upstream tracking and push
+### 6. Determine upstream tracking and push
 
 Check whether the current branch already has a remote tracking branch:
 
