@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockFindFirstAssignment = vi.hoisted(() => vi.fn());
 const mockFindFirstIdentity = vi.hoisted(() => vi.fn());
+const mockFindUniquePersonalPage = vi.hoisted(() => vi.fn());
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -18,6 +19,9 @@ vi.mock('@/lib/prisma', () => ({
     },
     linkedIdentity: {
       findFirst: mockFindFirstIdentity,
+    },
+    linkedInPersonalPage: {
+      findUnique: mockFindUniquePersonalPage,
     },
   },
 }));
@@ -394,6 +398,153 @@ describe('resolveLinkedInTarget — explicit orgPage target', () => {
   });
 });
 
+// ─── explicit requested target: { kind: 'personalPage', personalPageId } ──
+
+function makePersonalPage(overrides?: {
+  linkedInPageId?: string;
+  identityUserId?: string;
+  identityProvider?: string;
+  identityId?: string;
+  providerData?: Record<string, unknown> | null;
+}) {
+  return {
+    id: 'pp-uuid-1',
+    linkedInPageId: overrides?.linkedInPageId ?? 'li-page-777',
+    identity: {
+      id: overrides?.identityId ?? 'identity-1',
+      userId: overrides?.identityUserId ?? 'user-1',
+      provider: overrides?.identityProvider ?? 'linkedin',
+      providerData:
+        overrides?.providerData !== undefined
+          ? overrides.providerData
+          : { access_token: 'personal-token' },
+    },
+  };
+}
+
+describe('resolveLinkedInTarget — explicit personalPage target', () => {
+  afterEach(() => vi.clearAllMocks());
+
+  it('returns the organization URN with the personal token and identity id as credentialId', async () => {
+    mockFindUniquePersonalPage.mockResolvedValue(makePersonalPage());
+
+    const target = await resolveLinkedInTarget('user-1', {
+      kind: 'personalPage',
+      personalPageId: 'pp-uuid-1',
+    });
+    expect(target?.authorUrn).toBe('urn:li:organization:li-page-777');
+    expect(target?.accessToken).toBe('personal-token');
+    expect(target?.credentialId).toBe('identity-1');
+  });
+
+  it('looks up the page by its uuid primary key including the identity', async () => {
+    mockFindUniquePersonalPage.mockResolvedValue(makePersonalPage());
+
+    await resolveLinkedInTarget('user-1', {
+      kind: 'personalPage',
+      personalPageId: 'pp-uuid-1',
+    });
+
+    expect(mockFindUniquePersonalPage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'pp-uuid-1' },
+      })
+    );
+  });
+
+  it('returns null when the page does not exist', async () => {
+    mockFindUniquePersonalPage.mockResolvedValue(null);
+
+    const target = await resolveLinkedInTarget('user-1', {
+      kind: 'personalPage',
+      personalPageId: 'missing-page',
+    });
+    expect(target).toBeNull();
+  });
+
+  it("returns null when the page's identity belongs to a different user (ownership check)", async () => {
+    mockFindUniquePersonalPage.mockResolvedValue(
+      makePersonalPage({ identityUserId: 'someone-else' })
+    );
+
+    const target = await resolveLinkedInTarget('user-1', {
+      kind: 'personalPage',
+      personalPageId: 'pp-uuid-1',
+    });
+    expect(target).toBeNull();
+  });
+
+  it("returns null when the page's identity is not a linkedin identity", async () => {
+    mockFindUniquePersonalPage.mockResolvedValue(
+      makePersonalPage({ identityProvider: 'twitter' })
+    );
+
+    const target = await resolveLinkedInTarget('user-1', {
+      kind: 'personalPage',
+      personalPageId: 'pp-uuid-1',
+    });
+    expect(target).toBeNull();
+  });
+
+  it('returns null when the identity has no access_token', async () => {
+    mockFindUniquePersonalPage.mockResolvedValue(
+      makePersonalPage({ providerData: null })
+    );
+
+    const target = await resolveLinkedInTarget('user-1', {
+      kind: 'personalPage',
+      personalPageId: 'pp-uuid-1',
+    });
+    expect(target).toBeNull();
+  });
+
+  it('returns null when the personal access token is expired', async () => {
+    mockFindUniquePersonalPage.mockResolvedValue(
+      makePersonalPage({
+        providerData: {
+          access_token: 'stale-token',
+          expires_at: '2020-01-01T00:00:00.000Z',
+        },
+      })
+    );
+
+    const target = await resolveLinkedInTarget('user-1', {
+      kind: 'personalPage',
+      personalPageId: 'pp-uuid-1',
+    });
+    expect(target).toBeNull();
+  });
+
+  it('treats a token with a future expires_at as valid', async () => {
+    const future = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    mockFindUniquePersonalPage.mockResolvedValue(
+      makePersonalPage({
+        providerData: { access_token: 'fresh-token', expires_at: future },
+      })
+    );
+
+    const target = await resolveLinkedInTarget('user-1', {
+      kind: 'personalPage',
+      personalPageId: 'pp-uuid-1',
+    });
+    expect(target?.accessToken).toBe('fresh-token');
+  });
+
+  it('does NOT fall back to org assignments or the personal identity', async () => {
+    mockFindUniquePersonalPage.mockResolvedValue(null);
+    mockFindFirstAssignment.mockResolvedValue(makeAssignment());
+    mockFindFirstIdentity.mockResolvedValue(makeIdentity());
+
+    const target = await resolveLinkedInTarget('user-1', {
+      kind: 'personalPage',
+      personalPageId: 'missing-page',
+    });
+    expect(target).toBeNull();
+    expect(mockFindFirstAssignment).not.toHaveBeenCalled();
+    expect(mockFindFirstIdentity).not.toHaveBeenCalled();
+  });
+});
+
 // ─── parseRequestedLinkedInTarget ──────────────────────────────────────────
 
 describe('parseRequestedLinkedInTarget — accepted values', () => {
@@ -418,6 +569,15 @@ describe('parseRequestedLinkedInTarget — accepted values', () => {
       target: { kind: 'orgPage', pageId: 'abc' },
     });
   });
+
+  it('accepts { kind: "personalPage", personalPageId: "pp-1" }', () => {
+    expect(
+      parseRequestedLinkedInTarget({ kind: 'personalPage', personalPageId: 'pp-1' })
+    ).toEqual({
+      ok: true,
+      target: { kind: 'personalPage', personalPageId: 'pp-1' },
+    });
+  });
 });
 
 describe('parseRequestedLinkedInTarget — rejected values', () => {
@@ -435,6 +595,28 @@ describe('parseRequestedLinkedInTarget — rejected values', () => {
 
   it('rejects an empty-string pageId', () => {
     expect(parseRequestedLinkedInTarget({ kind: 'orgPage', pageId: '' })).toEqual({ ok: false });
+  });
+
+  it('rejects { kind: "personalPage" } without a personalPageId', () => {
+    expect(parseRequestedLinkedInTarget({ kind: 'personalPage' })).toEqual({ ok: false });
+  });
+
+  it('rejects an empty-string personalPageId', () => {
+    expect(
+      parseRequestedLinkedInTarget({ kind: 'personalPage', personalPageId: '' })
+    ).toEqual({ ok: false });
+  });
+
+  it('rejects a non-string personalPageId', () => {
+    expect(
+      parseRequestedLinkedInTarget({ kind: 'personalPage', personalPageId: 9 })
+    ).toEqual({ ok: false });
+  });
+
+  it('rejects a personalPage kind that only provides pageId', () => {
+    expect(
+      parseRequestedLinkedInTarget({ kind: 'personalPage', pageId: 'pp-1' })
+    ).toEqual({ ok: false });
   });
 
   it('rejects an unknown kind', () => {
@@ -502,6 +684,50 @@ describe('parseRequestedLinkedInTargets — accepted values', () => {
     ).toEqual({
       ok: true,
       targets: [{ kind: 'orgPage', pageId: 'abc' }],
+    });
+  });
+});
+
+describe('parseRequestedLinkedInTargets — personalPage entries', () => {
+  it('accepts [{ kind: "personalPage", personalPageId: "pp-1" }]', () => {
+    expect(
+      parseRequestedLinkedInTargets([{ kind: 'personalPage', personalPageId: 'pp-1' }])
+    ).toEqual({
+      ok: true,
+      targets: [{ kind: 'personalPage', personalPageId: 'pp-1' }],
+    });
+  });
+
+  it('accepts a mixed array of all three kinds, preserving order', () => {
+    expect(
+      parseRequestedLinkedInTargets([
+        { kind: 'personal' },
+        { kind: 'orgPage', pageId: 'page-a' },
+        { kind: 'personalPage', personalPageId: 'pp-1' },
+      ])
+    ).toEqual({
+      ok: true,
+      targets: [
+        { kind: 'personal' },
+        { kind: 'orgPage', pageId: 'page-a' },
+        { kind: 'personalPage', personalPageId: 'pp-1' },
+      ],
+    });
+  });
+
+  it('rejects a personalPage entry missing personalPageId', () => {
+    expect(parseRequestedLinkedInTargets([{ kind: 'personalPage' }])).toEqual({ ok: false });
+  });
+
+  it('dedupes repeated personalPage entries with the same personalPageId', () => {
+    expect(
+      parseRequestedLinkedInTargets([
+        { kind: 'personalPage', personalPageId: 'pp-1' },
+        { kind: 'personalPage', personalPageId: 'pp-1' },
+      ])
+    ).toEqual({
+      ok: true,
+      targets: [{ kind: 'personalPage', personalPageId: 'pp-1' }],
     });
   });
 });
@@ -669,5 +895,38 @@ describe('dedupeRequestedLinkedInTargets', () => {
         { kind: 'orgPage', pageId: 'personal' },
       ])
     ).toEqual([{ kind: 'personal' }, { kind: 'orgPage', pageId: 'personal' }]);
+  });
+
+  it('collapses personalPage targets with the same personalPageId to one', () => {
+    expect(
+      dedupeRequestedLinkedInTargets([
+        { kind: 'personalPage', personalPageId: 'pp-1' },
+        { kind: 'personalPage', personalPageId: 'pp-1' },
+      ])
+    ).toEqual([{ kind: 'personalPage', personalPageId: 'pp-1' }]);
+  });
+
+  it('keeps personalPage targets with distinct personalPageIds', () => {
+    expect(
+      dedupeRequestedLinkedInTargets([
+        { kind: 'personalPage', personalPageId: 'pp-1' },
+        { kind: 'personalPage', personalPageId: 'pp-2' },
+      ])
+    ).toEqual([
+      { kind: 'personalPage', personalPageId: 'pp-1' },
+      { kind: 'personalPage', personalPageId: 'pp-2' },
+    ]);
+  });
+
+  it('does not conflate an orgPage and a personalPage sharing the same id value', () => {
+    expect(
+      dedupeRequestedLinkedInTargets([
+        { kind: 'orgPage', pageId: 'same-id' },
+        { kind: 'personalPage', personalPageId: 'same-id' },
+      ])
+    ).toEqual([
+      { kind: 'orgPage', pageId: 'same-id' },
+      { kind: 'personalPage', personalPageId: 'same-id' },
+    ]);
   });
 });

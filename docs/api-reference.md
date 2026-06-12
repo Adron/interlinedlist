@@ -706,7 +706,8 @@ Partners who receive or build a branded integration bundle should verify it cont
   "crossPostToLinkedIn": false,
   "linkedInTargets": [
     { "kind": "personal" },
-    { "kind": "orgPage", "pageId": "<org-linkedin-page-uuid>" }
+    { "kind": "orgPage", "pageId": "<org-linkedin-page-uuid>" },
+    { "kind": "personalPage", "personalPageId": "<linkedin-personal-page-uuid>" }
   ],
   "linkedInLinkAsFirstComment": false,
   "crossPostToTwitter": false,
@@ -727,7 +728,7 @@ Partners who receive or build a branded integration bundle should verify it cont
 | `mastodonProviderIds` | string[] | no | IDs of linked Mastodon identities to post to. Requires subscription. Skipped for replies and push messages. |
 | `crossPostToBluesky` | boolean | no | Post to the linked Bluesky account. Requires subscription. Skipped for replies and push messages. |
 | `crossPostToLinkedIn` | boolean | no | Post to LinkedIn. Requires subscription. Skipped for replies and push messages. Destinations are selected with `linkedInTargets`; without it, legacy resolution applies (most recently connected assigned org page, falling back to the personal account). |
-| `linkedInTargets` | object[] | no | LinkedIn destinations to post to, used with `crossPostToLinkedIn: true`. Each element is `{ "kind": "personal" }` or `{ "kind": "orgPage", "pageId": "<OrgLinkedInPage uuid>" }`. Duplicates are removed. Each org page must be assigned to the caller. Discover available targets via `GET /api/linkedin/posting-targets`. |
+| `linkedInTargets` | object[] | no | LinkedIn destinations to post to, used with `crossPostToLinkedIn: true`. Each element is `{ "kind": "personal" }`, `{ "kind": "orgPage", "pageId": "<OrgLinkedInPage uuid>" }`, or `{ "kind": "personalPage", "personalPageId": "<LinkedInPersonalPage uuid>" }`. Duplicates are removed. Each org page must be assigned to the caller; each personal page must belong to the caller's own LinkedIn connection. Discover available targets via `GET /api/linkedin/posting-targets`. |
 | `linkedInTarget` | object | no | **Legacy** single-destination form, same element shape as `linkedInTargets`. Accepted for backward compatibility and treated as a one-element array when `linkedInTargets` is absent or empty. |
 | `linkedInLinkAsFirstComment` | boolean | no | Post the InterlinedList link as the first comment rather than in the body (LinkedIn only; applies to all LinkedIn targets). |
 | `crossPostToTwitter` | boolean | no | Post to the linked Twitter/X account. Requires subscription. |
@@ -747,7 +748,7 @@ Partners who receive or build a branded integration bundle should verify it cont
 }
 ```
 
-LinkedIn posting fans out: each entry in `linkedInTargets` is posted independently and produces its own `crossPostResults` entry, so one failed target does not abort the others. The `instanceName` is `LinkedIn (<page name>)` for org pages, `LinkedIn (personal)` for the personal account when multiple targets are requested, and plain `LinkedIn` for a single default/personal post.
+LinkedIn posting fans out: each entry in `linkedInTargets` is posted independently and produces its own `crossPostResults` entry, so one failed target does not abort the others. The `instanceName` is `LinkedIn (<page name>)` for org pages and personal company pages, `LinkedIn (personal)` for the personal account when multiple targets are requested, and plain `LinkedIn` for a single default/personal post. An unavailable personal company page fails with `"The selected LinkedIn company page is unavailable — reconnect LinkedIn or re-sync your company pages in Settings."`.
 
 When scheduling: `"message": "Message scheduled successfully"` and `"scheduledAt"` are included instead. The stored `scheduledCrossPostConfig` includes `linkedInTargets` when provided, and the cron publisher posts to each target.
 
@@ -806,14 +807,15 @@ When scheduling: `"message": "Message scheduled successfully"` and `"scheduledAt
     "linkedInLinkAsFirstComment": false,
     "linkedInTargets": [
       { "kind": "personal" },
-      { "kind": "orgPage", "pageId": "<org-linkedin-page-uuid>" }
+      { "kind": "orgPage", "pageId": "<org-linkedin-page-uuid>" },
+      { "kind": "personalPage", "personalPageId": "<linkedin-personal-page-uuid>" }
     ],
     "crossPostToTwitter": false
   }
 }
 ```
 
-`scheduledCrossPostConfig.linkedInTargets` is an array of LinkedIn destinations (`{ "kind": "personal" }` or `{ "kind": "orgPage", "pageId": "<uuid>" }`); the cron publisher posts to each one. The legacy single-object `linkedInTarget` field is still accepted and is stored only when `linkedInTargets` is absent or empty. Set `scheduledCrossPostConfig` to `null` to clear all cross-post settings.
+`scheduledCrossPostConfig.linkedInTargets` is an array of LinkedIn destinations (`{ "kind": "personal" }`, `{ "kind": "orgPage", "pageId": "<uuid>" }`, or `{ "kind": "personalPage", "personalPageId": "<uuid>" }`); the cron publisher posts to each one. The legacy single-object `linkedInTarget` field is still accepted and is stored only when `linkedInTargets` is absent or empty. Set `scheduledCrossPostConfig` to `null` to clear all cross-post settings.
 
 **Response** `200 OK` — the updated message object.
 
@@ -2653,9 +2655,9 @@ These endpoints proxy GitHub API requests using the user's linked GitHub identit
 
 ## LinkedIn Integration
 
-Endpoints for discovering and configuring the LinkedIn destinations a user can cross-post to. A **target** is either the user's personal LinkedIn account (linked via OAuth) or an organization page the user has been assigned to with an active organization-level connection.
+Endpoints for discovering and configuring the LinkedIn destinations a user can cross-post to. A **target** is the user's personal LinkedIn account (linked via OAuth), an organization page the user has been assigned to with an active organization-level connection, or a **personal company page** — a LinkedIn company page the user administers, discovered through their own LinkedIn connection when it was linked with the `rw_organization_admin` scope.
 
-Target objects come in two shapes:
+Target objects come in three shapes:
 
 ```json
 { "kind": "personal", "label": "Alice Example", "avatarUrl": "https://..." }
@@ -2669,20 +2671,30 @@ Target objects come in two shapes:
   "logoUrl": "https://..."
 }
 ```
+```json
+{
+  "kind": "personalPage",
+  "personalPageId": "<LinkedInPersonalPage uuid>",
+  "linkedInPageId": "87654321",
+  "label": "Alice's Studio",
+  "logoUrl": "https://..."
+}
+```
 
-`pageId` is the InterlinedList `OrgLinkedInPage` record ID (use this in `linkedInTargets` when posting); `linkedInPageId` is LinkedIn's own page identifier. `avatarUrl` / `logoUrl` may be `null`.
+`pageId` is the InterlinedList `OrgLinkedInPage` record ID and `personalPageId` is the InterlinedList `LinkedInPersonalPage` record ID (use these in `linkedInTargets` when posting); `linkedInPageId` is LinkedIn's own page identifier. `avatarUrl` / `logoUrl` may be `null`. When the same LinkedIn page is reachable both as an org page and as a personal page, only the `orgPage` target is returned.
 
 ### GET /api/linkedin/targets
 
 **Auth required:** yes  
-**Description:** List every LinkedIn destination the user can post to right now — the personal account (when linked with an access token) plus assigned org pages with an active, non-expired organization connection.
+**Description:** List every LinkedIn destination the user can post to right now — the personal account (when linked with an active access token), assigned org pages with an active, non-expired organization connection, and the user's synced personal company pages (when the personal connection is active).
 
 **Response** `200 OK`
 ```json
 {
   "targets": [
     { "kind": "personal", "label": "Alice Example", "avatarUrl": null },
-    { "kind": "orgPage", "pageId": "...", "linkedInPageId": "12345678", "label": "Acme Corp", "logoUrl": null }
+    { "kind": "orgPage", "pageId": "...", "linkedInPageId": "12345678", "label": "Acme Corp", "logoUrl": null },
+    { "kind": "personalPage", "personalPageId": "...", "linkedInPageId": "87654321", "label": "Alice's Studio", "logoUrl": null }
   ]
 }
 ```
@@ -2707,7 +2719,8 @@ Preferences are a client-side default for the composer's target selection only �
 {
   "targets": [
     { "kind": "personal", "label": "Alice Example", "avatarUrl": null, "enabled": true },
-    { "kind": "orgPage", "pageId": "...", "linkedInPageId": "12345678", "label": "Acme Corp", "logoUrl": null, "enabled": false }
+    { "kind": "orgPage", "pageId": "...", "linkedInPageId": "12345678", "label": "Acme Corp", "logoUrl": null, "enabled": false },
+    { "kind": "personalPage", "personalPageId": "...", "linkedInPageId": "87654321", "label": "Alice's Studio", "logoUrl": null, "enabled": true }
   ]
 }
 ```
@@ -2730,19 +2743,21 @@ Preferences are a client-side default for the composer's target selection only �
 {
   "targets": [
     { "kind": "personal" },
-    { "kind": "orgPage", "pageId": "<OrgLinkedInPage uuid>" }
+    { "kind": "orgPage", "pageId": "<OrgLinkedInPage uuid>" },
+    { "kind": "personalPage", "personalPageId": "<LinkedInPersonalPage uuid>" }
   ]
 }
 ```
 
-Every requested target is validated against what the caller can actually post to: `personal` requires a linked LinkedIn account, and each `pageId` must be an org page assigned to the caller with an active connection.
+Every requested target is validated against what the caller can actually post to: `personal` requires a linked LinkedIn account, each `pageId` must be an org page assigned to the caller with an active connection, and each `personalPageId` must be a synced company page available through the caller's own LinkedIn connection.
 
 **Response** `200 OK` — the updated preference state, same shape as `GET /api/linkedin/posting-targets`:
 ```json
 {
   "targets": [
     { "kind": "personal", "label": "Alice Example", "avatarUrl": null, "enabled": true },
-    { "kind": "orgPage", "pageId": "...", "linkedInPageId": "12345678", "label": "Acme Corp", "logoUrl": null, "enabled": true }
+    { "kind": "orgPage", "pageId": "...", "linkedInPageId": "12345678", "label": "Acme Corp", "logoUrl": null, "enabled": true },
+    { "kind": "personalPage", "personalPageId": "...", "linkedInPageId": "87654321", "label": "Alice's Studio", "logoUrl": null, "enabled": true }
   ]
 }
 ```
@@ -2751,8 +2766,40 @@ Every requested target is validated against what the caller can actually post to
 
 | Status | Condition |
 |--------|-----------|
-| 400 | Invalid JSON body, `targets` is not an array, a target has an invalid shape (`Invalid targets`), personal account not linked, or a page is not assigned to you (`One or more LinkedIn pages are not assigned to you`) |
+| 400 | Invalid JSON body, `targets` is not an array, a target has an invalid shape (`Invalid targets`), personal account not linked, a page is not assigned to you (`One or more LinkedIn pages are not assigned to you`), or a personal company page is not available to you (`One or more LinkedIn company pages are not available to you`) |
 | 401 | Not authenticated |
+
+---
+
+### POST /api/linkedin/sync-pages
+
+**Auth required:** yes  
+**Description:** Re-discover the LinkedIn company pages the user administers via their personal LinkedIn connection and sync them as `LinkedInPersonalPage` records. Pages no longer administered are removed; new and existing pages are upserted. Pages are also synced automatically by the OAuth callback when the account is linked with the org scope, so this endpoint is for refreshing the list afterwards. No request body.
+
+**Response** `200 OK`
+```json
+{
+  "pages": [
+    {
+      "id": "<LinkedInPersonalPage uuid>",
+      "linkedInPageId": "87654321",
+      "pageName": "Alice's Studio",
+      "pageLogoUrl": "https://...",
+      "lastSyncedAt": "2026-06-12T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+`id` is the value to use as `personalPageId` in `linkedInTargets`. `pageLogoUrl` may be `null`.
+
+**Error responses**
+
+| Status | Condition |
+|--------|-----------|
+| 400 | LinkedIn account not linked (`{ "code": "not_linked" }`), or the connection lacks an active token with the `rw_organization_admin` scope (`{ "code": "org_scope_missing" }`) — prompt the user to reconnect via `GET /api/auth/linkedin/authorize?link=true` |
+| 401 | Not authenticated |
+| 502 | LinkedIn API failure while discovering pages (`Failed to sync LinkedIn company pages`) |
 
 ---
 
@@ -2796,6 +2843,8 @@ OAuth connections use a two-step authorize → callback pattern. No request body
 | Twitter/X | `GET /api/auth/twitter/authorize` | `GET /api/auth/twitter/callback` |
 
 All authorize endpoints redirect the browser to the third-party OAuth page. On completion the provider redirects to the callback URL, which creates or updates the `LinkedIdentity` record and redirects the browser back into the app. These flows are intended for use from a browser, not from API clients.
+
+`GET /api/auth/linkedin/authorize?link=true` (account-link mode, initiated from `/integrations`) requests the extended scopes `rw_organization_admin w_organization_social` in addition to the sign-in scopes; plain sign-in keeps the minimal scopes. When `rw_organization_admin` is granted, the LinkedIn callback discovers the company pages the user administers and syncs them as `LinkedInPersonalPage` records (posting targets of kind `personalPage`). A discovery failure does not fail the link — pages can be re-synced via `POST /api/linkedin/sync-pages`.
 
 ---
 

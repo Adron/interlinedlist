@@ -416,6 +416,7 @@ model LinkedIdentity {
   lastVerifiedAt   DateTime?
 
   user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  personalPages    LinkedInPersonalPage[]
 
   @@unique([userId, provider])
   @@index([provider, providerUserId])
@@ -548,18 +549,39 @@ model OrgLinkedInPageAssignment {
   @@map("org_linkedin_page_assignments")
 }
 
-model LinkedInPostingTargetPreference {
-  id        String   @id @default(uuid())
-  userId    String
-  kind      String
-  pageId    String?
-  createdAt DateTime @default(now())
+model LinkedInPersonalPage {
+  id             String    @id @default(uuid())
+  identityId     String
+  linkedInPageId String
+  pageName       String
+  pageLogoUrl    String?
+  discoveredAt   DateTime  @default(now())
+  lastSyncedAt   DateTime?
 
-  user User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  page OrgLinkedInPage? @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  identity          LinkedIdentity                    @relation(fields: [identityId], references: [id], onDelete: Cascade)
+  targetPreferences LinkedInPostingTargetPreference[]
+
+  @@unique([identityId, linkedInPageId])
+  @@index([identityId])
+  @@map("linkedin_personal_pages")
+}
+
+model LinkedInPostingTargetPreference {
+  id             String   @id @default(uuid())
+  userId         String
+  kind           String
+  pageId         String?
+  personalPageId String?
+  createdAt      DateTime @default(now())
+
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  page         OrgLinkedInPage?      @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  personalPage LinkedInPersonalPage? @relation(fields: [personalPageId], references: [id], onDelete: Cascade)
 
   @@unique([userId, kind, pageId])
+  @@unique([userId, kind, personalPageId])
   @@index([userId])
   @@index([pageId])
+  @@index([personalPageId])
   @@map("linkedin_posting_target_preferences")
 }

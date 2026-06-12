@@ -109,21 +109,31 @@ function defaultLinkedInTargets(targets: LinkedInTargetOption[]): RequestedLinke
   const firstPage = targets.find(
     (t): t is Extract<LinkedInTargetOption, { kind: 'orgPage' }> => t.kind === 'orgPage'
   );
-  return firstPage ? [{ kind: 'orgPage', pageId: firstPage.pageId }] : [];
+  if (firstPage) return [{ kind: 'orgPage', pageId: firstPage.pageId }];
+  const firstPersonalPage = targets.find(
+    (t): t is Extract<LinkedInTargetOption, { kind: 'personalPage' }> =>
+      t.kind === 'personalPage'
+  );
+  return firstPersonalPage
+    ? [{ kind: 'personalPage', personalPageId: firstPersonalPage.personalPageId }]
+    : [];
 }
 
 function linkedInOptionKey(option: LinkedInTargetOption): string {
-  return option.kind === 'personal' ? 'personal' : option.pageId;
+  if (option.kind === 'personal') return 'personal';
+  return option.kind === 'orgPage' ? option.pageId : `personalPage-${option.personalPageId}`;
 }
 
 function linkedInRequestedKey(target: RequestedLinkedInTarget): string {
-  return target.kind === 'personal' ? 'personal' : target.pageId;
+  if (target.kind === 'personal') return 'personal';
+  return target.kind === 'orgPage' ? target.pageId : `personalPage-${target.personalPageId}`;
 }
 
 function linkedInOptionToRequested(option: LinkedInTargetOption): RequestedLinkedInTarget {
-  return option.kind === 'personal'
-    ? { kind: 'personal' }
-    : { kind: 'orgPage', pageId: option.pageId };
+  if (option.kind === 'personal') return { kind: 'personal' };
+  return option.kind === 'orgPage'
+    ? { kind: 'orgPage', pageId: option.pageId }
+    : { kind: 'personalPage', personalPageId: option.personalPageId };
 }
 
 export default function MessageInput({ maxLength, defaultPubliclyVisible = false, showAdvancedPostSettings = false, isSubscriber = false, onSubmit }: MessageInputProps) {
@@ -701,7 +711,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                               className="form-check-label small"
                               htmlFor={`compose-linkedin-target-${key}`}
                             >
-                              {t.label} ({t.kind === 'orgPage' ? 'page' : 'personal'})
+                              {t.label} ({t.kind === 'personal' ? 'personal' : 'page'})
                             </label>
                           </div>
                         );
@@ -1286,7 +1296,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                                   className="form-check-label small"
                                   htmlFor={`schedule-linkedin-target-${key}`}
                                 >
-                                  {t.label} ({t.kind === 'orgPage' ? 'page' : 'personal'})
+                                  {t.label} ({t.kind === 'personal' ? 'personal' : 'page'})
                                 </label>
                               </div>
                             );

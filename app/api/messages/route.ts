@@ -458,14 +458,30 @@ export async function POST(request: NextRequest) {
         });
         for (const page of pages) linkedInPageNames.set(page.id, page.pageName);
       }
+      const requestedPersonalPageIds = linkedInTargetsToPost
+        .filter(
+          (t): t is Extract<RequestedLinkedInTarget, { kind: 'personalPage' }> =>
+            t?.kind === 'personalPage'
+        )
+        .map((t) => t.personalPageId);
+      const linkedInPersonalPageNames = new Map<string, string>();
+      if (requestedPersonalPageIds.length > 0) {
+        const pages = await prisma.linkedInPersonalPage.findMany({
+          where: { id: { in: requestedPersonalPageIds } },
+          select: { id: true, pageName: true },
+        });
+        for (const page of pages) linkedInPersonalPageNames.set(page.id, page.pageName);
+      }
 
       for (const requestedTarget of linkedInTargetsToPost) {
         const instanceName =
           requestedTarget?.kind === 'orgPage'
             ? `LinkedIn (${linkedInPageNames.get(requestedTarget.pageId) ?? 'page'})`
-            : linkedInTargetsToPost.length > 1
-              ? 'LinkedIn (personal)'
-              : 'LinkedIn';
+            : requestedTarget?.kind === 'personalPage'
+              ? `LinkedIn (${linkedInPersonalPageNames.get(requestedTarget.personalPageId) ?? 'page'})`
+              : linkedInTargetsToPost.length > 1
+                ? 'LinkedIn (personal)'
+                : 'LinkedIn';
         const resolvedLinkedInTarget = await resolveLinkedInTarget(user.id, requestedTarget);
 
         if (resolvedLinkedInTarget) {
@@ -495,7 +511,9 @@ export async function POST(request: NextRequest) {
                 ? 'Your personal LinkedIn account is not linked. Link it in Settings.'
                 : requestedTarget?.kind === 'orgPage'
                   ? 'The selected LinkedIn page is unavailable — the assignment was removed or the organization connection expired.'
-                  : 'LinkedIn account not linked. Please link in Settings.',
+                  : requestedTarget?.kind === 'personalPage'
+                    ? 'The selected LinkedIn company page is unavailable — reconnect LinkedIn or re-sync your company pages in Settings.'
+                    : 'LinkedIn account not linked. Please link in Settings.',
           });
         }
       }

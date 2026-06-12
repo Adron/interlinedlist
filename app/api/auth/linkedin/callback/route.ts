@@ -9,6 +9,8 @@ import {
   LINKEDIN_PROVIDER,
 } from '@/lib/auth/oauth-linkedin';
 import { getOAuthStateCookie, deleteOAuthStateCookie } from '@/lib/auth/oauth-state';
+import { hasLinkedInOrgScope } from '@/lib/linkedin/provider-data';
+import { syncLinkedInPersonalPages } from '@/lib/linkedin/personal-pages';
 import { getCurrentUser, createSession, getSessionCookieOptions } from '@/lib/auth/session';
 import { createSyncTokenForUser } from '@/lib/auth/sync-token';
 import { isMobileRedirectUri } from '@/lib/auth/pkce';
@@ -70,6 +72,10 @@ export async function GET(request: NextRequest) {
     const providerData = {
       access_token: tokens.access_token,
       expires_in: tokens.expires_in,
+      ...(tokens.scope && { scope: tokens.scope }),
+      ...(tokens.expires_in && {
+        expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
+      }),
     } as object;
 
     const existingLinks = await prisma.linkedIdentity.findMany({
@@ -85,7 +91,7 @@ export async function GET(request: NextRequest) {
         return redirectToLogin('You must be logged in to link accounts');
       }
 
-      await prisma.linkedIdentity.upsert({
+      const identity = await prisma.linkedIdentity.upsert({
         where: { userId_provider: { userId: user.id, provider } },
         update: {
           providerUserId,
@@ -105,6 +111,18 @@ export async function GET(request: NextRequest) {
           avatarUrl: linkedInUser.picture ?? null,
         },
       });
+
+      // Discover the company pages the user administers when the org scope
+      // was granted. Failure must not fail the link — the identity is already
+      // saved and pages can be re-synced via POST /api/linkedin/sync-pages.
+      if (hasLinkedInOrgScope(tokens.scope)) {
+        try {
+          await syncLinkedInPersonalPages(identity.id, tokens.access_token);
+        } catch (error) {
+          console.error('LinkedIn company page discovery failed (link still succeeded):', error);
+        }
+      }
+
       trackAction('oauth_connect', { userId: user.id, properties: { provider: 'linkedin' } }).catch(() => {});
       return redirectToSettings('LinkedIn account linked successfully');
     }

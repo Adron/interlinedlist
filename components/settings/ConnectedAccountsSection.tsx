@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import type { LinkedInPostingTargetOption } from '@/lib/types';
 
 function linkedInPostingTargetKey(target: LinkedInPostingTargetOption): string {
-  return target.kind === 'personal' ? 'personal' : target.pageId;
+  if (target.kind === 'personal') return 'personal';
+  return target.kind === 'orgPage' ? target.pageId : `personalPage-${target.personalPageId}`;
 }
 
 export interface LinkedIdentity {
@@ -81,6 +82,8 @@ export default function ConnectedAccountsSection({
     LinkedInPostingTargetOption[] | null
   >(null);
   const [savingLinkedInTargets, setSavingLinkedInTargets] = useState(false);
+  const [syncingLinkedInPages, setSyncingLinkedInPages] = useState(false);
+  const [linkedInOrgScopeMissing, setLinkedInOrgScopeMissing] = useState(false);
 
   useEffect(() => {
     fetch('/api/auth/linkedin/status')
@@ -107,6 +110,53 @@ export default function ConnectedAccountsSection({
       .catch(() => {});
   }, []);
 
+  const refreshLinkedInPostingTargets = async () => {
+    try {
+      const res = await fetch('/api/linkedin/posting-targets');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Array.isArray(data.targets)) {
+        setLinkedInPostingTargets(data.targets);
+      }
+    } catch {
+      // Ignore — the existing list stays in place.
+    }
+  };
+
+  const handleSyncLinkedInPages = async () => {
+    setSyncingLinkedInPages(true);
+    setMessage(null);
+    setLinkedInOrgScopeMissing(false);
+    try {
+      const res = await fetch('/api/linkedin/sync-pages', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.code === 'org_scope_missing') {
+          setLinkedInOrgScopeMissing(true);
+        } else {
+          setMessage({
+            type: 'error',
+            text: data.error || 'Failed to sync LinkedIn company pages',
+          });
+        }
+        return;
+      }
+      const count = Array.isArray(data.pages) ? data.pages.length : 0;
+      setMessage({
+        type: 'success',
+        text:
+          count > 0
+            ? `Synced ${count} LinkedIn company page${count === 1 ? '' : 's'}`
+            : 'No LinkedIn company pages found for your account',
+      });
+      await refreshLinkedInPostingTargets();
+    } catch {
+      setMessage({ type: 'error', text: 'Failed to sync LinkedIn company pages' });
+    } finally {
+      setSyncingLinkedInPages(false);
+    }
+  };
+
   const handleToggleLinkedInTarget = async (key: string) => {
     if (!linkedInPostingTargets) return;
     const previous = linkedInPostingTargets;
@@ -130,7 +180,11 @@ export default function ConnectedAccountsSection({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           targets: enabled.map((t) =>
-            t.kind === 'personal' ? { kind: 'personal' } : { kind: 'orgPage', pageId: t.pageId }
+            t.kind === 'personal'
+              ? { kind: 'personal' }
+              : t.kind === 'orgPage'
+                ? { kind: 'orgPage', pageId: t.pageId }
+                : { kind: 'personalPage', personalPageId: t.personalPageId }
           ),
         }),
       });
@@ -490,11 +544,48 @@ export default function ConnectedAccountsSection({
                       className="form-check-label small"
                       htmlFor={`linkedin-posting-target-${key}`}
                     >
-                      {target.label} ({target.kind === 'orgPage' ? 'page' : 'personal'})
+                      {target.label} (
+                      {target.kind === 'personal'
+                        ? 'personal'
+                        : target.kind === 'orgPage'
+                          ? 'page'
+                          : 'company page'}
+                      )
                     </label>
                   </div>
                 );
               })}
+            </div>
+          )}
+          {linkedinIdentity && (
+            <div className="mt-3 pt-3 border-top">
+              <label className="form-label small mb-1">Company pages</label>
+              <p className="text-muted small mb-2">
+                Sync the LinkedIn company pages you administer to use them as posting
+                targets when cross-posting messages.
+              </p>
+              {linkedInOrgScopeMissing && (
+                <div className="alert alert-warning py-2 mb-2" role="alert">
+                  <span className="small">
+                    Your LinkedIn connection does not include company page access.
+                    Reconnect LinkedIn to grant the required permissions.
+                  </span>
+                  <a
+                    href={getProviderConnectUrl('linkedin')}
+                    className="btn btn-sm btn-outline-primary ms-2"
+                  >
+                    Reconnect LinkedIn
+                  </a>
+                </div>
+              )}
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-primary"
+                onClick={handleSyncLinkedInPages}
+                disabled={syncingLinkedInPages}
+              >
+                {syncingLinkedInPages ? 'Syncing...' : 'Sync company pages'}
+              </button>
             </div>
           )}
         </div>

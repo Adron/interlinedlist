@@ -17,7 +17,7 @@ async function buildTargetsWithEnabled(userId: string): Promise<LinkedInPostingT
     getAvailableLinkedInTargets(userId),
     prisma.linkedInPostingTargetPreference.findMany({
       where: { userId },
-      select: { kind: true, pageId: true },
+      select: { kind: true, pageId: true, personalPageId: true },
     }),
   ]);
 
@@ -31,10 +31,20 @@ async function buildTargetsWithEnabled(userId: string): Promise<LinkedInPostingT
       .filter((p) => p.kind === 'orgPage' && typeof p.pageId === 'string')
       .map((p) => p.pageId as string)
   );
+  const enabledPersonalPageIds = new Set(
+    preferences
+      .filter((p) => p.kind === 'personalPage' && typeof p.personalPageId === 'string')
+      .map((p) => p.personalPageId as string)
+  );
 
   return targets.map((t) => ({
     ...t,
-    enabled: t.kind === 'personal' ? personalEnabled : enabledPageIds.has(t.pageId),
+    enabled:
+      t.kind === 'personal'
+        ? personalEnabled
+        : t.kind === 'orgPage'
+          ? enabledPageIds.has(t.pageId)
+          : enabledPersonalPageIds.has(t.personalPageId),
   }));
 }
 
@@ -81,6 +91,11 @@ export async function PUT(request: NextRequest) {
       .filter((t): t is Extract<typeof t, { kind: 'orgPage' }> => t.kind === 'orgPage')
       .map((t) => t.pageId)
   );
+  const availablePersonalPageIds = new Set(
+    available
+      .filter((t): t is Extract<typeof t, { kind: 'personalPage' }> => t.kind === 'personalPage')
+      .map((t) => t.personalPageId)
+  );
 
   for (const target of requested) {
     if (target.kind === 'personal' && !hasPersonal) {
@@ -92,6 +107,15 @@ export async function PUT(request: NextRequest) {
     if (target.kind === 'orgPage' && !availablePageIds.has(target.pageId)) {
       return NextResponse.json(
         { error: 'One or more LinkedIn pages are not assigned to you' },
+        { status: 400 }
+      );
+    }
+    if (
+      target.kind === 'personalPage' &&
+      !availablePersonalPageIds.has(target.personalPageId)
+    ) {
+      return NextResponse.json(
+        { error: 'One or more LinkedIn company pages are not available to you' },
         { status: 400 }
       );
     }
@@ -107,7 +131,13 @@ export async function PUT(request: NextRequest) {
             data: requested.map((t) =>
               t.kind === 'personal'
                 ? { userId: user.id, kind: 'personal' as const }
-                : { userId: user.id, kind: 'orgPage' as const, pageId: t.pageId }
+                : t.kind === 'orgPage'
+                  ? { userId: user.id, kind: 'orgPage' as const, pageId: t.pageId }
+                  : {
+                      userId: user.id,
+                      kind: 'personalPage' as const,
+                      personalPageId: t.personalPageId,
+                    }
             ),
           }),
         ]

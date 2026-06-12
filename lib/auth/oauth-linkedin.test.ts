@@ -230,6 +230,20 @@ describe('buildLinkedInAuthUrl', () => {
     const url = buildLinkedInAuthUrl('state', false);
     expect(url).not.toContain('link=');
   });
+
+  it('requests the org scopes when link is true', () => {
+    const url = buildLinkedInAuthUrl('state', true);
+    const scope = new URL(url).searchParams.get('scope');
+    expect(scope).toBe(
+      'openid profile email w_member_social rw_organization_admin w_organization_social'
+    );
+  });
+
+  it('requests only the minimal scopes when link is false', () => {
+    const url = buildLinkedInAuthUrl('state', false);
+    const scope = new URL(url).searchParams.get('scope');
+    expect(scope).toBe('openid profile email w_member_social');
+  });
 });
 
 // ─── buildLinkedInOrgAuthUrl ───────────────────────────────────────────────
