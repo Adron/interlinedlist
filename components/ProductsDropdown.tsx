@@ -1,11 +1,16 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
+import { PRODUCTS } from '@/lib/products';
 
 export default function ProductsDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const [isSyncToolsOpen, setIsSyncToolsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const apps = PRODUCTS.filter((p) => p.category === 'app');
+  const syncTools = PRODUCTS.filter((p) => p.category === 'sync');
 
   // Close sub-menu when main dropdown closes
   useEffect(() => {
@@ -31,6 +36,8 @@ export default function ProductsDropdown() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isOpen]);
+
+  const closeDropdown = () => setIsOpen(false);
 
   return (
     <div className="dropdown d-none d-md-block" ref={dropdownRef}>
@@ -63,18 +70,19 @@ export default function ProductsDropdown() {
         aria-labelledby="page-header-products-dropdown"
         style={{ display: isOpen ? 'block' : 'none' }}
       >
-        <span className="dropdown-item disabled d-flex align-items-center" aria-disabled="true">
-          <i className="bx bxl-apple align-middle me-2" style={{ fontSize: '18px' }}></i>
-          <span className="align-middle">
-            iOS App <span className="text-muted">(Coming Soon)</span>
-          </span>
-        </span>
-        <span className="dropdown-item disabled d-flex align-items-center" aria-disabled="true">
-          <i className="bx bx-desktop align-middle me-2" style={{ fontSize: '18px' }}></i>
-          <span className="align-middle">
-            MacOS App <span className="text-muted">(Coming Soon)</span>
-          </span>
-        </span>
+        {apps.map((product) => (
+          <Link
+            key={product.slug}
+            href={`/products/${product.slug}`}
+            className="dropdown-item d-flex align-items-center"
+            onClick={closeDropdown}
+          >
+            <i className={`bx ${product.icon} align-middle me-2`} style={{ fontSize: '18px' }}></i>
+            <span className="align-middle">
+              {product.name} <span className="text-muted">(Coming Soon)</span>
+            </span>
+          </Link>
+        ))}
 
         {/* Synchronization Tools accordion */}
         <a
@@ -96,28 +104,33 @@ export default function ProductsDropdown() {
             aria-hidden="true"
           />
         </a>
-        {isSyncToolsOpen && (
-          <>
-            <span className="dropdown-item disabled d-flex align-items-center ps-4" aria-disabled="true">
-              <i className="bx bxl-apple align-middle me-2" style={{ fontSize: '18px' }}></i>
+        {isSyncToolsOpen &&
+          syncTools.map((product) => (
+            <Link
+              key={product.slug}
+              href={`/products/${product.slug}`}
+              className="dropdown-item d-flex align-items-center ps-4"
+              onClick={closeDropdown}
+            >
+              <i
+                className={`bx ${product.icon} align-middle me-2`}
+                style={{ fontSize: '18px' }}
+              ></i>
               <span className="align-middle">
-                MacOS Sync <span className="text-muted">(Coming Soon)</span>
+                {product.name} <span className="text-muted">(Coming Soon)</span>
               </span>
-            </span>
-            <span className="dropdown-item disabled d-flex align-items-center ps-4" aria-disabled="true">
-              <i className="bx bxl-windows align-middle me-2" style={{ fontSize: '18px' }}></i>
-              <span className="align-middle">
-                Windows Sync <span className="text-muted">(Coming Soon)</span>
-              </span>
-            </span>
-            <span className="dropdown-item disabled d-flex align-items-center ps-4" aria-disabled="true">
-              <i className="bx bxl-tux align-middle me-2" style={{ fontSize: '18px' }}></i>
-              <span className="align-middle">
-                Linux Sync <span className="text-muted">(Coming Soon)</span>
-              </span>
-            </span>
-          </>
-        )}
+            </Link>
+          ))}
+
+        <div className="dropdown-divider"></div>
+        <Link
+          href="/products"
+          className="dropdown-item d-flex align-items-center"
+          onClick={closeDropdown}
+        >
+          <i className="bx bx-grid-alt align-middle me-2" style={{ fontSize: '18px' }}></i>
+          <span className="align-middle">All products</span>
+        </Link>
       </div>
     </div>
   );

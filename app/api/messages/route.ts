@@ -9,7 +9,7 @@ import { attachDugByMeIncludingPushed } from '@/lib/messages/dig';
 import { postToMastodon } from '@/lib/mastodon/post-status';
 import { postToBluesky } from '@/lib/bluesky/post-status';
 import { postToLinkedIn } from '@/lib/linkedin/post-status';
-import { resolveLinkedInTarget } from '@/lib/linkedin/resolve-linkedin-target';
+import { parseRequestedLinkedInTarget, resolveLinkedInTarget } from '@/lib/linkedin/resolve-linkedin-target';
 import { postToTwitter } from '@/lib/twitter/post-status';
 import { trackAction } from '@/lib/analytics/track';
 import { resolveCanonicalPushTargetId } from '@/lib/messages/push';
@@ -47,11 +47,19 @@ export async function POST(request: NextRequest) {
       crossPostToLinkedIn,
       crossPostToTwitter,
       linkedInLinkAsFirstComment,
+      linkedInTarget,
       parentId,
       scheduledAt: scheduledAtRaw,
       pushedMessageId: pushedMessageIdRaw,
       tags,
     } = body;
+
+    const parsedLinkedInTarget = parseRequestedLinkedInTarget(linkedInTarget);
+    if (!parsedLinkedInTarget.ok) {
+      return NextResponse.json({ error: 'Invalid linkedInTarget' }, { status: 400 });
+    }
+    const requestedLinkedInTarget =
+      crossPostToLinkedIn === true ? parsedLinkedInTarget.target : undefined;
 
     const userWithSettings = await prisma.user.findUnique({
       where: { id: user.id },
@@ -252,6 +260,7 @@ export async function POST(request: NextRequest) {
                 crossPostToLinkedIn: crossPostToLinkedIn === true,
                 linkedInLinkAsFirstComment: linkedInLinkAsFirstComment === true,
                 crossPostToTwitter: crossPostToTwitter === true,
+                ...(requestedLinkedInTarget && { linkedInTarget: requestedLinkedInTarget }),
               } as object,
             }),
             ...(Array.isArray(tags) && tags.length > 0 && { tags }),
@@ -409,10 +418,10 @@ export async function POST(request: NextRequest) {
 
     // Cross-post to LinkedIn if enabled (skip for replies, pushes, scheduled)
     if (!parentMessage && !canonicalPushTargetId && !isScheduled && crossPostToLinkedIn === true) {
-      const linkedInTarget = await resolveLinkedInTarget(user.id);
+      const resolvedLinkedInTarget = await resolveLinkedInTarget(user.id, requestedLinkedInTarget);
 
-      if (linkedInTarget) {
-        const result = await postToLinkedIn(linkedInTarget, {
+      if (resolvedLinkedInTarget) {
+        const result = await postToLinkedIn(resolvedLinkedInTarget, {
           content: finalContent,
           publiclyVisible: finalPubliclyVisible as boolean,
           imageUrls: finalImageUrls,
@@ -433,7 +442,12 @@ export async function POST(request: NextRequest) {
           providerId: '',
           instanceName: 'LinkedIn',
           success: false,
-          error: 'LinkedIn account not linked. Please link in Settings.',
+          error:
+            requestedLinkedInTarget?.kind === 'personal'
+              ? 'Your personal LinkedIn account is not linked. Link it in Settings.'
+              : requestedLinkedInTarget?.kind === 'orgPage'
+                ? 'The selected LinkedIn page is unavailable — the assignment was removed or the organization connection expired.'
+                : 'LinkedIn account not linked. Please link in Settings.',
         });
       }
     }

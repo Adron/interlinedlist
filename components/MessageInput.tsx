@@ -2,6 +2,8 @@
 
 import { useState, FormEvent, useRef, useEffect, useMemo } from 'react';
 import { extractUrls } from '@/lib/messages/link-detector';
+import type { LinkedInTargetOption } from '@/lib/types';
+import type { RequestedLinkedInTarget } from '@/lib/linkedin/resolve-linkedin-target';
 
 const MAX_IMAGES = 8;
 
@@ -102,6 +104,19 @@ function toDatetimeLocal(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+function defaultLinkedInTarget(targets: LinkedInTargetOption[]): RequestedLinkedInTarget | null {
+  if (targets.some((t) => t.kind === 'personal')) return { kind: 'personal' };
+  const firstPage = targets.find(
+    (t): t is Extract<LinkedInTargetOption, { kind: 'orgPage' }> => t.kind === 'orgPage'
+  );
+  return firstPage ? { kind: 'orgPage', pageId: firstPage.pageId } : null;
+}
+
+function linkedInTargetToValue(target: RequestedLinkedInTarget | null): string {
+  if (!target) return '';
+  return target.kind === 'personal' ? 'personal' : target.pageId;
+}
+
 export default function MessageInput({ maxLength, defaultPubliclyVisible = false, showAdvancedPostSettings = false, isSubscriber = false, onSubmit }: MessageInputProps) {
   const [content, setContent] = useState('');
   const [publiclyVisible, setPubliclyVisible] = useState(defaultPubliclyVisible);
@@ -123,7 +138,8 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [mastodonIdentities, setMastodonIdentities] = useState<Identity[]>([]);
   const [blueskyIdentity, setBlueskyIdentity] = useState<Identity | null>(null);
-  const [linkedinIdentity, setLinkedinIdentity] = useState<Identity | null>(null);
+  const [linkedInTargets, setLinkedInTargets] = useState<LinkedInTargetOption[]>([]);
+  const [selectedLinkedInTarget, setSelectedLinkedInTarget] = useState<RequestedLinkedInTarget | null>(null);
   const [twitterIdentity, setTwitterIdentity] = useState<Identity | null>(null);
   const [selectedMastodonIds, setSelectedMastodonIds] = useState<Set<string>>(new Set());
   const [crossPostToBluesky, setCrossPostToBluesky] = useState(false);
@@ -144,6 +160,16 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
   const [tagInput, setTagInput] = useState('');
 
   const detectedUrls = useMemo(() => extractUrls(content), [content]);
+
+  const selectedLinkedInTargetLabel = useMemo(() => {
+    if (!selectedLinkedInTarget) return null;
+    const match = linkedInTargets.find((t) =>
+      selectedLinkedInTarget.kind === 'personal'
+        ? t.kind === 'personal'
+        : t.kind === 'orgPage' && t.pageId === selectedLinkedInTarget.pageId
+    );
+    return match?.label ?? null;
+  }, [linkedInTargets, selectedLinkedInTarget]);
 
   // Create/revoke object URLs for pending file previews
   useEffect(() => {
@@ -180,7 +206,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
     }
   }, [showScheduleModal, scheduledAt]);
 
-  // Fetch identities (Mastodon, Bluesky) on mount
+  // Fetch identities (Mastodon, Bluesky) and LinkedIn targets on mount
   useEffect(() => {
     fetch('/api/user/identities')
       .then((res) => res.json())
@@ -188,12 +214,19 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
         if (data.identities) {
           const mastodon = data.identities.filter((i: Identity) => i.provider?.startsWith?.('mastodon:'));
           const bluesky = data.identities.find((i: Identity) => i.provider === 'bluesky') ?? null;
-          const linkedin = data.identities.find((i: Identity) => i.provider === 'linkedin') ?? null;
           const twitter = data.identities.find((i: Identity) => i.provider === 'twitter') ?? null;
           setMastodonIdentities(mastodon);
           setBlueskyIdentity(bluesky);
-          setLinkedinIdentity(linkedin);
           setTwitterIdentity(twitter);
+        }
+      })
+      .catch(() => {});
+    fetch('/api/linkedin/targets')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data.targets)) {
+          setLinkedInTargets(data.targets);
+          setSelectedLinkedInTarget(defaultLinkedInTarget(data.targets));
         }
       })
       .catch(() => {});
@@ -281,6 +314,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
           ...(selectedMastodonIds.size > 0 && { mastodonProviderIds: Array.from(selectedMastodonIds) }),
           ...(crossPostToBluesky && { crossPostToBluesky: true }),
           ...(crossPostToLinkedIn && { crossPostToLinkedIn: true }),
+          ...(crossPostToLinkedIn && selectedLinkedInTarget && { linkedInTarget: selectedLinkedInTarget }),
           ...(crossPostToLinkedIn && linkedInLinkAsFirstComment && { linkedInLinkAsFirstComment: true }),
           ...(crossPostToTwitter && { crossPostToTwitter: true }),
           ...(scheduledAt && scheduledAt > new Date() && !quotePushedMessageId && {
@@ -313,6 +347,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
       setCrossPostToBluesky(false);
       setCrossPostToLinkedIn(false);
       setLinkedInLinkAsFirstComment(false);
+      setSelectedLinkedInTarget(defaultLinkedInTarget(linkedInTargets));
       setCrossPostToTwitter(false);
       setScheduledAt(null);
       setShowScheduleModal(false);
@@ -563,17 +598,17 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                         <i className="bx bxl-bluesky" style={{ fontSize: '1.1rem' }}></i>
                       </button>
                     )}
-                    {linkedinIdentity && (
+                    {linkedInTargets.length > 0 && (
                       <button
                         type="button"
                         className={`btn btn-sm btn-link p-1 ${crossPostToLinkedIn ? 'text-primary' : 'text-muted'}`}
-                        aria-label={`Cross-post to LinkedIn${linkedinIdentity.providerUsername ? ` - ${linkedinIdentity.providerUsername}` : 'Cross-post to LinkedIn'}`}
+                        aria-label={`Cross-post to LinkedIn${selectedLinkedInTargetLabel ? ` - ${selectedLinkedInTargetLabel}` : ''}`}
                         style={{
                           border: 'none',
                           lineHeight: 1,
                           minWidth: 'auto',
                         }}
-                        title={`Cross-post to LinkedIn${linkedinIdentity.providerUsername ? ` - ${linkedinIdentity.providerUsername}` : ''}`}
+                        title={`Cross-post to LinkedIn${selectedLinkedInTargetLabel ? ` - ${selectedLinkedInTargetLabel}` : ''}`}
                         onClick={toggleLinkedIn}
                       >
                         <i className="bx bxl-linkedin" style={{ fontSize: '1.1rem' }}></i>
@@ -624,7 +659,33 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                       <i className="bx bx-calendar-alt" style={{ fontSize: '1.1rem' }}></i>
                     </button>
                   </div>
-                  {crossPostToLinkedIn && linkedinIdentity && detectedUrls.length > 0 && (
+                  {crossPostToLinkedIn && linkedInTargets.length > 1 && (
+                    <div className="mt-1 ms-1">
+                      <select
+                        className="form-select form-select-sm"
+                        style={{ maxWidth: '280px' }}
+                        aria-label="LinkedIn posting destination"
+                        value={linkedInTargetToValue(selectedLinkedInTarget)}
+                        onChange={(e) =>
+                          setSelectedLinkedInTarget(
+                            e.target.value === 'personal'
+                              ? { kind: 'personal' }
+                              : { kind: 'orgPage', pageId: e.target.value }
+                          )
+                        }
+                      >
+                        {linkedInTargets.map((t) => (
+                          <option
+                            key={t.kind === 'orgPage' ? t.pageId : 'personal'}
+                            value={t.kind === 'orgPage' ? t.pageId : 'personal'}
+                          >
+                            {t.label} ({t.kind === 'orgPage' ? 'page' : 'personal'})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  {crossPostToLinkedIn && linkedInTargets.length > 0 && detectedUrls.length > 0 && (
                     <div className="form-check mt-1 ms-1">
                       <input
                         className="form-check-input"
@@ -702,7 +763,9 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                 Posting to: {[
                   ...mastodonIdentities.filter((m) => selectedMastodonIds.has(m.id)).map((m) => getMastodonInstanceName(m.provider)),
                   ...(crossPostToBluesky ? ['Bluesky'] : []),
-                  ...(crossPostToLinkedIn ? ['LinkedIn'] : []),
+                  ...(crossPostToLinkedIn
+                    ? [selectedLinkedInTargetLabel ? `LinkedIn (${selectedLinkedInTargetLabel})` : 'LinkedIn']
+                    : []),
                   ...(crossPostToTwitter ? ['Twitter / X'] : []),
                 ].join(', ')}
               </small>
@@ -1162,7 +1225,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                           </label>
                         </div>
                       )}
-                      {linkedinIdentity && (
+                      {linkedInTargets.length > 0 && (
                         <div className="form-check">
                           <input
                             className="form-check-input"
@@ -1179,7 +1242,31 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                           </label>
                         </div>
                       )}
-                      {linkedinIdentity && crossPostToLinkedIn && detectedUrls.length > 0 && (
+                      {crossPostToLinkedIn && linkedInTargets.length > 1 && (
+                        <select
+                          className="form-select form-select-sm"
+                          style={{ maxWidth: '280px' }}
+                          aria-label="LinkedIn posting destination"
+                          value={linkedInTargetToValue(selectedLinkedInTarget)}
+                          onChange={(e) =>
+                            setSelectedLinkedInTarget(
+                              e.target.value === 'personal'
+                                ? { kind: 'personal' }
+                                : { kind: 'orgPage', pageId: e.target.value }
+                            )
+                          }
+                        >
+                          {linkedInTargets.map((t) => (
+                            <option
+                              key={t.kind === 'orgPage' ? t.pageId : 'personal'}
+                              value={t.kind === 'orgPage' ? t.pageId : 'personal'}
+                            >
+                              {t.label} ({t.kind === 'orgPage' ? 'page' : 'personal'})
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                      {linkedInTargets.length > 0 && crossPostToLinkedIn && detectedUrls.length > 0 && (
                         <div className="form-check">
                           <input
                             className="form-check-input"
@@ -1207,7 +1294,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                           </label>
                         </div>
                       )}
-                      {mastodonIdentities.length === 0 && !blueskyIdentity && !linkedinIdentity && !twitterIdentity && (
+                      {mastodonIdentities.length === 0 && !blueskyIdentity && linkedInTargets.length === 0 && !twitterIdentity && (
                         <span className="small text-muted">No cross-post accounts connected</span>
                       )}
                     </div>

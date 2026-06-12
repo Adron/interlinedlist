@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Message } from '@/lib/types';
+import { Message, LinkedInTargetOption } from '@/lib/types';
+import type { RequestedLinkedInTarget } from '@/lib/linkedin/resolve-linkedin-target';
 
 interface Identity {
   id: string;
@@ -15,6 +16,14 @@ function getMastodonInstanceName(provider: string): string {
 function toDatetimeLocal(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function defaultLinkedInTarget(targets: LinkedInTargetOption[]): RequestedLinkedInTarget | null {
+  if (targets.some((t) => t.kind === 'personal')) return { kind: 'personal' };
+  const firstPage = targets.find(
+    (t): t is Extract<LinkedInTargetOption, { kind: 'orgPage' }> => t.kind === 'orgPage'
+  );
+  return firstPage ? { kind: 'orgPage', pageId: firstPage.pageId } : null;
 }
 
 interface EditScheduledModalProps {
@@ -37,12 +46,16 @@ export default function EditScheduledModal({
   const [crossPostToBluesky, setCrossPostToBluesky] = useState(config?.crossPostToBluesky ?? false);
   const [crossPostToLinkedIn, setCrossPostToLinkedIn] = useState(config?.crossPostToLinkedIn ?? false);
   const [crossPostToTwitter, setCrossPostToTwitter] = useState(config?.crossPostToTwitter ?? false);
+  const linkedInLinkAsFirstComment = config?.linkedInLinkAsFirstComment ?? false;
+  const [linkedInTargets, setLinkedInTargets] = useState<LinkedInTargetOption[]>([]);
+  const [selectedLinkedInTarget, setSelectedLinkedInTarget] = useState<RequestedLinkedInTarget | null>(
+    config?.linkedInTarget ?? null
+  );
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
   const mastodonIdentities = identities.filter((i) => i.provider.startsWith('mastodon:'));
   const blueskyIdentity = identities.find((i) => i.provider === 'bluesky');
-  const linkedinIdentity = identities.find((i) => i.provider === 'linkedin');
   const twitterIdentity = identities.find((i) => i.provider === 'twitter');
 
   useEffect(() => {
@@ -50,6 +63,18 @@ export default function EditScheduledModal({
       setScheduleDraft(toDatetimeLocal(new Date(message.scheduledAt)));
     }
   }, [message.scheduledAt]);
+
+  useEffect(() => {
+    fetch('/api/linkedin/targets')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data.targets)) {
+          setLinkedInTargets(data.targets);
+          setSelectedLinkedInTarget((prev) => prev ?? defaultLinkedInTarget(data.targets));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleSave = async () => {
     const parsed = new Date(scheduleDraft);
@@ -68,8 +93,13 @@ export default function EditScheduledModal({
           scheduledCrossPostConfig: {
             mastodonProviderIds: Array.from(selectedMastodonIds),
             crossPostToBluesky: !!blueskyIdentity && crossPostToBluesky,
-            crossPostToLinkedIn: !!linkedinIdentity && crossPostToLinkedIn,
+            crossPostToLinkedIn: linkedInTargets.length > 0 && crossPostToLinkedIn,
+            linkedInLinkAsFirstComment:
+              linkedInTargets.length > 0 && crossPostToLinkedIn && linkedInLinkAsFirstComment,
             crossPostToTwitter: !!twitterIdentity && crossPostToTwitter,
+            ...(linkedInTargets.length > 0 &&
+              crossPostToLinkedIn &&
+              selectedLinkedInTarget && { linkedInTarget: selectedLinkedInTarget }),
           },
         }),
       });
@@ -145,7 +175,7 @@ export default function EditScheduledModal({
                   </label>
                 </div>
               )}
-              {linkedinIdentity && (
+              {linkedInTargets.length > 0 && (
                 <div className="form-check">
                   <input
                     className="form-check-input"
@@ -158,6 +188,36 @@ export default function EditScheduledModal({
                     LinkedIn
                   </label>
                 </div>
+              )}
+              {crossPostToLinkedIn && linkedInTargets.length > 1 && (
+                <select
+                  className="form-select form-select-sm"
+                  style={{ maxWidth: '280px' }}
+                  aria-label="LinkedIn posting destination"
+                  value={
+                    selectedLinkedInTarget
+                      ? selectedLinkedInTarget.kind === 'personal'
+                        ? 'personal'
+                        : selectedLinkedInTarget.pageId
+                      : ''
+                  }
+                  onChange={(e) =>
+                    setSelectedLinkedInTarget(
+                      e.target.value === 'personal'
+                        ? { kind: 'personal' }
+                        : { kind: 'orgPage', pageId: e.target.value }
+                    )
+                  }
+                >
+                  {linkedInTargets.map((t) => (
+                    <option
+                      key={t.kind === 'orgPage' ? t.pageId : 'personal'}
+                      value={t.kind === 'orgPage' ? t.pageId : 'personal'}
+                    >
+                      {t.label} ({t.kind === 'orgPage' ? 'page' : 'personal'})
+                    </option>
+                  ))}
+                </select>
               )}
               {twitterIdentity && (
                 <div className="form-check">
@@ -173,7 +233,7 @@ export default function EditScheduledModal({
                   </label>
                 </div>
               )}
-              {mastodonIdentities.length === 0 && !blueskyIdentity && !linkedinIdentity && !twitterIdentity && (
+              {mastodonIdentities.length === 0 && !blueskyIdentity && linkedInTargets.length === 0 && !twitterIdentity && (
                 <span className="small text-muted">No cross-post accounts connected</span>
               )}
             </div>

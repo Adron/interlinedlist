@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { postToMastodon } from "@/lib/mastodon/post-status";
 import { postToBluesky } from "@/lib/bluesky/post-status";
 import { postToLinkedIn } from "@/lib/linkedin/post-status";
-import { resolveLinkedInTarget } from "@/lib/linkedin/resolve-linkedin-target";
+import { parseRequestedLinkedInTarget, resolveLinkedInTarget } from "@/lib/linkedin/resolve-linkedin-target";
 import { postToTwitter } from "@/lib/twitter/post-status";
 
 export const dynamic = "force-dynamic";
@@ -43,13 +43,16 @@ export async function GET(request: NextRequest) {
 
   for (const message of due) {
     const config = message.scheduledCrossPostConfig as
-      | { mastodonProviderIds?: string[]; crossPostToBluesky?: boolean; crossPostToLinkedIn?: boolean; linkedInLinkAsFirstComment?: boolean; crossPostToTwitter?: boolean }
+      | { mastodonProviderIds?: string[]; crossPostToBluesky?: boolean; crossPostToLinkedIn?: boolean; linkedInLinkAsFirstComment?: boolean; crossPostToTwitter?: boolean; linkedInTarget?: unknown }
       | null;
     const mastodonProviderIds = config?.mastodonProviderIds ?? [];
     const crossPostToBluesky = config?.crossPostToBluesky === true;
     const crossPostToLinkedIn = config?.crossPostToLinkedIn === true;
     const linkedInLinkAsFirstComment = config?.linkedInLinkAsFirstComment === true;
     const crossPostToTwitter = config?.crossPostToTwitter === true;
+    // A malformed stored target must never block publishing; treat it as "no explicit target".
+    const parsedLinkedInTarget = parseRequestedLinkedInTarget(config?.linkedInTarget);
+    const requestedLinkedInTarget = parsedLinkedInTarget.ok ? parsedLinkedInTarget.target : undefined;
 
     const imageUrls = message.imageUrls as string[] | null;
     const videoUrls = message.videoUrls as string[] | null;
@@ -147,7 +150,7 @@ export async function GET(request: NextRequest) {
       }
 
       if (crossPostToLinkedIn) {
-        const linkedInTarget = await resolveLinkedInTarget(message.userId);
+        const linkedInTarget = await resolveLinkedInTarget(message.userId, requestedLinkedInTarget);
 
         if (linkedInTarget) {
           const result = await postToLinkedIn(linkedInTarget, {
@@ -165,6 +168,8 @@ export async function GET(request: NextRequest) {
               ...(result.postId && { postId: result.postId }),
             });
           }
+        } else {
+          errors.push(`Message ${message.id}: LinkedIn target unavailable, cross-post skipped`);
         }
       }
 

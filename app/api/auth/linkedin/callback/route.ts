@@ -72,12 +72,11 @@ export async function GET(request: NextRequest) {
       expires_in: tokens.expires_in,
     } as object;
 
-    const existingLink = await prisma.linkedIdentity.findFirst({
+    const existingLinks = await prisma.linkedIdentity.findMany({
       where: {
         provider,
         providerUserId,
       },
-      include: { user: true },
     });
 
     if (oauthState.link) {
@@ -85,39 +84,33 @@ export async function GET(request: NextRequest) {
       if (!user) {
         return redirectToLogin('You must be logged in to link accounts');
       }
-      if (existingLink && existingLink.userId !== user.id) {
-        return redirectToSettings('This LinkedIn account is already linked to another user');
-      }
 
-      if (existingLink && existingLink.userId === user.id) {
-        await prisma.linkedIdentity.update({
-          where: { id: existingLink.id },
-          data: {
-            providerUsername,
-            providerData,
-            profileUrl,
-            avatarUrl: linkedInUser.picture ?? null,
-            lastVerifiedAt: new Date(),
-          },
-        });
-      } else {
-        await prisma.linkedIdentity.create({
-          data: {
-            userId: user.id,
-            provider,
-            providerUserId,
-            providerUsername,
-            providerData,
-            profileUrl,
-            avatarUrl: linkedInUser.picture ?? null,
-          },
-        });
-      }
+      await prisma.linkedIdentity.upsert({
+        where: { userId_provider: { userId: user.id, provider } },
+        update: {
+          providerUserId,
+          providerUsername,
+          providerData,
+          profileUrl,
+          avatarUrl: linkedInUser.picture ?? null,
+          lastVerifiedAt: new Date(),
+        },
+        create: {
+          userId: user.id,
+          provider,
+          providerUserId,
+          providerUsername,
+          providerData,
+          profileUrl,
+          avatarUrl: linkedInUser.picture ?? null,
+        },
+      });
       trackAction('oauth_connect', { userId: user.id, properties: { provider: 'linkedin' } }).catch(() => {});
       return redirectToSettings('LinkedIn account linked successfully');
     }
 
-    if (existingLink) {
+    if (existingLinks.length === 1) {
+      const existingLink = existingLinks[0];
       await prisma.linkedIdentity.update({
         where: { id: existingLink.id },
         data: {
@@ -129,6 +122,22 @@ export async function GET(request: NextRequest) {
         },
       });
       return buildSuccessResponse(existingLink.userId, oauthState.redirectUri);
+    }
+
+    if (existingLinks.length > 1) {
+      // Shared LinkedIn login: refresh every sharer's token, but never auto-pick an account.
+      await prisma.linkedIdentity.updateMany({
+        where: { provider, providerUserId },
+        data: {
+          providerData,
+          providerUsername,
+          avatarUrl: linkedInUser.picture ?? null,
+          lastVerifiedAt: new Date(),
+        },
+      });
+      return redirectToLogin(
+        'This LinkedIn account is linked to multiple InterlinedList accounts. Please sign in with your email and password.'
+      );
     }
 
     const email = linkedInUser.email || `${providerUserId}+linkedin@users.noreply.linkedin.com`;

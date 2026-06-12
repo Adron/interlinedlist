@@ -214,10 +214,11 @@ describe('buildLinkedInAuthUrl', () => {
     expect(url).toContain('state=my-state');
   });
 
-  it('includes personal scopes (w_member_social but NOT rw_organization_admin)', () => {
+  it('includes personal scopes (w_member_social but NOT org scopes)', () => {
     const url = buildLinkedInAuthUrl('state', false);
     expect(url).toContain('w_member_social');
     expect(url).not.toContain('rw_organization_admin');
+    expect(url).not.toContain('w_organization_social');
   });
 
   it('adds link=true when link parameter is true', () => {
@@ -265,9 +266,10 @@ describe('buildLinkedInOrgAuthUrl', () => {
     expect(url).toContain(encodeURIComponent('https://example.com/api/auth/linkedin/org-callback'));
   });
 
-  it('includes rw_organization_admin scope', () => {
+  it('includes rw_organization_admin and w_organization_social scopes', () => {
     const url = buildLinkedInOrgAuthUrl('state');
     expect(url).toContain('rw_organization_admin');
+    expect(url).toContain('w_organization_social');
   });
 
   it('also includes w_member_social scope', () => {

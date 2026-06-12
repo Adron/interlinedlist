@@ -108,7 +108,9 @@ export interface Message {
     mastodonProviderIds?: string[];
     crossPostToBluesky?: boolean;
     crossPostToLinkedIn?: boolean;
+    linkedInLinkAsFirstComment?: boolean;
     crossPostToTwitter?: boolean;
+    linkedInTarget?: { kind: 'personal' } | { kind: 'orgPage'; pageId: string };
   } | null;
   tags?: string[] | null;
   user: MessageUser;
@@ -126,6 +128,20 @@ export interface Message {
   /** Embedded source for push / quote rows */
   pushedMessage?: Message | null;
 }
+
+/**
+ * A usable LinkedIn cross-post destination for the current user,
+ * as returned by GET /api/linkedin/targets.
+ */
+export type LinkedInTargetOption =
+  | { kind: 'personal'; label: string; avatarUrl: string | null }
+  | {
+      kind: 'orgPage';
+      pageId: string;
+      linkedInPageId: string;
+      label: string;
+      logoUrl: string | null;
+    };
 
 /**
  * Pagination metadata

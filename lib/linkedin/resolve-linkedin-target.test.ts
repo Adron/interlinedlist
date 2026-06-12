@@ -22,7 +22,7 @@ vi.mock('@/lib/prisma', () => ({
   },
 }));
 
-import { resolveLinkedInTarget } from './resolve-linkedin-target';
+import { parseRequestedLinkedInTarget, resolveLinkedInTarget } from './resolve-linkedin-target';
 
 // ─── helpers ───────────────────────────────────────────────────────────────
 
@@ -224,5 +224,223 @@ describe('resolveLinkedInTarget — org credential with null expiresAt (never ex
   it('treats null expiresAt as active', async () => {
     const target = await resolveLinkedInTarget('user-1');
     expect(target?.authorUrn).toBe('urn:li:organization:page-123');
+  });
+});
+
+// ─── explicit requested target: { kind: 'personal' } ──────────────────────
+
+describe('resolveLinkedInTarget — explicit personal target', () => {
+  afterEach(() => vi.clearAllMocks());
+
+  it('returns the personal urn/token even when an active org assignment exists', async () => {
+    mockFindFirstAssignment.mockResolvedValue(makeAssignment());
+    mockFindFirstIdentity.mockResolvedValue(makeIdentity());
+
+    const target = await resolveLinkedInTarget('user-1', { kind: 'personal' });
+    expect(target?.authorUrn).toBe('urn:li:person:li-user-999');
+    expect(target?.accessToken).toBe('personal-token');
+    expect(target?.credentialId).toBe('identity-1');
+  });
+
+  it('does NOT query org assignments when personal is explicitly requested', async () => {
+    mockFindFirstAssignment.mockResolvedValue(makeAssignment());
+    mockFindFirstIdentity.mockResolvedValue(makeIdentity());
+
+    await resolveLinkedInTarget('user-1', { kind: 'personal' });
+    expect(mockFindFirstAssignment).not.toHaveBeenCalled();
+  });
+
+  it('returns null when no personal identity exists — even with an active org assignment available', async () => {
+    mockFindFirstAssignment.mockResolvedValue(makeAssignment());
+    mockFindFirstIdentity.mockResolvedValue(null);
+
+    const target = await resolveLinkedInTarget('user-1', { kind: 'personal' });
+    expect(target).toBeNull();
+    expect(mockFindFirstAssignment).not.toHaveBeenCalled();
+  });
+
+  it('returns null when the identity has no access_token (providerData null)', async () => {
+    mockFindFirstAssignment.mockResolvedValue(makeAssignment());
+    mockFindFirstIdentity.mockResolvedValue(makeIdentity({ accessToken: null }));
+
+    const target = await resolveLinkedInTarget('user-1', { kind: 'personal' });
+    expect(target).toBeNull();
+  });
+
+  it('returns null when providerData exists but lacks an access_token key', async () => {
+    mockFindFirstAssignment.mockResolvedValue(makeAssignment());
+    mockFindFirstIdentity.mockResolvedValue({
+      id: 'identity-3',
+      providerUserId: 'li-user-111',
+      providerData: {},
+    });
+
+    const target = await resolveLinkedInTarget('user-1', { kind: 'personal' });
+    expect(target).toBeNull();
+    expect(mockFindFirstAssignment).not.toHaveBeenCalled();
+  });
+});
+
+// ─── explicit requested target: { kind: 'orgPage', pageId } ───────────────
+
+describe('resolveLinkedInTarget — explicit orgPage target', () => {
+  afterEach(() => vi.clearAllMocks());
+
+  it('returns the org URN, token and credentialId for a valid active assignment', async () => {
+    mockFindFirstAssignment.mockResolvedValue(makeAssignment());
+    mockFindFirstIdentity.mockResolvedValue(makeIdentity());
+
+    const target = await resolveLinkedInTarget('user-1', {
+      kind: 'orgPage',
+      pageId: 'org-page-uuid-1',
+    });
+    expect(target?.authorUrn).toBe('urn:li:organization:page-123');
+    expect(target?.accessToken).toBe('org-access-token');
+    expect(target?.credentialId).toBe('cred-abc');
+  });
+
+  it('queries the assignment scoped to BOTH userId and pageId', async () => {
+    mockFindFirstAssignment.mockResolvedValue(makeAssignment());
+
+    await resolveLinkedInTarget('user-1', { kind: 'orgPage', pageId: 'org-page-uuid-1' });
+
+    expect(mockFindFirstAssignment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ userId: 'user-1', pageId: 'org-page-uuid-1' }),
+      })
+    );
+  });
+
+  it('returns null when no assignment exists for that pageId', async () => {
+    mockFindFirstAssignment.mockResolvedValue(null);
+    mockFindFirstIdentity.mockResolvedValue(makeIdentity());
+
+    const target = await resolveLinkedInTarget('user-1', {
+      kind: 'orgPage',
+      pageId: 'unassigned-page',
+    });
+    expect(target).toBeNull();
+  });
+
+  it('does NOT fall back to the personal identity when the assignment is missing', async () => {
+    mockFindFirstAssignment.mockResolvedValue(null);
+    mockFindFirstIdentity.mockResolvedValue(makeIdentity());
+
+    await resolveLinkedInTarget('user-1', { kind: 'orgPage', pageId: 'unassigned-page' });
+    expect(mockFindFirstIdentity).not.toHaveBeenCalled();
+  });
+
+  it('returns null when the org credential is disconnected', async () => {
+    mockFindFirstAssignment.mockResolvedValue(
+      makeAssignment({ disconnectedAt: new Date('2023-06-01') })
+    );
+    mockFindFirstIdentity.mockResolvedValue(makeIdentity());
+
+    const target = await resolveLinkedInTarget('user-1', {
+      kind: 'orgPage',
+      pageId: 'org-page-uuid-1',
+    });
+    expect(target).toBeNull();
+  });
+
+  it('does NOT fall back to the personal identity when the credential is disconnected', async () => {
+    mockFindFirstAssignment.mockResolvedValue(
+      makeAssignment({ disconnectedAt: new Date('2023-06-01') })
+    );
+    mockFindFirstIdentity.mockResolvedValue(makeIdentity());
+
+    await resolveLinkedInTarget('user-1', { kind: 'orgPage', pageId: 'org-page-uuid-1' });
+    expect(mockFindFirstIdentity).not.toHaveBeenCalled();
+  });
+
+  it('returns null when the org credential is expired', async () => {
+    mockFindFirstAssignment.mockResolvedValue(
+      makeAssignment({ expiresAt: new Date('2020-01-01') })
+    );
+    mockFindFirstIdentity.mockResolvedValue(makeIdentity());
+
+    const target = await resolveLinkedInTarget('user-1', {
+      kind: 'orgPage',
+      pageId: 'org-page-uuid-1',
+    });
+    expect(target).toBeNull();
+  });
+
+  it('does NOT fall back to the personal identity when the credential is expired', async () => {
+    mockFindFirstAssignment.mockResolvedValue(
+      makeAssignment({ expiresAt: new Date('2020-01-01') })
+    );
+    mockFindFirstIdentity.mockResolvedValue(makeIdentity());
+
+    await resolveLinkedInTarget('user-1', { kind: 'orgPage', pageId: 'org-page-uuid-1' });
+    expect(mockFindFirstIdentity).not.toHaveBeenCalled();
+  });
+
+  it('treats a credential with null expiresAt as active', async () => {
+    mockFindFirstAssignment.mockResolvedValue(
+      makeAssignment({ expiresAt: null, disconnectedAt: null })
+    );
+
+    const target = await resolveLinkedInTarget('user-1', {
+      kind: 'orgPage',
+      pageId: 'org-page-uuid-1',
+    });
+    expect(target?.authorUrn).toBe('urn:li:organization:page-123');
+  });
+});
+
+// ─── parseRequestedLinkedInTarget ──────────────────────────────────────────
+
+describe('parseRequestedLinkedInTarget — accepted values', () => {
+  it('returns ok with undefined target for undefined input', () => {
+    expect(parseRequestedLinkedInTarget(undefined)).toEqual({ ok: true, target: undefined });
+  });
+
+  it('returns ok with undefined target for null input', () => {
+    expect(parseRequestedLinkedInTarget(null)).toEqual({ ok: true, target: undefined });
+  });
+
+  it('accepts { kind: "personal" }', () => {
+    expect(parseRequestedLinkedInTarget({ kind: 'personal' })).toEqual({
+      ok: true,
+      target: { kind: 'personal' },
+    });
+  });
+
+  it('accepts { kind: "orgPage", pageId: "abc" }', () => {
+    expect(parseRequestedLinkedInTarget({ kind: 'orgPage', pageId: 'abc' })).toEqual({
+      ok: true,
+      target: { kind: 'orgPage', pageId: 'abc' },
+    });
+  });
+});
+
+describe('parseRequestedLinkedInTarget — rejected values', () => {
+  it('rejects the bare string "personal"', () => {
+    expect(parseRequestedLinkedInTarget('personal')).toEqual({ ok: false });
+  });
+
+  it('rejects { kind: "orgPage" } without a pageId', () => {
+    expect(parseRequestedLinkedInTarget({ kind: 'orgPage' })).toEqual({ ok: false });
+  });
+
+  it('rejects { kind: "orgPage", pageId: 5 } with a non-string pageId', () => {
+    expect(parseRequestedLinkedInTarget({ kind: 'orgPage', pageId: 5 })).toEqual({ ok: false });
+  });
+
+  it('rejects an empty-string pageId', () => {
+    expect(parseRequestedLinkedInTarget({ kind: 'orgPage', pageId: '' })).toEqual({ ok: false });
+  });
+
+  it('rejects an unknown kind', () => {
+    expect(parseRequestedLinkedInTarget({ kind: 'bogus' })).toEqual({ ok: false });
+  });
+
+  it('rejects a number', () => {
+    expect(parseRequestedLinkedInTarget(42)).toEqual({ ok: false });
+  });
+
+  it('rejects an array', () => {
+    expect(parseRequestedLinkedInTarget([])).toEqual({ ok: false });
   });
 });

@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { getCurrentUserOrSyncToken } from '@/lib/auth/sync-token';
 import { deleteBlobsFromMessages } from '@/lib/blob';
 import { deletePostOnBluesky, deletePostOnLinkedIn, deletePostOnMastodon } from '@/lib/crosspost/delete-external';
+import { parseRequestedLinkedInTarget } from '@/lib/linkedin/resolve-linkedin-target';
 import { LinkMetadata } from '@/lib/types';
 import { attachDugByMeIncludingPushed } from '@/lib/messages/dig';
 import { getPushedMessageInclude } from '@/lib/messages/queries';
@@ -150,12 +151,22 @@ export async function PATCH(
         mastodonProviderIds?: string[];
         crossPostToBluesky?: boolean;
         crossPostToLinkedIn?: boolean;
+        linkedInLinkAsFirstComment?: boolean;
+        crossPostToTwitter?: boolean;
+        linkedInTarget?: unknown;
       } | null;
       if (config) {
+        const parsedLinkedInTarget = parseRequestedLinkedInTarget(config.linkedInTarget);
+        if (!parsedLinkedInTarget.ok) {
+          return NextResponse.json({ error: 'Invalid linkedInTarget' }, { status: 400 });
+        }
         updates.scheduledCrossPostConfig = {
           mastodonProviderIds: Array.isArray(config.mastodonProviderIds) ? config.mastodonProviderIds : [],
           crossPostToBluesky: Boolean(config.crossPostToBluesky),
           crossPostToLinkedIn: Boolean(config.crossPostToLinkedIn),
+          linkedInLinkAsFirstComment: Boolean(config.linkedInLinkAsFirstComment),
+          crossPostToTwitter: Boolean(config.crossPostToTwitter),
+          ...(parsedLinkedInTarget.target && { linkedInTarget: parsedLinkedInTarget.target }),
         };
       } else {
         updates.scheduledCrossPostConfig = null;
