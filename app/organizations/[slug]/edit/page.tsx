@@ -64,6 +64,16 @@ export default async function EditOrganizationPage({
           </div>
 
           <h1 className="mb-4">Edit Organization</h1>
+
+          <div className="mb-3">
+            <Link
+              href={`/organizations/${slug}/linkedin`}
+              className="btn btn-outline-secondary btn-sm"
+            >
+              LinkedIn Integration
+            </Link>
+          </div>
+
           <EditOrganizationForm organization={organization} />
 
           <OrganizationMembersManagement

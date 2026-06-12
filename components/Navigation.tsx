@@ -5,6 +5,7 @@ import UserDropdown from './UserDropdown';
 import NotificationsBell from './NotificationsBell';
 import NavigationTitle from './NavigationTitle';
 import ClockInNav from './ClockInNav';
+import ProductsDropdown from './ProductsDropdown';
 
 export default async function Navigation() {
   const user = await getCurrentUser();
@@ -37,6 +38,7 @@ export default async function Navigation() {
               <i className="bx bx-news fs-18 align-middle"></i>
               <span className="align-middle">Blog</span>
             </Link>
+            <ProductsDropdown />
           </div>
 
           {/* Right side - User actions */}
