@@ -123,7 +123,13 @@ Click the **Bluesky icon** in the toolbar. It turns blue when active. Your post 
 
 ### Cross-Posting to LinkedIn
 
-Click the **LinkedIn icon** in the toolbar. If your message contains a URL, an extra option appears: **Post link(s) as first comment (LinkedIn)**. Checking this box places the URL in the first comment instead of in the body of the post, which can improve how LinkedIn presents the content.
+Click the **LinkedIn icon** in the toolbar. It turns blue when active.
+
+**Choosing where the post goes on LinkedIn.** You can post as your personal LinkedIn profile, as an organization page you have been assigned to, or both. If you have more than one enabled LinkedIn destination, a **LinkedIn destinations** checkbox list appears below the toolbar — tick every destination that should receive the post. Your personal profile is selected by default (or the first available page if your personal profile is not enabled). You control which destinations are available here from the **Posting targets** list on the Connected Accounts page (see [LinkedIn](#linkedin) under Connected Accounts).
+
+If one LinkedIn destination fails, the others still receive the post — the status line below the compose box shows a warning for any destination that did not go through.
+
+If your message contains a URL, an extra option appears: **Post link(s) as first comment (LinkedIn)**. Checking this box places the URL in the first comment instead of in the body of the post, which can improve how LinkedIn presents the content.
 
 ### Cross-Posting to Twitter / X
 
@@ -162,6 +168,15 @@ You can also set a **default GitHub repository** (in `owner/repo` format) that i
 1. On the Connected Accounts page, find the **LinkedIn** card and click **Connect** (the button appears when LinkedIn sign-in is available on your InterlinedList instance).
 2. Sign in to LinkedIn and approve the permissions.
 3. You are returned to InterlinedList with LinkedIn shown as connected.
+
+#### Choosing your LinkedIn posting targets
+
+Once LinkedIn is connected, a **Posting targets** list appears on the LinkedIn card. It shows every LinkedIn destination you can post as:
+
+- Your **personal** LinkedIn identity.
+- Any organization **pages** you have been assigned to — for example, a company page run by an organization you belong to. Pages only appear here after an administrator of that organization has connected the page and assigned you to it (see [Organizations](#organizations)).
+
+Check a target to make it available when cross-posting; uncheck it to hide it from the compose box. All of your available targets are enabled by default. At least one target must always remain enabled — if you try to uncheck the last one, the change is blocked and a message reminds you that one target must stay on.
 
 ### Mastodon
 
@@ -285,7 +300,7 @@ Scheduling lets you write a message now and have it published automatically at a
 
 A note below the compose button shows the scheduled date and time. To cancel scheduling and post immediately instead, click the displayed date.
 
-**Editing a scheduled post:** Find the post in your scheduled posts list and click the edit icon. You can change the time, the message content, or which networks will receive it. Save your changes and the post remains scheduled.
+**Editing a scheduled post:** Find the post in your scheduled posts list and click the edit icon. You can change the time, the message content, or which networks will receive it. If LinkedIn is selected, the editor shows the same checkbox list of LinkedIn destinations as the compose box, so you can choose your personal profile, one or more organization pages, or any combination. Save your changes and the post remains scheduled.
 
 **Cancelling a scheduled post:** Open the edit dialog for the post and delete it, or cancel the scheduled time from within the compose box before you submit.
 
@@ -409,6 +424,7 @@ Organizations are shared spaces that multiple users can belong to.
 
 - **Joining an organization:** Organizations can be public or invite-only. Browse public organizations and request to join, or accept an invitation from an administrator.
 - **Roles:** Each member has a role (member or a higher level). Your role determines what you can do within the organization.
+- **LinkedIn pages:** An organization owner or administrator can connect the organization's LinkedIn page and assign members to it. Assigned members can then cross-post to that page — it appears in their **Posting targets** list (see [LinkedIn](#linkedin) under Connected Accounts) and as a destination in the compose box.
 - **Leaving an organization:** Open the organization settings and choose to leave.
 
 ---

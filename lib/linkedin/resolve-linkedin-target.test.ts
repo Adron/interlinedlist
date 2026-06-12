@@ -22,7 +22,12 @@ vi.mock('@/lib/prisma', () => ({
   },
 }));
 
-import { parseRequestedLinkedInTarget, resolveLinkedInTarget } from './resolve-linkedin-target';
+import {
+  dedupeRequestedLinkedInTargets,
+  parseRequestedLinkedInTarget,
+  parseRequestedLinkedInTargets,
+  resolveLinkedInTarget,
+} from './resolve-linkedin-target';
 
 // ─── helpers ───────────────────────────────────────────────────────────────
 
@@ -442,5 +447,227 @@ describe('parseRequestedLinkedInTarget — rejected values', () => {
 
   it('rejects an array', () => {
     expect(parseRequestedLinkedInTarget([])).toEqual({ ok: false });
+  });
+});
+
+// ─── parseRequestedLinkedInTargets (array form) ────────────────────────────
+
+describe('parseRequestedLinkedInTargets — accepted values', () => {
+  it('returns ok with undefined targets for undefined input (no explicit targets)', () => {
+    expect(parseRequestedLinkedInTargets(undefined)).toEqual({ ok: true, targets: undefined });
+  });
+
+  it('returns ok with undefined targets for null input', () => {
+    expect(parseRequestedLinkedInTargets(null)).toEqual({ ok: true, targets: undefined });
+  });
+
+  it('accepts an empty array', () => {
+    expect(parseRequestedLinkedInTargets([])).toEqual({ ok: true, targets: [] });
+  });
+
+  it('accepts [{ kind: "personal" }]', () => {
+    expect(parseRequestedLinkedInTargets([{ kind: 'personal' }])).toEqual({
+      ok: true,
+      targets: [{ kind: 'personal' }],
+    });
+  });
+
+  it('accepts [{ kind: "orgPage", pageId: "abc" }]', () => {
+    expect(parseRequestedLinkedInTargets([{ kind: 'orgPage', pageId: 'abc' }])).toEqual({
+      ok: true,
+      targets: [{ kind: 'orgPage', pageId: 'abc' }],
+    });
+  });
+
+  it('accepts a mixed array of personal and multiple org pages, preserving order', () => {
+    expect(
+      parseRequestedLinkedInTargets([
+        { kind: 'personal' },
+        { kind: 'orgPage', pageId: 'page-a' },
+        { kind: 'orgPage', pageId: 'page-b' },
+      ])
+    ).toEqual({
+      ok: true,
+      targets: [
+        { kind: 'personal' },
+        { kind: 'orgPage', pageId: 'page-a' },
+        { kind: 'orgPage', pageId: 'page-b' },
+      ],
+    });
+  });
+
+  it('strips extra properties from valid elements', () => {
+    expect(
+      parseRequestedLinkedInTargets([{ kind: 'orgPage', pageId: 'abc', extra: 'ignored' }])
+    ).toEqual({
+      ok: true,
+      targets: [{ kind: 'orgPage', pageId: 'abc' }],
+    });
+  });
+});
+
+describe('parseRequestedLinkedInTargets — dedupe behavior', () => {
+  it('dedupes repeated personal entries', () => {
+    expect(
+      parseRequestedLinkedInTargets([{ kind: 'personal' }, { kind: 'personal' }])
+    ).toEqual({ ok: true, targets: [{ kind: 'personal' }] });
+  });
+
+  it('dedupes repeated orgPage entries with the same pageId', () => {
+    expect(
+      parseRequestedLinkedInTargets([
+        { kind: 'orgPage', pageId: 'page-a' },
+        { kind: 'orgPage', pageId: 'page-a' },
+      ])
+    ).toEqual({ ok: true, targets: [{ kind: 'orgPage', pageId: 'page-a' }] });
+  });
+
+  it('keeps distinct pageIds while removing duplicates', () => {
+    expect(
+      parseRequestedLinkedInTargets([
+        { kind: 'orgPage', pageId: 'page-a' },
+        { kind: 'personal' },
+        { kind: 'orgPage', pageId: 'page-b' },
+        { kind: 'orgPage', pageId: 'page-a' },
+        { kind: 'personal' },
+      ])
+    ).toEqual({
+      ok: true,
+      targets: [
+        { kind: 'orgPage', pageId: 'page-a' },
+        { kind: 'personal' },
+        { kind: 'orgPage', pageId: 'page-b' },
+      ],
+    });
+  });
+});
+
+describe('parseRequestedLinkedInTargets — rejected values', () => {
+  it('rejects a legacy single object (non-array) form', () => {
+    expect(parseRequestedLinkedInTargets({ kind: 'personal' })).toEqual({ ok: false });
+  });
+
+  it('rejects a bare string', () => {
+    expect(parseRequestedLinkedInTargets('personal')).toEqual({ ok: false });
+  });
+
+  it('rejects a number', () => {
+    expect(parseRequestedLinkedInTargets(42)).toEqual({ ok: false });
+  });
+
+  it('rejects a boolean', () => {
+    expect(parseRequestedLinkedInTargets(true)).toEqual({ ok: false });
+  });
+
+  it('rejects an array containing null', () => {
+    expect(parseRequestedLinkedInTargets([{ kind: 'personal' }, null])).toEqual({ ok: false });
+  });
+
+  it('rejects an array containing undefined', () => {
+    expect(parseRequestedLinkedInTargets([undefined])).toEqual({ ok: false });
+  });
+
+  it('rejects an array containing an unknown kind', () => {
+    expect(parseRequestedLinkedInTargets([{ kind: 'bogus' }])).toEqual({ ok: false });
+  });
+
+  it('rejects an orgPage entry missing pageId', () => {
+    expect(parseRequestedLinkedInTargets([{ kind: 'orgPage' }])).toEqual({ ok: false });
+  });
+
+  it('rejects an orgPage entry with an empty-string pageId', () => {
+    expect(parseRequestedLinkedInTargets([{ kind: 'orgPage', pageId: '' }])).toEqual({
+      ok: false,
+    });
+  });
+
+  it('rejects an orgPage entry with a non-string pageId', () => {
+    expect(parseRequestedLinkedInTargets([{ kind: 'orgPage', pageId: 7 }])).toEqual({
+      ok: false,
+    });
+  });
+
+  it('rejects the whole array when any single element is invalid', () => {
+    expect(
+      parseRequestedLinkedInTargets([
+        { kind: 'personal' },
+        { kind: 'orgPage', pageId: 'page-a' },
+        { kind: 'bogus' },
+      ])
+    ).toEqual({ ok: false });
+  });
+
+  it('rejects an array of bare strings', () => {
+    expect(parseRequestedLinkedInTargets(['personal'])).toEqual({ ok: false });
+  });
+});
+
+// ─── dedupeRequestedLinkedInTargets ────────────────────────────────────────
+
+describe('dedupeRequestedLinkedInTargets', () => {
+  it('returns an empty array unchanged', () => {
+    expect(dedupeRequestedLinkedInTargets([])).toEqual([]);
+  });
+
+  it('keeps a single personal target', () => {
+    expect(dedupeRequestedLinkedInTargets([{ kind: 'personal' }])).toEqual([
+      { kind: 'personal' },
+    ]);
+  });
+
+  it('collapses multiple personal targets to one', () => {
+    expect(
+      dedupeRequestedLinkedInTargets([
+        { kind: 'personal' },
+        { kind: 'personal' },
+        { kind: 'personal' },
+      ])
+    ).toEqual([{ kind: 'personal' }]);
+  });
+
+  it('collapses orgPage targets with the same pageId to one', () => {
+    expect(
+      dedupeRequestedLinkedInTargets([
+        { kind: 'orgPage', pageId: 'page-a' },
+        { kind: 'orgPage', pageId: 'page-a' },
+      ])
+    ).toEqual([{ kind: 'orgPage', pageId: 'page-a' }]);
+  });
+
+  it('keeps orgPage targets with distinct pageIds', () => {
+    expect(
+      dedupeRequestedLinkedInTargets([
+        { kind: 'orgPage', pageId: 'page-a' },
+        { kind: 'orgPage', pageId: 'page-b' },
+      ])
+    ).toEqual([
+      { kind: 'orgPage', pageId: 'page-a' },
+      { kind: 'orgPage', pageId: 'page-b' },
+    ]);
+  });
+
+  it('preserves first-occurrence order across mixed kinds', () => {
+    expect(
+      dedupeRequestedLinkedInTargets([
+        { kind: 'orgPage', pageId: 'page-b' },
+        { kind: 'personal' },
+        { kind: 'orgPage', pageId: 'page-a' },
+        { kind: 'orgPage', pageId: 'page-b' },
+        { kind: 'personal' },
+      ])
+    ).toEqual([
+      { kind: 'orgPage', pageId: 'page-b' },
+      { kind: 'personal' },
+      { kind: 'orgPage', pageId: 'page-a' },
+    ]);
+  });
+
+  it('does not conflate personal with an orgPage whose pageId is "personal"', () => {
+    expect(
+      dedupeRequestedLinkedInTargets([
+        { kind: 'personal' },
+        { kind: 'orgPage', pageId: 'personal' },
+      ])
+    ).toEqual([{ kind: 'personal' }, { kind: 'orgPage', pageId: 'personal' }]);
   });
 });

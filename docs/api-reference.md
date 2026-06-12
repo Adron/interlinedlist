@@ -19,10 +19,11 @@
 15. [Exports](#exports)
 16. [Stripe / Subscriptions](#stripe--subscriptions)
 17. [GitHub Integration](#github-integration)
-18. [Utility Endpoints](#utility-endpoints)
-19. [OAuth Provider Flows](#oauth-provider-flows)
-20. [Cron Endpoints (Internal)](#cron-endpoints-internal)
-21. [Webhook Endpoints (Internal)](#webhook-endpoints-internal)
+18. [LinkedIn Integration](#linkedin-integration)
+19. [Utility Endpoints](#utility-endpoints)
+20. [OAuth Provider Flows](#oauth-provider-flows)
+21. [Cron Endpoints (Internal)](#cron-endpoints-internal)
+22. [Webhook Endpoints (Internal)](#webhook-endpoints-internal)
 
 ---
 
@@ -703,6 +704,10 @@ Partners who receive or build a branded integration bundle should verify it cont
   "mastodonProviderIds": [],
   "crossPostToBluesky": false,
   "crossPostToLinkedIn": false,
+  "linkedInTargets": [
+    { "kind": "personal" },
+    { "kind": "orgPage", "pageId": "<org-linkedin-page-uuid>" }
+  ],
   "linkedInLinkAsFirstComment": false,
   "crossPostToTwitter": false,
   "scheduledAt": null,
@@ -721,8 +726,10 @@ Partners who receive or build a branded integration bundle should verify it cont
 | `tags` | string[] | no | Arbitrary tags for filtering. |
 | `mastodonProviderIds` | string[] | no | IDs of linked Mastodon identities to post to. Requires subscription. Skipped for replies and push messages. |
 | `crossPostToBluesky` | boolean | no | Post to the linked Bluesky account. Requires subscription. Skipped for replies and push messages. |
-| `crossPostToLinkedIn` | boolean | no | Post to the linked LinkedIn account. Requires subscription. Skipped for replies and push messages. |
-| `linkedInLinkAsFirstComment` | boolean | no | Post the InterlinedList link as the first comment rather than in the body (LinkedIn only). |
+| `crossPostToLinkedIn` | boolean | no | Post to LinkedIn. Requires subscription. Skipped for replies and push messages. Destinations are selected with `linkedInTargets`; without it, legacy resolution applies (most recently connected assigned org page, falling back to the personal account). |
+| `linkedInTargets` | object[] | no | LinkedIn destinations to post to, used with `crossPostToLinkedIn: true`. Each element is `{ "kind": "personal" }` or `{ "kind": "orgPage", "pageId": "<OrgLinkedInPage uuid>" }`. Duplicates are removed. Each org page must be assigned to the caller. Discover available targets via `GET /api/linkedin/posting-targets`. |
+| `linkedInTarget` | object | no | **Legacy** single-destination form, same element shape as `linkedInTargets`. Accepted for backward compatibility and treated as a one-element array when `linkedInTargets` is absent or empty. |
+| `linkedInLinkAsFirstComment` | boolean | no | Post the InterlinedList link as the first comment rather than in the body (LinkedIn only; applies to all LinkedIn targets). |
 | `crossPostToTwitter` | boolean | no | Post to the linked Twitter/X account. Requires subscription. |
 | `scheduledAt` | ISO 8601 string | no | Future date/time for scheduled publishing. Cannot be combined with `pushedMessageId`. Cross-post settings are stored in `scheduledCrossPostConfig`. |
 | `scheduledCrossPostConfig` | object | no | Cross-post configuration stored alongside a scheduled message (mirrors the cross-post fields above). |
@@ -733,18 +740,22 @@ Partners who receive or build a branded integration bundle should verify it cont
   "message": "Message created successfully",
   "data": { "id": "msg456", "content": "...", ... },
   "crossPostResults": [
-    { "providerId": "...", "instanceName": "mastodon.social", "success": true, "url": "https://..." }
+    { "providerId": "...", "instanceName": "mastodon.social", "success": true, "url": "https://..." },
+    { "providerId": "", "instanceName": "LinkedIn (personal)", "success": true, "url": "https://www.linkedin.com/..." },
+    { "providerId": "", "instanceName": "LinkedIn (Acme Corp)", "success": false, "error": "The selected LinkedIn page is unavailable — the assignment was removed or the organization connection expired." }
   ]
 }
 ```
 
-When scheduling: `"message": "Message scheduled successfully"` and `"scheduledAt"` are included instead.
+LinkedIn posting fans out: each entry in `linkedInTargets` is posted independently and produces its own `crossPostResults` entry, so one failed target does not abort the others. The `instanceName` is `LinkedIn (<page name>)` for org pages, `LinkedIn (personal)` for the personal account when multiple targets are requested, and plain `LinkedIn` for a single default/personal post.
+
+When scheduling: `"message": "Message scheduled successfully"` and `"scheduledAt"` are included instead. The stored `scheduledCrossPostConfig` includes `linkedInTargets` when provided, and the cron publisher posts to each target.
 
 **Error responses**
 
 | Status | Condition |
 |--------|-----------|
-| 400 | Missing content, content too long, invalid fields, push + reply combined, push cannot be scheduled, push target not public |
+| 400 | Missing content, content too long, invalid fields, push + reply combined, push cannot be scheduled, push target not public. Malformed LinkedIn destinations return `{ "error": "Invalid linkedInTargets" }` or `{ "error": "Invalid linkedInTarget" }`. |
 | 401 | Not authenticated |
 | 403 | Email not verified, or subscription required for images/video/cross-post/schedule |
 | 404 | Parent message or push target not found |
@@ -791,11 +802,18 @@ When scheduling: `"message": "Message scheduled successfully"` and `"scheduledAt
   "scheduledCrossPostConfig": {
     "mastodonProviderIds": [],
     "crossPostToBluesky": true,
-    "crossPostToLinkedIn": false,
+    "crossPostToLinkedIn": true,
+    "linkedInLinkAsFirstComment": false,
+    "linkedInTargets": [
+      { "kind": "personal" },
+      { "kind": "orgPage", "pageId": "<org-linkedin-page-uuid>" }
+    ],
     "crossPostToTwitter": false
   }
 }
 ```
+
+`scheduledCrossPostConfig.linkedInTargets` is an array of LinkedIn destinations (`{ "kind": "personal" }` or `{ "kind": "orgPage", "pageId": "<uuid>" }`); the cron publisher posts to each one. The legacy single-object `linkedInTarget` field is still accepted and is stored only when `linkedInTargets` is absent or empty. Set `scheduledCrossPostConfig` to `null` to clear all cross-post settings.
 
 **Response** `200 OK` — the updated message object.
 
@@ -803,7 +821,7 @@ When scheduling: `"message": "Message scheduled successfully"` and `"scheduledAt
 
 | Status | Condition |
 |--------|-----------|
-| 400 | Invalid date, date not in the future, or message is not a pending scheduled post |
+| 400 | Invalid date, date not in the future, message is not a pending scheduled post, `Invalid linkedInTargets`, or `Invalid linkedInTarget` |
 | 401 | Not authenticated |
 | 403 | Not your message |
 | 404 | Message not found |
@@ -2630,6 +2648,111 @@ These endpoints proxy GitHub API requests using the user's linked GitHub identit
 
 **Auth required:** yes (linked GitHub identity required)  
 **Description:** List accessible repositories for the linked GitHub account.
+
+---
+
+## LinkedIn Integration
+
+Endpoints for discovering and configuring the LinkedIn destinations a user can cross-post to. A **target** is either the user's personal LinkedIn account (linked via OAuth) or an organization page the user has been assigned to with an active organization-level connection.
+
+Target objects come in two shapes:
+
+```json
+{ "kind": "personal", "label": "Alice Example", "avatarUrl": "https://..." }
+```
+```json
+{
+  "kind": "orgPage",
+  "pageId": "<OrgLinkedInPage uuid>",
+  "linkedInPageId": "12345678",
+  "label": "Acme Corp",
+  "logoUrl": "https://..."
+}
+```
+
+`pageId` is the InterlinedList `OrgLinkedInPage` record ID (use this in `linkedInTargets` when posting); `linkedInPageId` is LinkedIn's own page identifier. `avatarUrl` / `logoUrl` may be `null`.
+
+### GET /api/linkedin/targets
+
+**Auth required:** yes  
+**Description:** List every LinkedIn destination the user can post to right now — the personal account (when linked with an access token) plus assigned org pages with an active, non-expired organization connection.
+
+**Response** `200 OK`
+```json
+{
+  "targets": [
+    { "kind": "personal", "label": "Alice Example", "avatarUrl": null },
+    { "kind": "orgPage", "pageId": "...", "linkedInPageId": "12345678", "label": "Acme Corp", "logoUrl": null }
+  ]
+}
+```
+
+**Error responses**
+
+| Status | Condition |
+|--------|-----------|
+| 401 | Not authenticated |
+
+---
+
+### GET /api/linkedin/posting-targets
+
+**Auth required:** yes  
+**Description:** List the user's available LinkedIn targets together with their saved posting preference. Each target carries an `enabled` flag. If the user has never saved preferences, every available target is returned with `enabled: true`.
+
+Preferences are a client-side default for the composer's target selection only — they are **not** enforced when posting. Server-side authorization for `POST /api/messages` is always based on the user's actual org-page assignments.
+
+**Response** `200 OK`
+```json
+{
+  "targets": [
+    { "kind": "personal", "label": "Alice Example", "avatarUrl": null, "enabled": true },
+    { "kind": "orgPage", "pageId": "...", "linkedInPageId": "12345678", "label": "Acme Corp", "logoUrl": null, "enabled": false }
+  ]
+}
+```
+
+**Error responses**
+
+| Status | Condition |
+|--------|-----------|
+| 401 | Not authenticated |
+
+---
+
+### PUT /api/linkedin/posting-targets
+
+**Auth required:** yes  
+**Description:** Replace the user's LinkedIn posting-target preferences atomically. Targets listed in the body become enabled; all others become disabled. An empty array disables every target. Duplicates are removed.
+
+**Request body**
+```json
+{
+  "targets": [
+    { "kind": "personal" },
+    { "kind": "orgPage", "pageId": "<OrgLinkedInPage uuid>" }
+  ]
+}
+```
+
+Every requested target is validated against what the caller can actually post to: `personal` requires a linked LinkedIn account, and each `pageId` must be an org page assigned to the caller with an active connection.
+
+**Response** `200 OK` — the updated preference state, same shape as `GET /api/linkedin/posting-targets`:
+```json
+{
+  "targets": [
+    { "kind": "personal", "label": "Alice Example", "avatarUrl": null, "enabled": true },
+    { "kind": "orgPage", "pageId": "...", "linkedInPageId": "12345678", "label": "Acme Corp", "logoUrl": null, "enabled": true }
+  ]
+}
+```
+
+**Error responses**
+
+| Status | Condition |
+|--------|-----------|
+| 400 | Invalid JSON body, `targets` is not an array, a target has an invalid shape (`Invalid targets`), personal account not linked, or a page is not assigned to you (`One or more LinkedIn pages are not assigned to you`) |
+| 401 | Not authenticated |
 
 ---
 

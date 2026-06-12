@@ -61,6 +61,7 @@ model User {
   orgLinkedInConnections     OrgLinkedInCredential[]           @relation("OrgLinkedInConnector")
   orgLinkedInPageAssignments OrgLinkedInPageAssignment[]
   orgLinkedInAssignments     OrgLinkedInPageAssignment[]       @relation("OrgLinkedInAssigner")
+  linkedInPostingTargets     LinkedInPostingTargetPreference[]
 
   @@map("users")
 }
@@ -521,8 +522,9 @@ model OrgLinkedInPage {
   discoveredAt   DateTime  @default(now())
   lastSyncedAt   DateTime?
 
-  credential  OrgLinkedInCredential      @relation(fields: [credentialId], references: [id], onDelete: Cascade)
-  assignments OrgLinkedInPageAssignment[]
+  credential         OrgLinkedInCredential             @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+  assignments        OrgLinkedInPageAssignment[]
+  targetPreferences  LinkedInPostingTargetPreference[]
 
   @@unique([credentialId, linkedInPageId])
   @@index([credentialId])
@@ -544,4 +546,20 @@ model OrgLinkedInPageAssignment {
   @@index([userId])
   @@index([pageId])
   @@map("org_linkedin_page_assignments")
+}
+
+model LinkedInPostingTargetPreference {
+  id        String   @id @default(uuid())
+  userId    String
+  kind      String
+  pageId    String?
+  createdAt DateTime @default(now())
+
+  user User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  page OrgLinkedInPage? @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, kind, pageId])
+  @@index([userId])
+  @@index([pageId])
+  @@map("linkedin_posting_target_preferences")
 }

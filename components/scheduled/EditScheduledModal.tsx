@@ -18,12 +18,20 @@ function toDatetimeLocal(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-function defaultLinkedInTarget(targets: LinkedInTargetOption[]): RequestedLinkedInTarget | null {
-  if (targets.some((t) => t.kind === 'personal')) return { kind: 'personal' };
+function defaultLinkedInTargets(targets: LinkedInTargetOption[]): RequestedLinkedInTarget[] {
+  if (targets.some((t) => t.kind === 'personal')) return [{ kind: 'personal' }];
   const firstPage = targets.find(
     (t): t is Extract<LinkedInTargetOption, { kind: 'orgPage' }> => t.kind === 'orgPage'
   );
-  return firstPage ? { kind: 'orgPage', pageId: firstPage.pageId } : null;
+  return firstPage ? [{ kind: 'orgPage', pageId: firstPage.pageId }] : [];
+}
+
+function linkedInOptionKey(option: LinkedInTargetOption): string {
+  return option.kind === 'personal' ? 'personal' : option.pageId;
+}
+
+function linkedInRequestedKey(target: RequestedLinkedInTarget): string {
+  return target.kind === 'personal' ? 'personal' : target.pageId;
 }
 
 interface EditScheduledModalProps {
@@ -48,8 +56,8 @@ export default function EditScheduledModal({
   const [crossPostToTwitter, setCrossPostToTwitter] = useState(config?.crossPostToTwitter ?? false);
   const linkedInLinkAsFirstComment = config?.linkedInLinkAsFirstComment ?? false;
   const [linkedInTargets, setLinkedInTargets] = useState<LinkedInTargetOption[]>([]);
-  const [selectedLinkedInTarget, setSelectedLinkedInTarget] = useState<RequestedLinkedInTarget | null>(
-    config?.linkedInTarget ?? null
+  const [selectedLinkedInTargets, setSelectedLinkedInTargets] = useState<RequestedLinkedInTarget[]>(
+    config?.linkedInTargets ?? (config?.linkedInTarget ? [config.linkedInTarget] : [])
   );
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -65,16 +73,34 @@ export default function EditScheduledModal({
   }, [message.scheduledAt]);
 
   useEffect(() => {
-    fetch('/api/linkedin/targets')
+    fetch('/api/linkedin/posting-targets')
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data.targets)) {
-          setLinkedInTargets(data.targets);
-          setSelectedLinkedInTarget((prev) => prev ?? defaultLinkedInTarget(data.targets));
+          const enabled = (data.targets as Array<LinkedInTargetOption & { enabled?: boolean }>)
+            .filter((t) => t.enabled !== false);
+          setLinkedInTargets(enabled);
+          setSelectedLinkedInTargets((prev) =>
+            prev.length > 0 ? prev : defaultLinkedInTargets(enabled)
+          );
         }
       })
       .catch(() => {});
   }, []);
+
+  const toggleLinkedInTargetSelection = (option: LinkedInTargetOption) => {
+    const key = linkedInOptionKey(option);
+    setSelectedLinkedInTargets((prev) => {
+      const exists = prev.some((t) => linkedInRequestedKey(t) === key);
+      if (exists) return prev.filter((t) => linkedInRequestedKey(t) !== key);
+      return [
+        ...prev,
+        option.kind === 'personal'
+          ? { kind: 'personal' as const }
+          : { kind: 'orgPage' as const, pageId: option.pageId },
+      ];
+    });
+  };
 
   const handleSave = async () => {
     const parsed = new Date(scheduleDraft);
@@ -99,7 +125,7 @@ export default function EditScheduledModal({
             crossPostToTwitter: !!twitterIdentity && crossPostToTwitter,
             ...(linkedInTargets.length > 0 &&
               crossPostToLinkedIn &&
-              selectedLinkedInTarget && { linkedInTarget: selectedLinkedInTarget }),
+              selectedLinkedInTargets.length > 0 && { linkedInTargets: selectedLinkedInTargets }),
           },
         }),
       });
@@ -190,34 +216,32 @@ export default function EditScheduledModal({
                 </div>
               )}
               {crossPostToLinkedIn && linkedInTargets.length > 1 && (
-                <select
-                  className="form-select form-select-sm"
-                  style={{ maxWidth: '280px' }}
-                  aria-label="LinkedIn posting destination"
-                  value={
-                    selectedLinkedInTarget
-                      ? selectedLinkedInTarget.kind === 'personal'
-                        ? 'personal'
-                        : selectedLinkedInTarget.pageId
-                      : ''
-                  }
-                  onChange={(e) =>
-                    setSelectedLinkedInTarget(
-                      e.target.value === 'personal'
-                        ? { kind: 'personal' }
-                        : { kind: 'orgPage', pageId: e.target.value }
-                    )
-                  }
-                >
-                  {linkedInTargets.map((t) => (
-                    <option
-                      key={t.kind === 'orgPage' ? t.pageId : 'personal'}
-                      value={t.kind === 'orgPage' ? t.pageId : 'personal'}
-                    >
-                      {t.label} ({t.kind === 'orgPage' ? 'page' : 'personal'})
-                    </option>
-                  ))}
-                </select>
+                <div style={{ flexBasis: '100%' }}>
+                  <span className="small text-muted d-block">LinkedIn destinations</span>
+                  {linkedInTargets.map((t) => {
+                    const key = linkedInOptionKey(t);
+                    const isChecked = selectedLinkedInTargets.some(
+                      (s) => linkedInRequestedKey(s) === key
+                    );
+                    return (
+                      <div key={key} className="form-check">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          id={`edit-linkedin-target-${key}`}
+                          checked={isChecked}
+                          onChange={() => toggleLinkedInTargetSelection(t)}
+                        />
+                        <label
+                          className="form-check-label small"
+                          htmlFor={`edit-linkedin-target-${key}`}
+                        >
+                          {t.label} ({t.kind === 'orgPage' ? 'page' : 'personal'})
+                        </label>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
               {twitterIdentity && (
                 <div className="form-check">

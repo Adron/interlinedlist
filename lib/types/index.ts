@@ -111,6 +111,7 @@ export interface Message {
     linkedInLinkAsFirstComment?: boolean;
     crossPostToTwitter?: boolean;
     linkedInTarget?: { kind: 'personal' } | { kind: 'orgPage'; pageId: string };
+    linkedInTargets?: Array<{ kind: 'personal' } | { kind: 'orgPage'; pageId: string }>;
   } | null;
   tags?: string[] | null;
   user: MessageUser;
@@ -142,6 +143,12 @@ export type LinkedInTargetOption =
       label: string;
       logoUrl: string | null;
     };
+
+/**
+ * A LinkedIn destination with its posting-target preference state,
+ * as returned by GET /api/linkedin/posting-targets.
+ */
+export type LinkedInPostingTargetOption = LinkedInTargetOption & { enabled: boolean };
 
 /**
  * Pagination metadata

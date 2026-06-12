@@ -89,6 +89,30 @@ async function stubNoIdentities(page: import('@playwright/test').Page) {
   });
 }
 
+/**
+ * Stub GET /api/linkedin/posting-targets. The compose form now sources its
+ * LinkedIn toggle from this endpoint (enabled targets only), so tests that
+ * exercise the toggle must stub it alongside /api/user/identities.
+ */
+async function stubPostingTargets(
+  page: import('@playwright/test').Page,
+  targets: Array<Record<string, unknown>> = [
+    { kind: 'personal', label: 'Test User', avatarUrl: null, enabled: true },
+  ]
+) {
+  await page.route('/api/linkedin/posting-targets', (route) => {
+    if (route.request().method() === 'GET') {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ targets }),
+      });
+    } else {
+      route.fallback();
+    }
+  });
+}
+
 // ---------------------------------------------------------------------------
 // LinkedIn org-authorize OAuth route — unauthenticated / parameter guards
 // ---------------------------------------------------------------------------
@@ -281,6 +305,7 @@ test.describe('Compose — LinkedIn personal cross-post toggle', () => {
   test('LinkedIn toggle is absent when user has no LinkedIn identity', async ({ page }) => {
     await loginAs(page, TEST_SUBSCRIBER);
     await stubNoIdentities(page);
+    await stubPostingTargets(page, []);
 
     await page.goto('/dashboard');
 
@@ -297,6 +322,7 @@ test.describe('Compose — LinkedIn personal cross-post toggle', () => {
   test('LinkedIn toggle appears when a LinkedIn identity is connected', async ({ page }) => {
     await loginAs(page, TEST_SUBSCRIBER);
     await stubLinkedInIdentity(page);
+    await stubPostingTargets(page);
 
     await page.goto('/dashboard');
     await page.getByRole('button', { name: 'Posting options' }).click();
@@ -309,6 +335,7 @@ test.describe('Compose — LinkedIn personal cross-post toggle', () => {
   test('clicking the LinkedIn toggle activates then deactivates it', async ({ page }) => {
     await loginAs(page, TEST_SUBSCRIBER);
     await stubLinkedInIdentity(page);
+    await stubPostingTargets(page);
 
     await page.goto('/dashboard');
     await page.getByRole('button', { name: 'Posting options' }).click();
@@ -331,6 +358,7 @@ test.describe('Compose — LinkedIn personal cross-post toggle', () => {
   test('enabling LinkedIn cross-post shows "Posting to: LinkedIn" summary', async ({ page }) => {
     await loginAs(page, TEST_SUBSCRIBER);
     await stubLinkedInIdentity(page);
+    await stubPostingTargets(page);
 
     await page.goto('/dashboard');
     await page.getByRole('button', { name: 'Posting options' }).click();
@@ -345,6 +373,7 @@ test.describe('Compose — LinkedIn personal cross-post toggle', () => {
   }) => {
     await loginAs(page, TEST_SUBSCRIBER);
     await stubLinkedInIdentity(page);
+    await stubPostingTargets(page);
 
     let capturedBody: Record<string, unknown> | null = null;
     await page.route('/api/messages', async (route) => {
@@ -407,6 +436,7 @@ test.describe('Compose — LinkedIn personal cross-post toggle', () => {
   test('LinkedIn cross-post failure is shown as error text — not a raw 500', async ({ page }) => {
     await loginAs(page, TEST_SUBSCRIBER);
     await stubLinkedInIdentity(page);
+    await stubPostingTargets(page);
 
     await page.route('/api/messages', async (route) => {
       if (route.request().method() === 'POST') {

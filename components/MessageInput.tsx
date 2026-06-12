@@ -104,17 +104,26 @@ function toDatetimeLocal(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-function defaultLinkedInTarget(targets: LinkedInTargetOption[]): RequestedLinkedInTarget | null {
-  if (targets.some((t) => t.kind === 'personal')) return { kind: 'personal' };
+function defaultLinkedInTargets(targets: LinkedInTargetOption[]): RequestedLinkedInTarget[] {
+  if (targets.some((t) => t.kind === 'personal')) return [{ kind: 'personal' }];
   const firstPage = targets.find(
     (t): t is Extract<LinkedInTargetOption, { kind: 'orgPage' }> => t.kind === 'orgPage'
   );
-  return firstPage ? { kind: 'orgPage', pageId: firstPage.pageId } : null;
+  return firstPage ? [{ kind: 'orgPage', pageId: firstPage.pageId }] : [];
 }
 
-function linkedInTargetToValue(target: RequestedLinkedInTarget | null): string {
-  if (!target) return '';
+function linkedInOptionKey(option: LinkedInTargetOption): string {
+  return option.kind === 'personal' ? 'personal' : option.pageId;
+}
+
+function linkedInRequestedKey(target: RequestedLinkedInTarget): string {
   return target.kind === 'personal' ? 'personal' : target.pageId;
+}
+
+function linkedInOptionToRequested(option: LinkedInTargetOption): RequestedLinkedInTarget {
+  return option.kind === 'personal'
+    ? { kind: 'personal' }
+    : { kind: 'orgPage', pageId: option.pageId };
 }
 
 export default function MessageInput({ maxLength, defaultPubliclyVisible = false, showAdvancedPostSettings = false, isSubscriber = false, onSubmit }: MessageInputProps) {
@@ -139,7 +148,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
   const [mastodonIdentities, setMastodonIdentities] = useState<Identity[]>([]);
   const [blueskyIdentity, setBlueskyIdentity] = useState<Identity | null>(null);
   const [linkedInTargets, setLinkedInTargets] = useState<LinkedInTargetOption[]>([]);
-  const [selectedLinkedInTarget, setSelectedLinkedInTarget] = useState<RequestedLinkedInTarget | null>(null);
+  const [selectedLinkedInTargets, setSelectedLinkedInTargets] = useState<RequestedLinkedInTarget[]>([]);
   const [twitterIdentity, setTwitterIdentity] = useState<Identity | null>(null);
   const [selectedMastodonIds, setSelectedMastodonIds] = useState<Set<string>>(new Set());
   const [crossPostToBluesky, setCrossPostToBluesky] = useState(false);
@@ -162,14 +171,23 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
   const detectedUrls = useMemo(() => extractUrls(content), [content]);
 
   const selectedLinkedInTargetLabel = useMemo(() => {
-    if (!selectedLinkedInTarget) return null;
-    const match = linkedInTargets.find((t) =>
-      selectedLinkedInTarget.kind === 'personal'
-        ? t.kind === 'personal'
-        : t.kind === 'orgPage' && t.pageId === selectedLinkedInTarget.pageId
-    );
-    return match?.label ?? null;
-  }, [linkedInTargets, selectedLinkedInTarget]);
+    if (selectedLinkedInTargets.length === 0) return null;
+    const selectedKeys = new Set(selectedLinkedInTargets.map(linkedInRequestedKey));
+    const labels = linkedInTargets
+      .filter((t) => selectedKeys.has(linkedInOptionKey(t)))
+      .map((t) => t.label);
+    return labels.length > 0 ? labels.join(', ') : null;
+  }, [linkedInTargets, selectedLinkedInTargets]);
+
+  const toggleLinkedInTargetSelection = (option: LinkedInTargetOption) => {
+    const key = linkedInOptionKey(option);
+    setSelectedLinkedInTargets((prev) => {
+      const exists = prev.some((t) => linkedInRequestedKey(t) === key);
+      if (exists) return prev.filter((t) => linkedInRequestedKey(t) !== key);
+      return [...prev, linkedInOptionToRequested(option)];
+    });
+    setCrossPostResults(null);
+  };
 
   // Create/revoke object URLs for pending file previews
   useEffect(() => {
@@ -221,12 +239,14 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
         }
       })
       .catch(() => {});
-    fetch('/api/linkedin/targets')
+    fetch('/api/linkedin/posting-targets')
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data.targets)) {
-          setLinkedInTargets(data.targets);
-          setSelectedLinkedInTarget(defaultLinkedInTarget(data.targets));
+          const enabled = (data.targets as Array<LinkedInTargetOption & { enabled?: boolean }>)
+            .filter((t) => t.enabled !== false);
+          setLinkedInTargets(enabled);
+          setSelectedLinkedInTargets(defaultLinkedInTargets(enabled));
         }
       })
       .catch(() => {});
@@ -314,7 +334,8 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
           ...(selectedMastodonIds.size > 0 && { mastodonProviderIds: Array.from(selectedMastodonIds) }),
           ...(crossPostToBluesky && { crossPostToBluesky: true }),
           ...(crossPostToLinkedIn && { crossPostToLinkedIn: true }),
-          ...(crossPostToLinkedIn && selectedLinkedInTarget && { linkedInTarget: selectedLinkedInTarget }),
+          ...(crossPostToLinkedIn &&
+            selectedLinkedInTargets.length > 0 && { linkedInTargets: selectedLinkedInTargets }),
           ...(crossPostToLinkedIn && linkedInLinkAsFirstComment && { linkedInLinkAsFirstComment: true }),
           ...(crossPostToTwitter && { crossPostToTwitter: true }),
           ...(scheduledAt && scheduledAt > new Date() && !quotePushedMessageId && {
@@ -347,7 +368,7 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
       setCrossPostToBluesky(false);
       setCrossPostToLinkedIn(false);
       setLinkedInLinkAsFirstComment(false);
-      setSelectedLinkedInTarget(defaultLinkedInTarget(linkedInTargets));
+      setSelectedLinkedInTargets(defaultLinkedInTargets(linkedInTargets));
       setCrossPostToTwitter(false);
       setScheduledAt(null);
       setShowScheduleModal(false);
@@ -661,28 +682,30 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                   </div>
                   {crossPostToLinkedIn && linkedInTargets.length > 1 && (
                     <div className="mt-1 ms-1">
-                      <select
-                        className="form-select form-select-sm"
-                        style={{ maxWidth: '280px' }}
-                        aria-label="LinkedIn posting destination"
-                        value={linkedInTargetToValue(selectedLinkedInTarget)}
-                        onChange={(e) =>
-                          setSelectedLinkedInTarget(
-                            e.target.value === 'personal'
-                              ? { kind: 'personal' }
-                              : { kind: 'orgPage', pageId: e.target.value }
-                          )
-                        }
-                      >
-                        {linkedInTargets.map((t) => (
-                          <option
-                            key={t.kind === 'orgPage' ? t.pageId : 'personal'}
-                            value={t.kind === 'orgPage' ? t.pageId : 'personal'}
-                          >
-                            {t.label} ({t.kind === 'orgPage' ? 'page' : 'personal'})
-                          </option>
-                        ))}
-                      </select>
+                      <span className="small text-muted d-block">LinkedIn destinations</span>
+                      {linkedInTargets.map((t) => {
+                        const key = linkedInOptionKey(t);
+                        const isChecked = selectedLinkedInTargets.some(
+                          (s) => linkedInRequestedKey(s) === key
+                        );
+                        return (
+                          <div key={key} className="form-check">
+                            <input
+                              className="form-check-input"
+                              type="checkbox"
+                              id={`compose-linkedin-target-${key}`}
+                              checked={isChecked}
+                              onChange={() => toggleLinkedInTargetSelection(t)}
+                            />
+                            <label
+                              className="form-check-label small"
+                              htmlFor={`compose-linkedin-target-${key}`}
+                            >
+                              {t.label} ({t.kind === 'orgPage' ? 'page' : 'personal'})
+                            </label>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                   {crossPostToLinkedIn && linkedInTargets.length > 0 && detectedUrls.length > 0 && (
@@ -1243,28 +1266,32 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                         </div>
                       )}
                       {crossPostToLinkedIn && linkedInTargets.length > 1 && (
-                        <select
-                          className="form-select form-select-sm"
-                          style={{ maxWidth: '280px' }}
-                          aria-label="LinkedIn posting destination"
-                          value={linkedInTargetToValue(selectedLinkedInTarget)}
-                          onChange={(e) =>
-                            setSelectedLinkedInTarget(
-                              e.target.value === 'personal'
-                                ? { kind: 'personal' }
-                                : { kind: 'orgPage', pageId: e.target.value }
-                            )
-                          }
-                        >
-                          {linkedInTargets.map((t) => (
-                            <option
-                              key={t.kind === 'orgPage' ? t.pageId : 'personal'}
-                              value={t.kind === 'orgPage' ? t.pageId : 'personal'}
-                            >
-                              {t.label} ({t.kind === 'orgPage' ? 'page' : 'personal'})
-                            </option>
-                          ))}
-                        </select>
+                        <div style={{ flexBasis: '100%' }}>
+                          <span className="small text-muted d-block">LinkedIn destinations</span>
+                          {linkedInTargets.map((t) => {
+                            const key = linkedInOptionKey(t);
+                            const isChecked = selectedLinkedInTargets.some(
+                              (s) => linkedInRequestedKey(s) === key
+                            );
+                            return (
+                              <div key={key} className="form-check">
+                                <input
+                                  className="form-check-input"
+                                  type="checkbox"
+                                  id={`schedule-linkedin-target-${key}`}
+                                  checked={isChecked}
+                                  onChange={() => toggleLinkedInTargetSelection(t)}
+                                />
+                                <label
+                                  className="form-check-label small"
+                                  htmlFor={`schedule-linkedin-target-${key}`}
+                                >
+                                  {t.label} ({t.kind === 'orgPage' ? 'page' : 'personal'})
+                                </label>
+                              </div>
+                            );
+                          })}
+                        </div>
                       )}
                       {linkedInTargets.length > 0 && crossPostToLinkedIn && detectedUrls.length > 0 && (
                         <div className="form-check">

@@ -4,7 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { postToMastodon } from "@/lib/mastodon/post-status";
 import { postToBluesky } from "@/lib/bluesky/post-status";
 import { postToLinkedIn } from "@/lib/linkedin/post-status";
-import { parseRequestedLinkedInTarget, resolveLinkedInTarget } from "@/lib/linkedin/resolve-linkedin-target";
+import {
+  parseRequestedLinkedInTarget,
+  parseRequestedLinkedInTargets,
+  resolveLinkedInTarget,
+  type RequestedLinkedInTarget,
+} from "@/lib/linkedin/resolve-linkedin-target";
 import { postToTwitter } from "@/lib/twitter/post-status";
 
 export const dynamic = "force-dynamic";
@@ -43,16 +48,24 @@ export async function GET(request: NextRequest) {
 
   for (const message of due) {
     const config = message.scheduledCrossPostConfig as
-      | { mastodonProviderIds?: string[]; crossPostToBluesky?: boolean; crossPostToLinkedIn?: boolean; linkedInLinkAsFirstComment?: boolean; crossPostToTwitter?: boolean; linkedInTarget?: unknown }
+      | { mastodonProviderIds?: string[]; crossPostToBluesky?: boolean; crossPostToLinkedIn?: boolean; linkedInLinkAsFirstComment?: boolean; crossPostToTwitter?: boolean; linkedInTarget?: unknown; linkedInTargets?: unknown }
       | null;
     const mastodonProviderIds = config?.mastodonProviderIds ?? [];
     const crossPostToBluesky = config?.crossPostToBluesky === true;
     const crossPostToLinkedIn = config?.crossPostToLinkedIn === true;
     const linkedInLinkAsFirstComment = config?.linkedInLinkAsFirstComment === true;
     const crossPostToTwitter = config?.crossPostToTwitter === true;
-    // A malformed stored target must never block publishing; treat it as "no explicit target".
+    // Malformed stored targets must never block publishing; treat them as "no explicit target".
+    // The array form takes precedence; the legacy single field is treated as a one-element array.
+    const parsedLinkedInTargets = parseRequestedLinkedInTargets(config?.linkedInTargets);
     const parsedLinkedInTarget = parseRequestedLinkedInTarget(config?.linkedInTarget);
-    const requestedLinkedInTarget = parsedLinkedInTarget.ok ? parsedLinkedInTarget.target : undefined;
+    const requestedLinkedInTargets: RequestedLinkedInTarget[] | undefined =
+      (parsedLinkedInTargets.ok && parsedLinkedInTargets.targets && parsedLinkedInTargets.targets.length > 0
+        ? parsedLinkedInTargets.targets
+        : undefined) ??
+      (parsedLinkedInTarget.ok && parsedLinkedInTarget.target
+        ? [parsedLinkedInTarget.target]
+        : undefined);
 
     const imageUrls = message.imageUrls as string[] | null;
     const videoUrls = message.videoUrls as string[] | null;
@@ -150,26 +163,47 @@ export async function GET(request: NextRequest) {
       }
 
       if (crossPostToLinkedIn) {
-        const linkedInTarget = await resolveLinkedInTarget(message.userId, requestedLinkedInTarget);
+        // Post to each requested target independently so one failure does not
+        // abort the others. No explicit targets falls back to legacy resolution.
+        const linkedInTargetsToPost: Array<RequestedLinkedInTarget | undefined> =
+          requestedLinkedInTargets && requestedLinkedInTargets.length > 0
+            ? requestedLinkedInTargets
+            : [undefined];
 
-        if (linkedInTarget) {
-          const result = await postToLinkedIn(linkedInTarget, {
-            content: message.content,
-            publiclyVisible: message.publiclyVisible,
-            imageUrls: finalImageUrls,
-            videoUrls: finalVideoUrls,
-            linkAsFirstComment: linkedInLinkAsFirstComment,
-          });
-          if (result.success && result.url) {
-            crossPostUrls.push({
-              platform: "linkedin",
-              url: result.url,
-              instanceName: "LinkedIn",
-              ...(result.postId && { postId: result.postId }),
+        for (const requestedTarget of linkedInTargetsToPost) {
+          const targetDescriptor =
+            requestedTarget?.kind === "orgPage"
+              ? ` (page ${requestedTarget.pageId})`
+              : requestedTarget?.kind === "personal"
+                ? " (personal)"
+                : "";
+          const linkedInTarget = await resolveLinkedInTarget(message.userId, requestedTarget);
+
+          if (linkedInTarget) {
+            const result = await postToLinkedIn(linkedInTarget, {
+              content: message.content,
+              publiclyVisible: message.publiclyVisible,
+              imageUrls: finalImageUrls,
+              videoUrls: finalVideoUrls,
+              linkAsFirstComment: linkedInLinkAsFirstComment,
             });
+            if (result.success && result.url) {
+              crossPostUrls.push({
+                platform: "linkedin",
+                url: result.url,
+                instanceName: "LinkedIn",
+                ...(result.postId && { postId: result.postId }),
+              });
+            } else if (!result.success) {
+              errors.push(
+                `Message ${message.id}: LinkedIn cross-post failed${targetDescriptor}: ${result.error ?? "Unknown error"}`
+              );
+            }
+          } else {
+            errors.push(
+              `Message ${message.id}: LinkedIn target unavailable${targetDescriptor}, cross-post skipped`
+            );
           }
-        } else {
-          errors.push(`Message ${message.id}: LinkedIn target unavailable, cross-post skipped`);
         }
       }
 

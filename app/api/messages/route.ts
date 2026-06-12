@@ -9,7 +9,12 @@ import { attachDugByMeIncludingPushed } from '@/lib/messages/dig';
 import { postToMastodon } from '@/lib/mastodon/post-status';
 import { postToBluesky } from '@/lib/bluesky/post-status';
 import { postToLinkedIn } from '@/lib/linkedin/post-status';
-import { parseRequestedLinkedInTarget, resolveLinkedInTarget } from '@/lib/linkedin/resolve-linkedin-target';
+import {
+  parseRequestedLinkedInTarget,
+  parseRequestedLinkedInTargets,
+  resolveLinkedInTarget,
+  type RequestedLinkedInTarget,
+} from '@/lib/linkedin/resolve-linkedin-target';
 import { postToTwitter } from '@/lib/twitter/post-status';
 import { trackAction } from '@/lib/analytics/track';
 import { resolveCanonicalPushTargetId } from '@/lib/messages/push';
@@ -48,18 +53,31 @@ export async function POST(request: NextRequest) {
       crossPostToTwitter,
       linkedInLinkAsFirstComment,
       linkedInTarget,
+      linkedInTargets,
       parentId,
       scheduledAt: scheduledAtRaw,
       pushedMessageId: pushedMessageIdRaw,
       tags,
     } = body;
 
+    const parsedLinkedInTargets = parseRequestedLinkedInTargets(linkedInTargets);
+    if (!parsedLinkedInTargets.ok) {
+      return NextResponse.json({ error: 'Invalid linkedInTargets' }, { status: 400 });
+    }
+    // Legacy single-target field (older clients, e.g. the iOS app) is treated
+    // as a one-element array when the new array field is absent.
     const parsedLinkedInTarget = parseRequestedLinkedInTarget(linkedInTarget);
     if (!parsedLinkedInTarget.ok) {
       return NextResponse.json({ error: 'Invalid linkedInTarget' }, { status: 400 });
     }
-    const requestedLinkedInTarget =
-      crossPostToLinkedIn === true ? parsedLinkedInTarget.target : undefined;
+    const requestedLinkedInTargets: RequestedLinkedInTarget[] | undefined =
+      crossPostToLinkedIn === true
+        ? parsedLinkedInTargets.targets && parsedLinkedInTargets.targets.length > 0
+          ? parsedLinkedInTargets.targets
+          : parsedLinkedInTarget.target
+            ? [parsedLinkedInTarget.target]
+            : undefined
+        : undefined;
 
     const userWithSettings = await prisma.user.findUnique({
       where: { id: user.id },
@@ -260,7 +278,10 @@ export async function POST(request: NextRequest) {
                 crossPostToLinkedIn: crossPostToLinkedIn === true,
                 linkedInLinkAsFirstComment: linkedInLinkAsFirstComment === true,
                 crossPostToTwitter: crossPostToTwitter === true,
-                ...(requestedLinkedInTarget && { linkedInTarget: requestedLinkedInTarget }),
+                ...(requestedLinkedInTargets &&
+                  requestedLinkedInTargets.length > 0 && {
+                    linkedInTargets: requestedLinkedInTargets,
+                  }),
               } as object,
             }),
             ...(Array.isArray(tags) && tags.length > 0 && { tags }),
@@ -416,39 +437,67 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Cross-post to LinkedIn if enabled (skip for replies, pushes, scheduled)
+    // Cross-post to LinkedIn if enabled (skip for replies, pushes, scheduled).
+    // Each requested target is posted independently so one failure does not
+    // abort the others; per-target results are aggregated in crossPostResults.
     if (!parentMessage && !canonicalPushTargetId && !isScheduled && crossPostToLinkedIn === true) {
-      const resolvedLinkedInTarget = await resolveLinkedInTarget(user.id, requestedLinkedInTarget);
+      const linkedInTargetsToPost: Array<RequestedLinkedInTarget | undefined> =
+        requestedLinkedInTargets && requestedLinkedInTargets.length > 0
+          ? requestedLinkedInTargets
+          : [undefined];
 
-      if (resolvedLinkedInTarget) {
-        const result = await postToLinkedIn(resolvedLinkedInTarget, {
-          content: finalContent,
-          publiclyVisible: finalPubliclyVisible as boolean,
-          imageUrls: finalImageUrls,
-          videoUrls: finalVideoUrls,
-          linkAsFirstComment: linkedInLinkAsFirstComment === true,
+      // Resolve page names so per-target results are distinguishable in the UI.
+      const requestedPageIds = linkedInTargetsToPost
+        .filter((t): t is Extract<RequestedLinkedInTarget, { kind: 'orgPage' }> => t?.kind === 'orgPage')
+        .map((t) => t.pageId);
+      const linkedInPageNames = new Map<string, string>();
+      if (requestedPageIds.length > 0) {
+        const pages = await prisma.orgLinkedInPage.findMany({
+          where: { id: { in: requestedPageIds } },
+          select: { id: true, pageName: true },
         });
-        crossPostResults.push(result);
-        if (result.success && result.url) {
-          crossPostUrls.push({
-            platform: 'linkedin',
-            url: result.url,
-            instanceName: 'LinkedIn',
-            ...(result.postId && { postId: result.postId }),
+        for (const page of pages) linkedInPageNames.set(page.id, page.pageName);
+      }
+
+      for (const requestedTarget of linkedInTargetsToPost) {
+        const instanceName =
+          requestedTarget?.kind === 'orgPage'
+            ? `LinkedIn (${linkedInPageNames.get(requestedTarget.pageId) ?? 'page'})`
+            : linkedInTargetsToPost.length > 1
+              ? 'LinkedIn (personal)'
+              : 'LinkedIn';
+        const resolvedLinkedInTarget = await resolveLinkedInTarget(user.id, requestedTarget);
+
+        if (resolvedLinkedInTarget) {
+          const result = await postToLinkedIn(resolvedLinkedInTarget, {
+            content: finalContent,
+            publiclyVisible: finalPubliclyVisible as boolean,
+            imageUrls: finalImageUrls,
+            videoUrls: finalVideoUrls,
+            linkAsFirstComment: linkedInLinkAsFirstComment === true,
+          });
+          crossPostResults.push({ ...result, instanceName });
+          if (result.success && result.url) {
+            crossPostUrls.push({
+              platform: 'linkedin',
+              url: result.url,
+              instanceName,
+              ...(result.postId && { postId: result.postId }),
+            });
+          }
+        } else {
+          crossPostResults.push({
+            providerId: '',
+            instanceName,
+            success: false,
+            error:
+              requestedTarget?.kind === 'personal'
+                ? 'Your personal LinkedIn account is not linked. Link it in Settings.'
+                : requestedTarget?.kind === 'orgPage'
+                  ? 'The selected LinkedIn page is unavailable — the assignment was removed or the organization connection expired.'
+                  : 'LinkedIn account not linked. Please link in Settings.',
           });
         }
-      } else {
-        crossPostResults.push({
-          providerId: '',
-          instanceName: 'LinkedIn',
-          success: false,
-          error:
-            requestedLinkedInTarget?.kind === 'personal'
-              ? 'Your personal LinkedIn account is not linked. Link it in Settings.'
-              : requestedLinkedInTarget?.kind === 'orgPage'
-                ? 'The selected LinkedIn page is unavailable — the assignment was removed or the organization connection expired.'
-                : 'LinkedIn account not linked. Please link in Settings.',
-        });
       }
     }
 

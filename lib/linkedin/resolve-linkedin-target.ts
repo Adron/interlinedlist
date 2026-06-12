@@ -32,6 +32,49 @@ export function parseRequestedLinkedInTarget(
   return { ok: false };
 }
 
+/**
+ * Validates an untrusted `linkedInTargets` value (array form) from a request
+ * body or stored Json config. `null`/`undefined` means "no explicit targets"
+ * and is ok. Each element must be a valid target; duplicates are removed.
+ */
+export function parseRequestedLinkedInTargets(
+  value: unknown
+): { ok: true; targets: RequestedLinkedInTarget[] | undefined } | { ok: false } {
+  if (value === undefined || value === null) {
+    return { ok: true, targets: undefined };
+  }
+  if (!Array.isArray(value)) {
+    return { ok: false };
+  }
+  const targets: RequestedLinkedInTarget[] = [];
+  for (const item of value) {
+    if (item === undefined || item === null) {
+      return { ok: false };
+    }
+    const parsed = parseRequestedLinkedInTarget(item);
+    if (!parsed.ok || !parsed.target) {
+      return { ok: false };
+    }
+    targets.push(parsed.target);
+  }
+  return { ok: true, targets: dedupeRequestedLinkedInTargets(targets) };
+}
+
+/** Removes duplicate targets ('personal' at most once, each pageId at most once). */
+export function dedupeRequestedLinkedInTargets(
+  targets: RequestedLinkedInTarget[]
+): RequestedLinkedInTarget[] {
+  const seen = new Set<string>();
+  const result: RequestedLinkedInTarget[] = [];
+  for (const target of targets) {
+    const key = target.kind === 'personal' ? 'personal' : `orgPage:${target.pageId}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(target);
+  }
+  return result;
+}
+
 function isCredentialActive(
   credential: { disconnectedAt: Date | null; expiresAt: Date | null },
   now: Date

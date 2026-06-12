@@ -4,7 +4,7 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { getCurrentUserOrSyncToken } from '@/lib/auth/sync-token';
 import { deleteBlobsFromMessages } from '@/lib/blob';
 import { deletePostOnBluesky, deletePostOnLinkedIn, deletePostOnMastodon } from '@/lib/crosspost/delete-external';
-import { parseRequestedLinkedInTarget } from '@/lib/linkedin/resolve-linkedin-target';
+import { parseRequestedLinkedInTarget, parseRequestedLinkedInTargets } from '@/lib/linkedin/resolve-linkedin-target';
 import { LinkMetadata } from '@/lib/types';
 import { attachDugByMeIncludingPushed } from '@/lib/messages/dig';
 import { getPushedMessageInclude } from '@/lib/messages/queries';
@@ -154,8 +154,13 @@ export async function PATCH(
         linkedInLinkAsFirstComment?: boolean;
         crossPostToTwitter?: boolean;
         linkedInTarget?: unknown;
+        linkedInTargets?: unknown;
       } | null;
       if (config) {
+        const parsedLinkedInTargets = parseRequestedLinkedInTargets(config.linkedInTargets);
+        if (!parsedLinkedInTargets.ok) {
+          return NextResponse.json({ error: 'Invalid linkedInTargets' }, { status: 400 });
+        }
         const parsedLinkedInTarget = parseRequestedLinkedInTarget(config.linkedInTarget);
         if (!parsedLinkedInTarget.ok) {
           return NextResponse.json({ error: 'Invalid linkedInTarget' }, { status: 400 });
@@ -166,7 +171,11 @@ export async function PATCH(
           crossPostToLinkedIn: Boolean(config.crossPostToLinkedIn),
           linkedInLinkAsFirstComment: Boolean(config.linkedInLinkAsFirstComment),
           crossPostToTwitter: Boolean(config.crossPostToTwitter),
-          ...(parsedLinkedInTarget.target && { linkedInTarget: parsedLinkedInTarget.target }),
+          ...(parsedLinkedInTargets.targets && parsedLinkedInTargets.targets.length > 0
+            ? { linkedInTargets: parsedLinkedInTargets.targets }
+            : parsedLinkedInTarget.target
+              ? { linkedInTarget: parsedLinkedInTarget.target }
+              : {}),
         };
       } else {
         updates.scheduledCrossPostConfig = null;

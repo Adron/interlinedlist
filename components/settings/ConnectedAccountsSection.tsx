@@ -2,6 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import type { LinkedInPostingTargetOption } from '@/lib/types';
+
+function linkedInPostingTargetKey(target: LinkedInPostingTargetOption): string {
+  return target.kind === 'personal' ? 'personal' : target.pageId;
+}
 
 export interface LinkedIdentity {
   id: string;
@@ -72,6 +77,10 @@ export default function ConnectedAccountsSection({
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [linkedinConfigured, setLinkedinConfigured] = useState<boolean | null>(null);
   const [twitterConfigured, setTwitterConfigured] = useState<boolean | null>(null);
+  const [linkedInPostingTargets, setLinkedInPostingTargets] = useState<
+    LinkedInPostingTargetOption[] | null
+  >(null);
+  const [savingLinkedInTargets, setSavingLinkedInTargets] = useState(false);
 
   useEffect(() => {
     fetch('/api/auth/linkedin/status')
@@ -86,6 +95,64 @@ export default function ConnectedAccountsSection({
       .then((data) => setTwitterConfigured(data.configured === true))
       .catch(() => setTwitterConfigured(false));
   }, []);
+
+  useEffect(() => {
+    fetch('/api/linkedin/posting-targets')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && Array.isArray(data.targets)) {
+          setLinkedInPostingTargets(data.targets);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleToggleLinkedInTarget = async (key: string) => {
+    if (!linkedInPostingTargets) return;
+    const previous = linkedInPostingTargets;
+    const next = linkedInPostingTargets.map((t) =>
+      linkedInPostingTargetKey(t) === key ? { ...t, enabled: !t.enabled } : t
+    );
+    const enabled = next.filter((t) => t.enabled);
+    if (enabled.length === 0) {
+      setMessage({
+        type: 'error',
+        text: 'At least one LinkedIn posting target must remain enabled',
+      });
+      return;
+    }
+    setLinkedInPostingTargets(next);
+    setSavingLinkedInTargets(true);
+    setMessage(null);
+    try {
+      const res = await fetch('/api/linkedin/posting-targets', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targets: enabled.map((t) =>
+            t.kind === 'personal' ? { kind: 'personal' } : { kind: 'orgPage', pageId: t.pageId }
+          ),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setLinkedInPostingTargets(previous);
+        setMessage({
+          type: 'error',
+          text: data.error || 'Failed to update LinkedIn posting targets',
+        });
+        return;
+      }
+      if (Array.isArray(data.targets)) {
+        setLinkedInPostingTargets(data.targets);
+      }
+    } catch {
+      setLinkedInPostingTargets(previous);
+      setMessage({ type: 'error', text: 'Failed to update LinkedIn posting targets' });
+    } finally {
+      setSavingLinkedInTargets(false);
+    }
+  };
 
   const hasIdentity = (provider: string) =>
     identities.some((i) => i.provider === provider);
@@ -401,6 +468,35 @@ export default function ConnectedAccountsSection({
             Connect LinkedIn to use it as a sign-in and identity verification method. Your
             LinkedIn profile is used to confirm your professional identity across the platform.
           </p>
+          {linkedInPostingTargets && linkedInPostingTargets.length > 0 && (
+            <div className="mt-3 pt-3 border-top">
+              <label className="form-label small mb-1">Posting targets</label>
+              <p className="text-muted small mb-2">
+                Choose which LinkedIn destinations are available when cross-posting messages.
+              </p>
+              {linkedInPostingTargets.map((target) => {
+                const key = linkedInPostingTargetKey(target);
+                return (
+                  <div key={key} className="form-check">
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      id={`linkedin-posting-target-${key}`}
+                      checked={target.enabled}
+                      disabled={savingLinkedInTargets}
+                      onChange={() => handleToggleLinkedInTarget(key)}
+                    />
+                    <label
+                      className="form-check-label small"
+                      htmlFor={`linkedin-posting-target-${key}`}
+                    >
+                      {target.label} ({target.kind === 'orgPage' ? 'page' : 'personal'})
+                    </label>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
