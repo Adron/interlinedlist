@@ -106,7 +106,7 @@ export default function UserDropdown({ user, isSubscriber = false }: UserDropdow
       if (response.ok) {
         setIsOpen(false);
         setIsLoginAsOpen(false);
-        router.refresh();
+        window.location.reload();
       }
     } catch (error) {
       console.error('Switch account error:', error);
