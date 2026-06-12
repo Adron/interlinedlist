@@ -110,8 +110,15 @@ export interface Message {
     crossPostToLinkedIn?: boolean;
     linkedInLinkAsFirstComment?: boolean;
     crossPostToTwitter?: boolean;
-    linkedInTarget?: { kind: 'personal' } | { kind: 'orgPage'; pageId: string };
-    linkedInTargets?: Array<{ kind: 'personal' } | { kind: 'orgPage'; pageId: string }>;
+    linkedInTarget?:
+      | { kind: 'personal' }
+      | { kind: 'orgPage'; pageId: string }
+      | { kind: 'personalPage'; personalPageId: string };
+    linkedInTargets?: Array<
+      | { kind: 'personal' }
+      | { kind: 'orgPage'; pageId: string }
+      | { kind: 'personalPage'; personalPageId: string }
+    >;
   } | null;
   tags?: string[] | null;
   user: MessageUser;
@@ -139,6 +146,13 @@ export type LinkedInTargetOption =
   | {
       kind: 'orgPage';
       pageId: string;
+      linkedInPageId: string;
+      label: string;
+      logoUrl: string | null;
+    }
+  | {
+      kind: 'personalPage';
+      personalPageId: string;
       linkedInPageId: string;
       label: string;
       logoUrl: string | null;

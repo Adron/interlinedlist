@@ -48,7 +48,10 @@ export function buildLinkedInAuthUrl(state: string, link: boolean): string {
     client_id: clientId,
     redirect_uri: redirectUri,
     response_type: 'code',
-    scope: LINKEDIN_SCOPES,
+    // Link mode (initiated from /integrations) requests the org scopes so the
+    // user's admin company pages can be discovered as posting targets. Plain
+    // sign-in keeps the minimal scopes.
+    scope: link ? LINKEDIN_ORG_SCOPES : LINKEDIN_SCOPES,
     state,
   });
   if (link) {
