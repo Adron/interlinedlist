@@ -530,27 +530,40 @@ export default function ConnectedAccountsSection({
               </p>
               {linkedInPostingTargets.map((target) => {
                 const key = linkedInPostingTargetKey(target);
+                const logoSrc =
+                  target.kind === 'personal'
+                    ? target.avatarUrl
+                    : target.logoUrl;
+                const kindLabel =
+                  target.kind === 'personal'
+                    ? 'personal'
+                    : target.kind === 'orgPage'
+                      ? 'page'
+                      : 'company page';
                 return (
-                  <div key={key} className="form-check">
+                  <div key={key} className="form-check d-flex align-items-center gap-2 mb-1">
                     <input
-                      className="form-check-input"
+                      className="form-check-input mt-0"
                       type="checkbox"
                       id={`linkedin-posting-target-${key}`}
                       checked={target.enabled}
                       disabled={savingLinkedInTargets}
                       onChange={() => handleToggleLinkedInTarget(key)}
                     />
+                    {logoSrc && (
+                      <img
+                        src={logoSrc}
+                        alt=""
+                        className="rounded-circle flex-shrink-0"
+                        width={20}
+                        height={20}
+                      />
+                    )}
                     <label
-                      className="form-check-label small"
+                      className="form-check-label small mb-0"
                       htmlFor={`linkedin-posting-target-${key}`}
                     >
-                      {target.label} (
-                      {target.kind === 'personal'
-                        ? 'personal'
-                        : target.kind === 'orgPage'
-                          ? 'page'
-                          : 'company page'}
-                      )
+                      {target.label} ({kindLabel})
                     </label>
                   </div>
                 );

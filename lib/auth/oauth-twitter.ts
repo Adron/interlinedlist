@@ -34,7 +34,7 @@ export function getTwitterRedirectUri(): string {
   return process.env.TWITTER_REDIRECT_URI || `${APP_URL}/api/auth/twitter/callback`;
 }
 
-export function buildTwitterAuthUrl(state: string, codeChallenge: string, link: boolean): string {
+export function buildTwitterAuthUrl(state: string, codeChallenge: string): string {
   const { clientId } = getTwitterConfig();
   const redirectUri = getTwitterRedirectUri();
   const params = new URLSearchParams({
@@ -46,9 +46,6 @@ export function buildTwitterAuthUrl(state: string, codeChallenge: string, link: 
     code_challenge: codeChallenge,
     code_challenge_method: 'S256',
   });
-  if (link) {
-    params.set('link', 'true');
-  }
   return `${TWITTER_AUTH_URL}?${params.toString()}`;
 }
 

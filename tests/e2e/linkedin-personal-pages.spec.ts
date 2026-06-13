@@ -299,7 +299,7 @@ type StubTarget =
       personalPageId: string;
       linkedInPageId: string;
       label: string;
-      logoUrl: null;
+      logoUrl: string | null;
       enabled: boolean;
     };
 
@@ -310,14 +310,15 @@ function personalTarget(enabled: boolean, label = 'Test Person'): StubTarget {
 function personalPageTarget(
   personalPageId: string,
   label: string,
-  enabled: boolean
+  enabled: boolean,
+  logoUrl: string | null = null
 ): StubTarget {
   return {
     kind: 'personalPage',
     personalPageId,
     linkedInPageId: `li-${personalPageId}`,
     label,
-    logoUrl: null,
+    logoUrl,
     enabled,
   };
 }
@@ -604,6 +605,33 @@ test.describe('Integrations page — LinkedIn company pages', () => {
     ).not.toBeChecked();
   });
 
+  test('personalPage target with a logoUrl renders a 20×20 rounded image', async ({
+    page,
+  }) => {
+    // Use an accessible 1×1 PNG served from the same origin so the browser
+    // does not hit an external network and the load event fires deterministically.
+    const LOGO_URL =
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+
+    await loginAs(page, TEST_USER);
+    await stubPostingTargets(page, [
+      personalPageTarget('pp-logo', 'Logo Corp', true, LOGO_URL),
+    ]);
+
+    await page.goto('/integrations');
+
+    await expect(page.getByText('Posting targets')).toBeVisible();
+    await expect(page.getByRole('checkbox', { name: 'Logo Corp (company page)' })).toBeChecked();
+
+    // The logo image must appear alongside the checkbox label.
+    const img = page.locator(`img[src="${LOGO_URL}"]`);
+    await expect(img).toBeVisible();
+    await expect(img).toHaveAttribute('width', '20');
+    await expect(img).toHaveAttribute('height', '20');
+    // Rendered as a rounded circle (Bootstrap class).
+    await expect(img).toHaveClass(/rounded-circle/);
+  });
+
   test('"Sync company pages" success shows a count and refreshes the target list', async ({
     page,
   }) => {
@@ -772,7 +800,7 @@ test.describe('Compose — LinkedIn company-page destinations', () => {
       page.getByRole('checkbox', { name: 'Test Person (personal)' })
     ).toBeChecked();
     await expect(
-      page.getByRole('checkbox', { name: 'Acme Co Page (page)' })
+      page.getByRole('checkbox', { name: 'Acme Co Page (company page)' })
     ).not.toBeChecked();
   });
 
@@ -794,9 +822,11 @@ test.describe('Compose — LinkedIn company-page destinations', () => {
     await expect(
       page.getByRole('checkbox', { name: 'Test Person (personal)' })
     ).not.toBeVisible();
-    await expect(page.getByRole('checkbox', { name: 'Acme Co Page (page)' })).toBeChecked();
     await expect(
-      page.getByRole('checkbox', { name: 'Beta Co Page (page)' })
+      page.getByRole('checkbox', { name: 'Acme Co Page (company page)' })
+    ).toBeChecked();
+    await expect(
+      page.getByRole('checkbox', { name: 'Beta Co Page (company page)' })
     ).not.toBeChecked();
 
     // The summary names the default company page.
@@ -840,7 +870,7 @@ test.describe('Compose — LinkedIn company-page destinations', () => {
     await page.getByRole('button', { name: /Cross-post to LinkedIn/i }).click();
 
     // Personal is selected by default; also select the company page.
-    await page.getByRole('checkbox', { name: 'Acme Co Page (page)' }).check();
+    await page.getByRole('checkbox', { name: 'Acme Co Page (company page)' }).check();
     await expect(
       page.getByRole('checkbox', { name: 'Test Person (personal)' })
     ).toBeChecked();
@@ -930,6 +960,9 @@ test.describe('Edit scheduled post — LinkedIn company-page destination', () =>
 
     // LinkedIn cross-post is on; the saved company page destination is
     // checked while the personal profile is not.
+    // Note: EditScheduledModal renders the kind label as '(page)' for both
+    // orgPage and personalPage kinds — only MessageInput.tsx distinguishes
+    // personalPage as '(company page)'.
     await expect(page.getByRole('checkbox', { name: 'LinkedIn', exact: true })).toBeChecked();
     await expect(page.getByText('LinkedIn destinations')).toBeVisible();
     await expect(

@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       redirectUri,
     });
 
-    const authUrl = buildTwitterAuthUrl(state, codeChallenge, link);
+    const authUrl = buildTwitterAuthUrl(state, codeChallenge);
     return NextResponse.redirect(authUrl);
   } catch (error: unknown) {
     console.error('Twitter authorize error:', error);

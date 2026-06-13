@@ -711,7 +711,13 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                               className="form-check-label small"
                               htmlFor={`compose-linkedin-target-${key}`}
                             >
-                              {t.label} ({t.kind === 'personal' ? 'personal' : 'page'})
+                              {t.label} (
+                              {t.kind === 'personal'
+                                ? 'personal'
+                                : t.kind === 'personalPage'
+                                  ? 'company page'
+                                  : 'page'}
+                              )
                             </label>
                           </div>
                         );
@@ -1296,7 +1302,13 @@ export default function MessageInput({ maxLength, defaultPubliclyVisible = false
                                   className="form-check-label small"
                                   htmlFor={`schedule-linkedin-target-${key}`}
                                 >
-                                  {t.label} ({t.kind === 'personal' ? 'personal' : 'page'})
+                                  {t.label} (
+                                  {t.kind === 'personal'
+                                    ? 'personal'
+                                    : t.kind === 'personalPage'
+                                      ? 'company page'
+                                      : 'page'}
+                                  )
                                 </label>
                               </div>
                             );
