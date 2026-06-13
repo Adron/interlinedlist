@@ -54,9 +54,6 @@ export function buildLinkedInAuthUrl(state: string, link: boolean): string {
     scope: link ? LINKEDIN_ORG_SCOPES : LINKEDIN_SCOPES,
     state,
   });
-  if (link) {
-    params.set('link', 'true');
-  }
   return `${LINKEDIN_AUTH_URL}?${params.toString()}`;
 }
 
