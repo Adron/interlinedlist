@@ -170,56 +170,50 @@ describe('buildTwitterAuthUrl', () => {
   afterEach(() => setEnv(saved));
 
   it('returns a URL starting with the Twitter authorize endpoint', () => {
-    const url = buildTwitterAuthUrl('state123', 'challenge456', false);
+    const url = buildTwitterAuthUrl('state123', 'challenge456');
     expect(url).toMatch(/^https:\/\/twitter\.com\/i\/oauth2\/authorize/);
   });
 
   it('includes response_type=code', () => {
-    const url = buildTwitterAuthUrl('state123', 'challenge456', false);
+    const url = buildTwitterAuthUrl('state123', 'challenge456');
     expect(url).toContain('response_type=code');
   });
 
   it('includes client_id in query params', () => {
-    const url = buildTwitterAuthUrl('state123', 'challenge456', false);
+    const url = buildTwitterAuthUrl('state123', 'challenge456');
     expect(url).toContain('client_id=test-client-id');
   });
 
   it('includes the redirect_uri', () => {
-    const url = buildTwitterAuthUrl('state123', 'challenge456', false);
+    const url = buildTwitterAuthUrl('state123', 'challenge456');
     expect(url).toContain(encodeURIComponent('https://example.com/api/auth/twitter/callback'));
   });
 
   it('includes the state parameter', () => {
-    const url = buildTwitterAuthUrl('my-state', 'my-challenge', false);
+    const url = buildTwitterAuthUrl('my-state', 'my-challenge');
     expect(url).toContain('state=my-state');
   });
 
   it('includes the code_challenge', () => {
-    const url = buildTwitterAuthUrl('my-state', 'my-challenge', false);
+    const url = buildTwitterAuthUrl('my-state', 'my-challenge');
     expect(url).toContain('code_challenge=my-challenge');
   });
 
   it('includes code_challenge_method=S256', () => {
-    const url = buildTwitterAuthUrl('state', 'challenge', false);
+    const url = buildTwitterAuthUrl('state', 'challenge');
     expect(url).toContain('code_challenge_method=S256');
   });
 
   it('includes required scopes', () => {
-    const url = buildTwitterAuthUrl('state', 'challenge', false);
-    // Scopes are URL-encoded
+    const url = buildTwitterAuthUrl('state', 'challenge');
     expect(url).toContain('tweet.read');
     expect(url).toContain('tweet.write');
     expect(url).toContain('users.read');
     expect(url).toContain('offline.access');
   });
 
-  it('adds link=true when link is true', () => {
-    const url = buildTwitterAuthUrl('state', 'challenge', true);
-    expect(url).toContain('link=true');
-  });
-
-  it('does not include link param when link is false', () => {
-    const url = buildTwitterAuthUrl('state', 'challenge', false);
+  it('does not include link param in the Twitter auth URL', () => {
+    const url = buildTwitterAuthUrl('state', 'challenge');
     expect(url).not.toContain('link=');
   });
 });
