@@ -42,10 +42,27 @@ import { GET, PUT } from './route';
 
 const mockUser = { id: 'user-1' };
 
+function makePersonalPage(overrides?: {
+  id?: string;
+  linkedInPageId?: string;
+  pageName?: string;
+  pageLogoUrl?: string | null;
+}) {
+  return {
+    id: overrides?.id ?? 'pp-uuid-1',
+    identityId: 'identity-1',
+    linkedInPageId: overrides?.linkedInPageId ?? 'li-page-777',
+    pageName: overrides?.pageName ?? 'My Company',
+    pageLogoUrl: overrides?.pageLogoUrl ?? null,
+    lastSyncedAt: new Date('2026-06-01'),
+  };
+}
+
 function makeIdentity(overrides?: {
   providerUsername?: string | null;
   avatarUrl?: string | null;
   accessToken?: string | null;
+  personalPages?: ReturnType<typeof makePersonalPage>[];
 }) {
   const accessToken =
     overrides?.accessToken !== undefined ? overrides.accessToken : 'personal-token';
@@ -55,6 +72,7 @@ function makeIdentity(overrides?: {
     avatarUrl:
       overrides?.avatarUrl !== undefined ? overrides.avatarUrl : 'https://example.com/avatar.png',
     providerData: accessToken !== null ? { access_token: accessToken } : null,
+    personalPages: overrides?.personalPages ?? [],
   };
 }
 
@@ -87,7 +105,7 @@ function makeAssignment(overrides?: {
 function setupAvailableTargets(options?: {
   identity?: ReturnType<typeof makeIdentity> | null;
   assignments?: ReturnType<typeof makeAssignment>[];
-  preferences?: { kind: string; pageId: string | null }[];
+  preferences?: { kind: string; pageId?: string | null; personalPageId?: string | null }[];
 }) {
   vi.mocked(prisma.linkedIdentity.findFirst).mockResolvedValue(
     (options?.identity !== undefined ? options.identity : makeIdentity()) as never
@@ -486,5 +504,216 @@ describe('PUT /api/linkedin/posting-targets — successful replace', () => {
     const body = await json(res);
     expect(body.targets).toHaveLength(2);
     expect(body.targets.every((t: { enabled: boolean }) => t.enabled === true)).toBe(true);
+  });
+});
+
+// ── GET — personalPage targets ───────────────────────────────────────────────
+
+describe('GET /api/linkedin/posting-targets — personalPage targets', () => {
+  beforeEach(() => {
+    vi.mocked(getCurrentUser).mockResolvedValue(mockUser as never);
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it('includes personalPage targets enabled by default with zero preference rows', async () => {
+    setupAvailableTargets({
+      identity: makeIdentity({ personalPages: [makePersonalPage()] }),
+      preferences: [],
+    });
+
+    const res = await GET();
+    expect(res.status).toBe(200);
+    const body = await json(res);
+    expect(body.targets).toContainEqual({
+      kind: 'personalPage',
+      personalPageId: 'pp-uuid-1',
+      linkedInPageId: 'li-page-777',
+      label: 'My Company',
+      logoUrl: null,
+      enabled: true,
+    });
+  });
+
+  it('enables a personalPage only when a matching personalPageId preference row exists', async () => {
+    setupAvailableTargets({
+      identity: makeIdentity({
+        personalPages: [
+          makePersonalPage(),
+          makePersonalPage({ id: 'pp-uuid-2', linkedInPageId: 'li-page-888', pageName: 'Other Co' }),
+        ],
+      }),
+      preferences: [{ kind: 'personalPage', personalPageId: 'pp-uuid-2' }],
+    });
+
+    const res = await GET();
+    const body = await json(res);
+    const personalPages = body.targets.filter(
+      (t: { kind: string }) => t.kind === 'personalPage'
+    );
+    expect(personalPages).toEqual([
+      expect.objectContaining({ personalPageId: 'pp-uuid-1', enabled: false }),
+      expect.objectContaining({ personalPageId: 'pp-uuid-2', enabled: true }),
+    ]);
+  });
+
+  it('does not enable a personalPage from an orgPage row carrying the same id in pageId', async () => {
+    setupAvailableTargets({
+      identity: makeIdentity({ personalPages: [makePersonalPage()] }),
+      preferences: [{ kind: 'orgPage', pageId: 'pp-uuid-1' }],
+    });
+
+    const res = await GET();
+    const body = await json(res);
+    const personalPage = body.targets.find(
+      (t: { kind: string }) => t.kind === 'personalPage'
+    );
+    expect(personalPage.enabled).toBe(false);
+  });
+
+  it('omits a personalPage that duplicates an active org page (org wins)', async () => {
+    setupAvailableTargets({
+      identity: makeIdentity({
+        personalPages: [makePersonalPage({ linkedInPageId: 'li-page-123' })],
+      }),
+      assignments: [makeAssignment({ linkedInPageId: 'li-page-123' })],
+      preferences: [],
+    });
+
+    const res = await GET();
+    const body = await json(res);
+    expect(body.targets.map((t: { kind: string }) => t.kind)).toEqual([
+      'personal',
+      'orgPage',
+    ]);
+  });
+});
+
+// ── PUT — personalPage targets ───────────────────────────────────────────────
+
+describe('PUT /api/linkedin/posting-targets — personalPage targets', () => {
+  beforeEach(() => {
+    vi.mocked(getCurrentUser).mockResolvedValue(mockUser as never);
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it('returns 400 when a personalPage target is not available to the user', async () => {
+    setupAvailableTargets({
+      identity: makeIdentity({ personalPages: [makePersonalPage()] }),
+    });
+
+    const res = await PUT(
+      makePutRequest({
+        targets: [{ kind: 'personalPage', personalPageId: 'someone-elses-page' }],
+      })
+    );
+    expect(res.status).toBe(400);
+    const body = await json(res);
+    expect(body.error).toMatch(/not available to you/i);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when the identity has no token (personalPage no longer available)', async () => {
+    setupAvailableTargets({
+      identity: makeIdentity({ accessToken: null, personalPages: [makePersonalPage()] }),
+    });
+
+    const res = await PUT(
+      makePutRequest({ targets: [{ kind: 'personalPage', personalPageId: 'pp-uuid-1' }] })
+    );
+    expect(res.status).toBe(400);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('rejects a personalPage hidden by the org-wins dedupe (must be saved as orgPage instead)', async () => {
+    setupAvailableTargets({
+      identity: makeIdentity({
+        personalPages: [makePersonalPage({ linkedInPageId: 'li-page-123' })],
+      }),
+      assignments: [makeAssignment({ linkedInPageId: 'li-page-123' })],
+    });
+
+    const res = await PUT(
+      makePutRequest({ targets: [{ kind: 'personalPage', personalPageId: 'pp-uuid-1' }] })
+    );
+    expect(res.status).toBe(400);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('persists a personalPage preference via the personalPageId column (never pageId)', async () => {
+    setupAvailableTargets({
+      identity: makeIdentity({ personalPages: [makePersonalPage()] }),
+      preferences: [{ kind: 'personalPage', personalPageId: 'pp-uuid-1' }],
+    });
+
+    const res = await PUT(
+      makePutRequest({ targets: [{ kind: 'personalPage', personalPageId: 'pp-uuid-1' }] })
+    );
+    expect(res.status).toBe(200);
+
+    expect(prisma.linkedInPostingTargetPreference.createMany).toHaveBeenCalledWith({
+      data: [{ userId: 'user-1', kind: 'personalPage', personalPageId: 'pp-uuid-1' }],
+    });
+    const createManyArg = vi.mocked(prisma.linkedInPostingTargetPreference.createMany)
+      .mock.calls[0]?.[0] as { data: Record<string, unknown>[] };
+    expect(createManyArg.data[0]).not.toHaveProperty('pageId');
+  });
+
+  it('saves all three kinds together and reflects them in the response', async () => {
+    setupAvailableTargets({
+      identity: makeIdentity({ personalPages: [makePersonalPage()] }),
+      preferences: [
+        { kind: 'personal' },
+        { kind: 'orgPage', pageId: 'org-page-uuid-1' },
+        { kind: 'personalPage', personalPageId: 'pp-uuid-1' },
+      ],
+    });
+
+    const res = await PUT(
+      makePutRequest({
+        targets: [
+          { kind: 'personal' },
+          { kind: 'orgPage', pageId: 'org-page-uuid-1' },
+          { kind: 'personalPage', personalPageId: 'pp-uuid-1' },
+        ],
+      })
+    );
+    expect(res.status).toBe(200);
+
+    expect(prisma.linkedInPostingTargetPreference.createMany).toHaveBeenCalledWith({
+      data: [
+        { userId: 'user-1', kind: 'personal' },
+        { userId: 'user-1', kind: 'orgPage', pageId: 'org-page-uuid-1' },
+        { userId: 'user-1', kind: 'personalPage', personalPageId: 'pp-uuid-1' },
+      ],
+    });
+
+    const body = await json(res);
+    expect(body.targets.every((t: { enabled: boolean }) => t.enabled === true)).toBe(true);
+    expect(body.targets.map((t: { kind: string }) => t.kind)).toEqual([
+      'personal',
+      'orgPage',
+      'personalPage',
+    ]);
+  });
+
+  it('dedupes repeated personalPage entries before saving', async () => {
+    setupAvailableTargets({
+      identity: makeIdentity({ personalPages: [makePersonalPage()] }),
+      preferences: [{ kind: 'personalPage', personalPageId: 'pp-uuid-1' }],
+    });
+
+    const res = await PUT(
+      makePutRequest({
+        targets: [
+          { kind: 'personalPage', personalPageId: 'pp-uuid-1' },
+          { kind: 'personalPage', personalPageId: 'pp-uuid-1' },
+        ],
+      })
+    );
+    expect(res.status).toBe(200);
+
+    expect(prisma.linkedInPostingTargetPreference.createMany).toHaveBeenCalledWith({
+      data: [{ userId: 'user-1', kind: 'personalPage', personalPageId: 'pp-uuid-1' }],
+    });
   });
 });

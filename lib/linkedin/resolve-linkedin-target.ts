@@ -1,13 +1,20 @@
 import { prisma } from '@/lib/prisma';
+import {
+  getActiveLinkedInAccessToken,
+  type LinkedInProviderData,
+} from './provider-data';
 import type { LinkedInPostTarget } from './post-status';
 
 /**
  * Per-post LinkedIn destination requested by the client.
  * `pageId` refers to OrgLinkedInPage.id (uuid), not the LinkedIn page ID.
+ * `personalPageId` refers to LinkedInPersonalPage.id (uuid) — a company page
+ * discovered through the user's personal LinkedIn connection.
  */
 export type RequestedLinkedInTarget =
   | { kind: 'personal' }
-  | { kind: 'orgPage'; pageId: string };
+  | { kind: 'orgPage'; pageId: string }
+  | { kind: 'personalPage'; personalPageId: string };
 
 /**
  * Validates an untrusted `linkedInTarget` value from a request body or stored
@@ -22,12 +29,23 @@ export function parseRequestedLinkedInTarget(
   if (typeof value !== 'object' || Array.isArray(value)) {
     return { ok: false };
   }
-  const { kind, pageId } = value as { kind?: unknown; pageId?: unknown };
+  const { kind, pageId, personalPageId } = value as {
+    kind?: unknown;
+    pageId?: unknown;
+    personalPageId?: unknown;
+  };
   if (kind === 'personal') {
     return { ok: true, target: { kind: 'personal' } };
   }
   if (kind === 'orgPage' && typeof pageId === 'string' && pageId.length > 0) {
     return { ok: true, target: { kind: 'orgPage', pageId } };
+  }
+  if (
+    kind === 'personalPage' &&
+    typeof personalPageId === 'string' &&
+    personalPageId.length > 0
+  ) {
+    return { ok: true, target: { kind: 'personalPage', personalPageId } };
   }
   return { ok: false };
 }
@@ -67,7 +85,12 @@ export function dedupeRequestedLinkedInTargets(
   const seen = new Set<string>();
   const result: RequestedLinkedInTarget[] = [];
   for (const target of targets) {
-    const key = target.kind === 'personal' ? 'personal' : `orgPage:${target.pageId}`;
+    const key =
+      target.kind === 'personal'
+        ? 'personal'
+        : target.kind === 'orgPage'
+          ? `orgPage:${target.pageId}`
+          : `personalPage:${target.personalPageId}`;
     if (seen.has(key)) continue;
     seen.add(key);
     result.push(target);
@@ -93,13 +116,39 @@ async function resolvePersonalTarget(userId: string): Promise<LinkedInPostTarget
 
   if (!identity) return null;
 
-  const providerData = identity.providerData as { access_token?: string } | null;
-  if (!providerData?.access_token) return null;
+  const accessToken = getActiveLinkedInAccessToken(
+    identity.providerData as LinkedInProviderData | null
+  );
+  if (!accessToken) return null;
 
   return {
-    accessToken: providerData.access_token,
+    accessToken,
     authorUrn: `urn:li:person:${identity.providerUserId}`,
     credentialId: identity.id,
+  };
+}
+
+async function resolvePersonalPageTarget(
+  userId: string,
+  personalPageId: string
+): Promise<LinkedInPostTarget | null> {
+  const page = await prisma.linkedInPersonalPage.findUnique({
+    where: { id: personalPageId },
+    include: { identity: true },
+  });
+
+  if (!page) return null;
+  if (page.identity.userId !== userId || page.identity.provider !== 'linkedin') return null;
+
+  const accessToken = getActiveLinkedInAccessToken(
+    page.identity.providerData as LinkedInProviderData | null
+  );
+  if (!accessToken) return null;
+
+  return {
+    accessToken,
+    authorUrn: `urn:li:organization:${page.linkedInPageId}`,
+    credentialId: page.identity.id,
   };
 }
 
@@ -110,6 +159,9 @@ async function resolvePersonalTarget(userId: string): Promise<LinkedInPostTarget
  * - `personal` — the user's LinkedIdentity; never falls back to an org page.
  * - `orgPage` — the user's assignment to that OrgLinkedInPage with an active
  *   credential; never falls back to the personal identity.
+ * - `personalPage` — a company page discovered through the user's own
+ *   LinkedIdentity (LinkedInPersonalPage); posts with the personal access
+ *   token using the organization author URN. Never falls back.
  *
  * Without `requested`, legacy resolution order applies:
  * 1. Active org-level page assignment (org credential + org page URN)
@@ -124,6 +176,10 @@ export async function resolveLinkedInTarget(
 
   if (requested?.kind === 'personal') {
     return resolvePersonalTarget(userId);
+  }
+
+  if (requested?.kind === 'personalPage') {
+    return resolvePersonalPageTarget(userId, requested.personalPageId);
   }
 
   if (requested?.kind === 'orgPage') {

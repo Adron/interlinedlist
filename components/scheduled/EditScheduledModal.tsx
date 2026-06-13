@@ -23,15 +23,24 @@ function defaultLinkedInTargets(targets: LinkedInTargetOption[]): RequestedLinke
   const firstPage = targets.find(
     (t): t is Extract<LinkedInTargetOption, { kind: 'orgPage' }> => t.kind === 'orgPage'
   );
-  return firstPage ? [{ kind: 'orgPage', pageId: firstPage.pageId }] : [];
+  if (firstPage) return [{ kind: 'orgPage', pageId: firstPage.pageId }];
+  const firstPersonalPage = targets.find(
+    (t): t is Extract<LinkedInTargetOption, { kind: 'personalPage' }> =>
+      t.kind === 'personalPage'
+  );
+  return firstPersonalPage
+    ? [{ kind: 'personalPage', personalPageId: firstPersonalPage.personalPageId }]
+    : [];
 }
 
 function linkedInOptionKey(option: LinkedInTargetOption): string {
-  return option.kind === 'personal' ? 'personal' : option.pageId;
+  if (option.kind === 'personal') return 'personal';
+  return option.kind === 'orgPage' ? option.pageId : `personalPage-${option.personalPageId}`;
 }
 
 function linkedInRequestedKey(target: RequestedLinkedInTarget): string {
-  return target.kind === 'personal' ? 'personal' : target.pageId;
+  if (target.kind === 'personal') return 'personal';
+  return target.kind === 'orgPage' ? target.pageId : `personalPage-${target.personalPageId}`;
 }
 
 interface EditScheduledModalProps {
@@ -97,7 +106,9 @@ export default function EditScheduledModal({
         ...prev,
         option.kind === 'personal'
           ? { kind: 'personal' as const }
-          : { kind: 'orgPage' as const, pageId: option.pageId },
+          : option.kind === 'orgPage'
+            ? { kind: 'orgPage' as const, pageId: option.pageId }
+            : { kind: 'personalPage' as const, personalPageId: option.personalPageId },
       ];
     });
   };
@@ -236,7 +247,7 @@ export default function EditScheduledModal({
                           className="form-check-label small"
                           htmlFor={`edit-linkedin-target-${key}`}
                         >
-                          {t.label} ({t.kind === 'orgPage' ? 'page' : 'personal'})
+                          {t.label} ({t.kind === 'personal' ? 'personal' : 'page'})
                         </label>
                       </div>
                     );

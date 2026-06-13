@@ -174,9 +174,11 @@ export async function GET(request: NextRequest) {
           const targetDescriptor =
             requestedTarget?.kind === "orgPage"
               ? ` (page ${requestedTarget.pageId})`
-              : requestedTarget?.kind === "personal"
-                ? " (personal)"
-                : "";
+              : requestedTarget?.kind === "personalPage"
+                ? ` (company page ${requestedTarget.personalPageId})`
+                : requestedTarget?.kind === "personal"
+                  ? " (personal)"
+                  : "";
           const linkedInTarget = await resolveLinkedInTarget(message.userId, requestedTarget);
 
           if (linkedInTarget) {

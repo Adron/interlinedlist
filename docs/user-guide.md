@@ -125,7 +125,15 @@ Click the **Bluesky icon** in the toolbar. It turns blue when active. Your post 
 
 Click the **LinkedIn icon** in the toolbar. It turns blue when active.
 
-**Choosing where the post goes on LinkedIn.** You can post as your personal LinkedIn profile, as an organization page you have been assigned to, or both. If you have more than one enabled LinkedIn destination, a **LinkedIn destinations** checkbox list appears below the toolbar — tick every destination that should receive the post. Your personal profile is selected by default (or the first available page if your personal profile is not enabled). You control which destinations are available here from the **Posting targets** list on the Connected Accounts page (see [LinkedIn](#linkedin) under Connected Accounts).
+**Choosing where the post goes on LinkedIn.** You can post as your personal LinkedIn profile, to a company page you administer through your own LinkedIn account, to an organization page you have been assigned to, or to any combination of these. If you have more than one enabled LinkedIn destination, a **LinkedIn destinations** checkbox list appears below the toolbar — tick every destination that should receive the post.
+
+Each destination in that list is labelled so you can tell them apart at a glance:
+
+- **(personal)** — your own LinkedIn profile.
+- **(company page)** — a LinkedIn company page discovered through your personal LinkedIn account (one you administer yourself, synced via the **Sync company pages** button).
+- **(page)** — a LinkedIn page connected through an organization you belong to on InterlinedList.
+
+Your personal profile is selected by default (or the first available page if your personal profile is not enabled). You control which destinations appear in this list from the **Posting targets** section of the LinkedIn card on the Connected Accounts page (see [LinkedIn](#linkedin) under Connected Accounts).
 
 If one LinkedIn destination fails, the others still receive the post — the status line below the compose box shows a warning for any destination that did not go through.
 
@@ -166,17 +174,33 @@ You can also set a **default GitHub repository** (in `owner/repo` format) that i
 ### LinkedIn
 
 1. On the Connected Accounts page, find the **LinkedIn** card and click **Connect** (the button appears when LinkedIn sign-in is available on your InterlinedList instance).
-2. Sign in to LinkedIn and approve the permissions.
-3. You are returned to InterlinedList with LinkedIn shown as connected.
+2. Sign in to LinkedIn and approve the permissions. The request includes permission to see the LinkedIn company pages you administer, so those pages can be offered as posting destinations.
+3. You are returned to InterlinedList with LinkedIn shown as connected. Your avatar appears next to your LinkedIn username on the card. Any company pages you administer are discovered automatically and added to your posting targets.
 
 #### Choosing your LinkedIn posting targets
 
-Once LinkedIn is connected, a **Posting targets** list appears on the LinkedIn card. It shows every LinkedIn destination you can post as:
+Once LinkedIn is connected, a **Posting targets** list appears on the LinkedIn card. It shows every LinkedIn destination you can post as, each with an avatar or logo beside its name so you can identify it quickly:
 
-- Your **personal** LinkedIn identity.
-- Any organization **pages** you have been assigned to — for example, a company page run by an organization you belong to. Pages only appear here after an administrator of that organization has connected the page and assigned you to it (see [Organizations](#organizations)).
+- **Personal profile** — your own LinkedIn identity, shown with your LinkedIn profile photo. Labelled "(personal)" in the compose and schedule destination pickers.
+- **Personal-account company pages** — LinkedIn company pages you administer yourself, discovered through your own LinkedIn connection. Each shows the page's logo. Labelled "(company page)" in the compose and schedule destination pickers.
+- **Organization pages** — LinkedIn pages connected through an organization you belong to on InterlinedList. Each shows the page's logo. Labelled "(page)" in the compose and schedule destination pickers. These appear only after an administrator of that organization has connected the page and assigned you to it (see [Organizations](#organizations)).
 
 Check a target to make it available when cross-posting; uncheck it to hide it from the compose box. All of your available targets are enabled by default. At least one target must always remain enabled — if you try to uncheck the last one, the change is blocked and a message reminds you that one target must stay on.
+
+If the same LinkedIn page is reachable both through your own connection and through an organization you belong to, it appears only once in the list — the organization connection takes precedence.
+
+#### Syncing company pages you administer
+
+The **Company pages** area at the bottom of the LinkedIn card lets you keep your personal-account company pages up to date.
+
+1. In the LinkedIn card on the Connected Accounts page, scroll down to the **Company pages** area.
+2. Click **Sync company pages**.
+3. InterlinedList queries LinkedIn for every company page you currently administer and updates the list. A confirmation message tells you how many pages were found. If you have been removed from a page's administrators on LinkedIn, that page is removed from your targets at the same time.
+4. The refreshed pages immediately appear in the **Posting targets** list above and as selectable destinations in the compose box and in scheduled posts.
+
+You do not need to sync on a schedule — just click the button any time your page admin access changes on LinkedIn.
+
+**If the sync fails with a permissions warning:** Your saved LinkedIn connection may predate the company page feature and may not include the required access. The card shows a notice with a **Reconnect LinkedIn** button. Click it, approve the permissions again, and then use the **Sync company pages** button. This is a one-time step.
 
 ### Mastodon
 
@@ -300,7 +324,7 @@ Scheduling lets you write a message now and have it published automatically at a
 
 A note below the compose button shows the scheduled date and time. To cancel scheduling and post immediately instead, click the displayed date.
 
-**Editing a scheduled post:** Find the post in your scheduled posts list and click the edit icon. You can change the time, the message content, or which networks will receive it. If LinkedIn is selected, the editor shows the same checkbox list of LinkedIn destinations as the compose box, so you can choose your personal profile, one or more organization pages, or any combination. Save your changes and the post remains scheduled.
+**Editing a scheduled post:** Find the post in your scheduled posts list and click the edit icon. You can change the time, the message content, or which networks will receive it. If LinkedIn is selected, the editor shows the same **LinkedIn destinations** checkbox list as the compose box — each destination is labelled "(personal)", "(company page)", or "(page)" so you know exactly where each one posts. Choose your personal profile, company pages you administer, organization pages, or any combination. Save your changes and the post remains scheduled.
 
 **Cancelling a scheduled post:** Open the edit dialog for the post and delete it, or cancel the scheduled time from within the compose box before you submit.
 
