@@ -960,13 +960,10 @@ test.describe('Edit scheduled post — LinkedIn company-page destination', () =>
 
     // LinkedIn cross-post is on; the saved company page destination is
     // checked while the personal profile is not.
-    // Note: EditScheduledModal renders the kind label as '(page)' for both
-    // orgPage and personalPage kinds — only MessageInput.tsx distinguishes
-    // personalPage as '(company page)'.
     await expect(page.getByRole('checkbox', { name: 'LinkedIn', exact: true })).toBeChecked();
     await expect(page.getByText('LinkedIn destinations')).toBeVisible();
     await expect(
-      page.getByRole('checkbox', { name: 'Acme Co Page (page)' })
+      page.getByRole('checkbox', { name: 'Acme Co Page (company page)' })
     ).toBeChecked();
     await expect(
       page.getByRole('checkbox', { name: 'Test Person (personal)' })

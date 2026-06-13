@@ -247,7 +247,7 @@ export default function EditScheduledModal({
                           className="form-check-label small"
                           htmlFor={`edit-linkedin-target-${key}`}
                         >
-                          {t.label} ({t.kind === 'personal' ? 'personal' : 'page'})
+                          {t.label} ({t.kind === 'personal' ? 'personal' : t.kind === 'personalPage' ? 'company page' : 'page'})
                         </label>
                       </div>
                     );
