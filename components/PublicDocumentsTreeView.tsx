@@ -136,7 +136,7 @@ function DocTreeNodeComponent({
           ))}
           {node.children.map((child) => (
             <DocTreeNodeComponent
-              key={child.folder?.id ?? 'unknown-folder'}
+              key={child.folder?.id ?? 'root-child'}
               node={child}
               username={username}
               expandedFolders={expandedFolders}
