@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 
 interface DocItem {
@@ -104,7 +104,10 @@ function DocTreeNodeComponent({
           onClick={() => onToggle(folderId)}
           aria-expanded={isExpanded}
         >
-          <i className={`bx ${isExpanded ? 'bx-chevron-down' : 'bx-chevron-right'} me-1 flex-shrink-0`}></i>
+          <i
+            className={`bx ${isExpanded ? 'bx-chevron-down' : 'bx-chevron-right'} me-1 flex-shrink-0`}
+            aria-hidden="true"
+          ></i>
           <i className="bx bx-folder me-2 text-muted flex-shrink-0"></i>
           <span className="text-truncate">{node.folder.name}</span>
         </button>
@@ -201,7 +204,7 @@ export default function PublicDocumentsTreeView({ username }: PublicDocumentsTre
     });
   };
 
-  const totalDocs = tree.reduce((sum, n) => sum + n.documents.length, 0);
+  const totalDocs = useMemo(() => tree.reduce((sum, n) => sum + n.documents.length, 0), [tree]);
 
   return (
     <div className="card mb-3">
@@ -213,7 +216,10 @@ export default function PublicDocumentsTreeView({ username }: PublicDocumentsTre
             onClick={() => setIsExpanded(!isExpanded)}
             aria-expanded={isExpanded}
           >
-            <i className={`bx ${isExpanded ? 'bx-chevron-down' : 'bx-chevron-right'} me-2`}></i>
+            <i
+              className={`bx ${isExpanded ? 'bx-chevron-down' : 'bx-chevron-right'} me-2`}
+              aria-hidden="true"
+            ></i>
             <strong>Public Documents</strong>
           </button>
 
