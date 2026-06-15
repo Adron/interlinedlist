@@ -136,7 +136,7 @@ function DocTreeNodeComponent({
           ))}
           {node.children.map((child) => (
             <DocTreeNodeComponent
-              key={child.folder!.id}
+              key={child.folder?.id ?? 'unknown-folder'}
               node={child}
               username={username}
               expandedFolders={expandedFolders}
@@ -239,9 +239,9 @@ export default function PublicDocumentsTreeView({ username }: PublicDocumentsTre
                 <div className="text-muted small ms-3">No public documents</div>
               ) : (
                 <ul className="list-unstyled ms-3 mb-0">
-                  {tree.map((node, idx) => (
+                  {tree.map((node) => (
                     <DocTreeNodeComponent
-                      key={node.folder ? node.folder.id : `root-${idx}`}
+                      key={node.folder ? node.folder.id : 'root-documents'}
                       node={node}
                       username={username}
                       expandedFolders={expandedFolders}
