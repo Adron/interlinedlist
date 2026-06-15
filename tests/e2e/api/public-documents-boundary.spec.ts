@@ -88,7 +88,7 @@ test.describe('Public document boundary — private docs/folders not exposed via
     await ctx.close();
   });
 
-  test('anonymous GET /api/users/:username/documents does not include private documents', async ({
+  test('unauthenticated GET /api/users/:username/documents does not include private documents', async ({
     page,
   }) => {
     const res = await page.request.get(`/api/users/${SUBSCRIBER_USERNAME}/documents`);
@@ -99,7 +99,7 @@ test.describe('Public document boundary — private docs/folders not exposed via
     expect(ids).not.toContain(privateDocumentId);
   });
 
-  test('anonymous GET /api/users/:username/documents includes public documents', async ({ page }) => {
+  test('unauthenticated GET /api/users/:username/documents includes public documents', async ({ page }) => {
     const res = await page.request.get(`/api/users/${SUBSCRIBER_USERNAME}/documents`);
     expect(res.status()).toBe(200);
 
@@ -108,7 +108,7 @@ test.describe('Public document boundary — private docs/folders not exposed via
     expect(ids).toContain(publicDocumentId);
   });
 
-  test('anonymous GET /api/users/:username/documents excludes private-only folders but includes public folder ancestors', async ({
+  test('unauthenticated GET /api/users/:username/documents excludes private-only folders but includes public folder ancestors', async ({
     page,
   }) => {
     const res = await page.request.get(`/api/users/${SUBSCRIBER_USERNAME}/documents`);
