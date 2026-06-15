@@ -37,7 +37,7 @@ export async function GET(
       orderBy: { title: "asc" },
     });
 
-    const foldersById = new Map<
+    const folderMap = new Map<
       string,
       { id: string; name: string; parentId: string | null }
     >();
@@ -60,7 +60,7 @@ export async function GET(
       });
 
       for (const folder of fetchedFolders) {
-        foldersById.set(folder.id, folder);
+        folderMap.set(folder.id, folder);
       }
 
       folderIdsToFetch = Array.from(
@@ -69,13 +69,13 @@ export async function GET(
             .map((folder) => folder.parentId)
             .filter(
               (parentId): parentId is string =>
-                !!parentId && !foldersById.has(parentId)
+                !!parentId && !folderMap.has(parentId)
             )
         )
       );
     }
 
-    const folders = Array.from(foldersById.values()).sort((a, b) =>
+    const folders = Array.from(folderMap.values()).sort((a, b) =>
       a.name.localeCompare(b.name)
     );
 
