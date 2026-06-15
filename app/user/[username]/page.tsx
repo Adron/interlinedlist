@@ -7,8 +7,7 @@ import { LinkMetadata, CrossPostUrl, Message } from '@/lib/types';
 import ProfileHeader from '@/components/ProfileHeader';
 import MessageList from '@/components/MessageList';
 import PublicListsTreeView from '@/components/PublicListsTreeView';
-import ListPreview from '@/components/ListPreview';
-import { getPublicListsByUser, buildListTree, getPublicListProperties, getPublicListDataRows } from '@/lib/lists/queries';
+import PublicDocumentsTreeView from '@/components/PublicDocumentsTreeView';
 import { getFollowCounts, getFollowStatus } from '@/lib/follows/queries';
 
 const DEFAULT_MESSAGES_PER_PAGE = 20;
@@ -104,7 +103,7 @@ export default async function UserProfilePage({
   const where = { ...buildWallMessageWhereClause(profileUser.id, currentUser?.id ?? null), parentId: null };
   const messagesPerPage = currentUser?.messagesPerPage ?? DEFAULT_MESSAGES_PER_PAGE;
 
-  const [messages, total] = await Promise.all([
+  const [messages, total, documentCount, listCount] = await Promise.all([
     prisma.message.findMany({
       where,
       include: {
@@ -117,6 +116,12 @@ export default async function UserProfilePage({
       take: messagesPerPage,
     }),
     prisma.message.count({ where }),
+    prisma.document.count({
+      where: { userId: profileUser.id, deletedAt: null },
+    }),
+    prisma.list.count({
+      where: { userId: profileUser.id, deletedAt: null },
+    }),
   ]);
 
   const serializedMessages = messages.map((message) => {
@@ -145,82 +150,22 @@ export default async function UserProfilePage({
 
   const messagesWithDugs = await attachDugByMeIncludingPushed(serializedMessages, currentUser?.id);
 
-  // Fetch public lists to get the first root-level list for preview
-  let firstListPreview = null;
-  try {
-    const publicListsResult = await getPublicListsByUser(profileUser.id, { limit: 100 });
-    const publicLists = publicListsResult.lists || [];
-    
-    if (publicLists.length > 0) {
-      // Build tree to get root-level lists
-      const tree = buildListTree(publicLists);
-      
-      // Get first root-level list
-      if (tree.length > 0) {
-        const firstList = tree[0].list;
-        
-        // Fetch properties and first 3 items
-        const [properties, dataResult] = await Promise.all([
-          getPublicListProperties(firstList.id),
-          getPublicListDataRows(firstList.id, {
-            pagination: { limit: 3, offset: 0 }
-          })
-        ]);
-        
-        if (properties && properties.length > 0) {
-          // Take only first 2 fields
-          const firstTwoFields = properties.slice(0, 2);
-          
-          firstListPreview = {
-            listId: firstList.id,
-            listTitle: firstList.title,
-            isPublic: Boolean((firstList as { isPublic?: boolean }).isPublic),
-            source: (firstList as { source?: string }).source,
-            fields: firstTwoFields,
-            items: dataResult.rows.map(row => ({
-              id: row.id,
-              rowData: row.rowData as Record<string, any>,
-              createdAt: row.createdAt.toISOString(),
-              updatedAt: row.updatedAt?.toISOString(),
-            }))
-          };
-        }
-      }
-    }
-  } catch (error) {
-    // Silently fail - preview is optional
-    console.error('Failed to fetch list preview:', error);
-  }
-
   return (
     <div className="container-fluid container-fluid-max py-4">
       <div className="row">
-        {/* Left column - public lists tree view */}
-        <div className="col-lg-3 col-md-4 mb-4">
-          <PublicListsTreeView
-            username={username}
-            showWatchButtons={!!currentUser && currentUser.id !== profileUser.id}
-          />
-          {firstListPreview && (
-            <ListPreview
-              listId={firstListPreview.listId}
-              listTitle={firstListPreview.listTitle}
-              fields={firstListPreview.fields}
-              items={firstListPreview.items}
-              ownerUsername={username}
-              isPublic={firstListPreview.isPublic}
-              source={firstListPreview.source}
-            />
-          )}
-        </div>
+        {/* Left column - empty spacer for layout balance */}
+        <div className="col-lg-3 d-none d-lg-block" />
 
-        {/* Center - profile header + message cards (main-page style) */}
-        <div className="col-lg-6 col-md-8 mb-4">
+        {/* Center - profile header + message cards */}
+        <div className="col-lg-6 col-12 mb-4">
           <ProfileHeader
             user={{
               ...profileUser,
               followerCount,
               followingCount,
+              messageCount: total,
+              documentCount,
+              listCount,
             }}
             currentUserId={currentUser?.id}
             followStatus={followStatus}
@@ -252,8 +197,14 @@ export default async function UserProfilePage({
           )}
         </div>
 
-        {/* Right column empty to match main page layout balance, or could add something later */}
-        <div className="col-lg-3 col-12 mb-4 order-lg-3" />
+        {/* Right column - documents tree + lists tree */}
+        <div className="col-lg-3 col-12 mb-4">
+          <PublicDocumentsTreeView username={username} />
+          <PublicListsTreeView
+            username={username}
+            showWatchButtons={!!currentUser && currentUser.id !== profileUser.id}
+          />
+        </div>
       </div>
     </div>
   );
