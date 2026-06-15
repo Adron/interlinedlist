@@ -103,6 +103,8 @@ export default async function UserProfilePage({
   const where = { ...buildWallMessageWhereClause(profileUser.id, currentUser?.id ?? null), parentId: null };
   const messagesPerPage = currentUser?.messagesPerPage ?? DEFAULT_MESSAGES_PER_PAGE;
 
+  const shouldIncludePrivateCounts = isOwnProfile || isApprovedFollower;
+
   const [messages, total, documentCount, listCount] = await Promise.all([
     prisma.message.findMany({
       where,
@@ -117,10 +119,18 @@ export default async function UserProfilePage({
     }),
     prisma.message.count({ where }),
     prisma.document.count({
-      where: { userId: profileUser.id, deletedAt: null },
+      where: {
+        userId: profileUser.id,
+        deletedAt: null,
+        ...(shouldIncludePrivateCounts ? {} : { isPublic: true }),
+      },
     }),
     prisma.list.count({
-      where: { userId: profileUser.id, deletedAt: null },
+      where: {
+        userId: profileUser.id,
+        deletedAt: null,
+        ...(shouldIncludePrivateCounts ? {} : { isPublic: true }),
+      },
     }),
   ]);
 

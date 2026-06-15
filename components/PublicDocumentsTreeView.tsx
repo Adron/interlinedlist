@@ -96,19 +96,25 @@ function DocTreeNodeComponent({
 
   return (
     <li className="mb-1">
-      <div
-        className="d-flex align-items-center"
-        style={{ cursor: hasContent ? 'pointer' : 'default', minWidth: 0 }}
-        onClick={() => hasContent && onToggle(folderId)}
-      >
-        {hasContent ? (
+      {hasContent ? (
+        <button
+          type="button"
+          className="btn btn-link p-0 text-decoration-none text-start d-flex align-items-center w-100 border-0 bg-transparent"
+          style={{ minWidth: 0 }}
+          onClick={() => onToggle(folderId)}
+          aria-expanded={isExpanded}
+        >
           <i className={`bx ${isExpanded ? 'bx-chevron-down' : 'bx-chevron-right'} me-1 flex-shrink-0`}></i>
-        ) : (
+          <i className="bx bx-folder me-2 text-muted flex-shrink-0"></i>
+          <span className="text-truncate">{node.folder.name}</span>
+        </button>
+      ) : (
+        <div className="d-flex align-items-center" style={{ minWidth: 0 }}>
           <span style={{ width: '1.25rem', display: 'inline-block', flexShrink: 0 }} />
-        )}
-        <i className="bx bx-folder me-2 text-muted flex-shrink-0"></i>
-        <span className="text-truncate">{node.folder.name}</span>
-      </div>
+          <i className="bx bx-folder me-2 text-muted flex-shrink-0"></i>
+          <span className="text-truncate">{node.folder.name}</span>
+        </div>
+      )}
       {isExpanded && hasContent && (
         <ul className="list-unstyled ms-4 mt-1 mb-0">
           {node.documents.map((doc) => (
@@ -201,14 +207,15 @@ export default function PublicDocumentsTreeView({ username }: PublicDocumentsTre
     <div className="card mb-3">
       <div className="card-body">
         <div style={{ maxHeight: '400px', overflowY: 'auto', overflowX: 'hidden' }}>
-          <div
-            className="d-flex align-items-center mb-2"
-            style={{ cursor: 'pointer' }}
+          <button
+            type="button"
+            className="btn btn-link p-0 text-decoration-none text-start d-flex align-items-center mb-2 border-0 bg-transparent"
             onClick={() => setIsExpanded(!isExpanded)}
+            aria-expanded={isExpanded}
           >
             <i className={`bx ${isExpanded ? 'bx-chevron-down' : 'bx-chevron-right'} me-2`}></i>
             <strong>Public Documents</strong>
-          </div>
+          </button>
 
           {isExpanded && (
             <>
