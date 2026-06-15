@@ -26,6 +26,8 @@ interface PublicDocumentsTreeViewProps {
   username: string;
 }
 
+const CHEVRON_SPACER_WIDTH = '1.25rem';
+
 function buildDocTree(docs: DocItem[], folders: FolderItem[]): TreeNode[] {
   const folderMap = new Map<string, TreeNode>();
 
@@ -113,7 +115,7 @@ function DocTreeNodeComponent({
         </button>
       ) : (
         <div className="d-flex align-items-center" style={{ minWidth: 0 }}>
-          <span style={{ width: '1.25rem', display: 'inline-block', flexShrink: 0 }} />
+          <span style={{ width: CHEVRON_SPACER_WIDTH, display: 'inline-block', flexShrink: 0 }} />
           <i className="bx bx-folder me-2 text-muted flex-shrink-0"></i>
           <span className="text-truncate">{node.folder.name}</span>
         </div>
