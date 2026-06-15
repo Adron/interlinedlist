@@ -164,7 +164,7 @@ export default async function UserProfilePage({
     <div className="container-fluid container-fluid-max py-4">
       <div className="row">
         {/* Left column - empty spacer for layout balance */}
-        <div className="col-lg-3 d-none d-lg-block" />
+        <div className="col-lg-3 d-none d-lg-block" aria-hidden="true" />
 
         {/* Center - profile header + message cards */}
         <div className="col-lg-6 col-12 mb-4">
