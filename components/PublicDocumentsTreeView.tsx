@@ -204,7 +204,13 @@ export default function PublicDocumentsTreeView({ username }: PublicDocumentsTre
     });
   };
 
-  const totalDocs = useMemo(() => tree.reduce((sum, n) => sum + n.documents.length, 0), [tree]);
+  const totalDocs = useMemo(() => {
+    const countNodeDocuments = (node: TreeNode): number =>
+      node.documents.length +
+      node.children.reduce((sum, child) => sum + countNodeDocuments(child), 0);
+
+    return tree.reduce((sum, node) => sum + countNodeDocuments(node), 0);
+  }, [tree]);
 
   return (
     <div className="card mb-3">
