@@ -10,6 +10,9 @@ export interface ProfileHeaderUser {
   followerCount?: number;
   followingCount?: number;
   isPrivateAccount?: boolean | null;
+  messageCount?: number;
+  documentCount?: number;
+  listCount?: number;
 }
 
 interface ProfileHeaderProps {
@@ -105,6 +108,33 @@ export default function ProfileHeader({ user, currentUserId, followStatus = 'non
                       </div>
                     </div>
                   </Link>
+                </div>
+              </div>
+            )}
+
+            {/* Activity counts */}
+            {(user.messageCount !== undefined || user.documentCount !== undefined || user.listCount !== undefined) && (
+              <div className="d-flex gap-3 flex-wrap mt-2">
+                <div className="p-2 rounded border border-success border-opacity-25 d-flex align-items-center gap-2">
+                  <i className="bx bx-message-rounded text-success fs-20"></i>
+                  <div>
+                    <div className="fw-bold fs-5 text-body">{user.messageCount ?? 0}</div>
+                    <small className="text-muted">Posts</small>
+                  </div>
+                </div>
+                <div className="p-2 rounded border border-warning border-opacity-25 d-flex align-items-center gap-2">
+                  <i className="bx bx-file-blank text-warning fs-20"></i>
+                  <div>
+                    <div className="fw-bold fs-5 text-body">{user.documentCount ?? 0}</div>
+                    <small className="text-muted">Documents</small>
+                  </div>
+                </div>
+                <div className="p-2 rounded border border-secondary border-opacity-25 d-flex align-items-center gap-2">
+                  <i className="bx bx-list-ul text-secondary fs-20"></i>
+                  <div>
+                    <div className="fw-bold fs-5 text-body">{user.listCount ?? 0}</div>
+                    <small className="text-muted">Lists</small>
+                  </div>
                 </div>
               </div>
             )}
