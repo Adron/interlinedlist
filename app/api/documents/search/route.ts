@@ -22,10 +22,20 @@ export async function GET(request: NextRequest) {
     if (!q || q.trim().length === 0) {
       return NextResponse.json({ error: "Query parameter 'q' is required" }, { status: 400 });
     }
+    if (q.length > 200) {
+      return NextResponse.json({ error: "Query parameter 'q' must be 200 characters or fewer" }, { status: 400 });
+    }
 
-    const rawLimit = parseInt(searchParams.get("limit") ?? "20", 10);
-    const rawOffset = parseInt(searchParams.get("offset") ?? "0", 10);
-    const limit = Math.min(isNaN(rawLimit) || rawLimit < 1 ? 20 : rawLimit, 100);
+    const limitParam = searchParams.get("limit");
+    const offsetParam = searchParams.get("offset");
+    const rawLimit = parseInt(limitParam ?? "20", 10);
+    const rawOffset = parseInt(offsetParam ?? "0", 10);
+
+    if (limitParam !== null && !isNaN(rawLimit) && rawLimit > 100) {
+      return NextResponse.json({ error: "Query parameter 'limit' must be 100 or fewer" }, { status: 400 });
+    }
+
+    const limit = isNaN(rawLimit) || rawLimit < 1 ? 20 : rawLimit;
     const offset = isNaN(rawOffset) || rawOffset < 0 ? 0 : rawOffset;
 
     const where = {
@@ -40,7 +50,15 @@ export async function GET(request: NextRequest) {
     const [documents, total] = await prisma.$transaction([
       prisma.document.findMany({
         where,
-        select: { id: true, title: true, folderId: true, updatedAt: true },
+        select: {
+          id: true,
+          title: true,
+          content: true,
+          folderId: true,
+          isPublic: true,
+          createdAt: true,
+          updatedAt: true,
+        },
         orderBy: { updatedAt: "desc" },
         take: limit,
         skip: offset,

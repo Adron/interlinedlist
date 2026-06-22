@@ -36,6 +36,57 @@ export async function PUT(
     const body = await request.json();
     const { name, parentId } = body;
 
+    if (name !== undefined && name !== null) {
+      const trimmedName = String(name).trim();
+      if (trimmedName.length === 0) {
+        return NextResponse.json({ error: "Name is required" }, { status: 400 });
+      }
+      if (trimmedName.length > 80) {
+        return NextResponse.json(
+          { error: "Name must be 80 characters or fewer" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Cycle protection: reject reparenting under self or any descendant.
+    // Walking from the proposed parent upward, we must never hit this folder.
+    if (parentId !== undefined && parentId !== null) {
+      if (typeof parentId !== "string") {
+        return NextResponse.json({ error: "Invalid parentId" }, { status: 400 });
+      }
+      if (parentId === id) {
+        return NextResponse.json(
+          { error: "A folder cannot be its own parent" },
+          { status: 400 }
+        );
+      }
+      const visited = new Set<string>();
+      let cursor: string | null = parentId;
+      while (cursor) {
+        if (cursor === id) {
+          return NextResponse.json(
+            { error: "Cannot move a folder under one of its descendants" },
+            { status: 400 }
+          );
+        }
+        if (visited.has(cursor)) break;
+        visited.add(cursor);
+        const next: { parentId: string | null } | null =
+          await prisma.listFolder.findFirst({
+            where: { id: cursor, userId: user.id, deletedAt: null },
+            select: { parentId: true },
+          });
+        if (!next) {
+          return NextResponse.json(
+            { error: "Parent folder not found or access denied" },
+            { status: 404 }
+          );
+        }
+        cursor = next.parentId;
+      }
+    }
+
     // Pre-check for name collision when renaming
     if (name !== undefined && name !== null) {
       const trimmedName = String(name).trim();
@@ -114,16 +165,31 @@ export async function DELETE(
       return NextResponse.json({ error: "Folder not found" }, { status: 404 });
     }
 
-    // Detach lists from this folder before soft-deleting
-    await prisma.list.updateMany({
-      where: { folderId: id, userId: user.id },
-      data: { folderId: null },
-    });
+    const now = new Date();
+    const userId = user.id;
 
-    await prisma.listFolder.update({
-      where: { id },
-      data: { deletedAt: new Date() },
-    });
+    // Recursively soft-delete child folders and move every descendant list to
+    // the root (folderId = null). Lists are never soft-deleted by this cascade,
+    // matching the spec: "child lists move to root".
+    async function softDeleteFolder(folderId: string) {
+      const children = await prisma.listFolder.findMany({
+        where: { parentId: folderId, userId, deletedAt: null },
+        select: { id: true },
+      });
+      for (const child of children) {
+        await softDeleteFolder(child.id);
+      }
+      await prisma.list.updateMany({
+        where: { folderId, userId },
+        data: { folderId: null },
+      });
+      await prisma.listFolder.update({
+        where: { id: folderId },
+        data: { deletedAt: now },
+      });
+    }
+
+    await softDeleteFolder(id);
 
     return NextResponse.json(
       { message: "Folder deleted successfully" },

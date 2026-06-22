@@ -77,11 +77,13 @@ export async function PUT(
     }
 
     if (folderId !== undefined) {
-      if (folderId === null) {
+      const normalizedFolderId =
+        folderId === null || folderId === "" ? null : folderId;
+      if (normalizedFolderId === null) {
         updates.folderId = null;
       } else {
         const folder = await prisma.folder.findFirst({
-          where: { id: folderId, userId: user.id, deletedAt: null },
+          where: { id: normalizedFolderId, userId: user.id, deletedAt: null },
         });
         if (!folder) {
           return NextResponse.json(
@@ -89,7 +91,7 @@ export async function PUT(
             { status: 403 }
           );
         }
-        updates.folderId = folderId;
+        updates.folderId = normalizedFolderId;
       }
     }
 
@@ -107,6 +109,13 @@ export async function PUT(
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+
+/**
+ * PATCH /api/documents/[id]
+ * Alias for PUT — iOS client uses PATCH for partial document updates,
+ * including moving between folders via `folderId`.
+ */
+export const PATCH = PUT;
 
 /**
  * DELETE /api/documents/[id]

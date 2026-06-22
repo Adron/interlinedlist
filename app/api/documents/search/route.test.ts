@@ -82,11 +82,24 @@ describe("GET /api/documents/search — q validation", () => {
     const res = await GET(makeRequest({ q: "   " }));
     expect(res.status).toBe(400);
   });
+
+  it("returns 400 when q is longer than 200 chars", async () => {
+    const res = await GET(makeRequest({ q: "a".repeat(201) }));
+    expect(res.status).toBe(400);
+    const body = await json(res);
+    expect(body.error).toMatch(/200/);
+  });
+
+  it("accepts q exactly 200 chars", async () => {
+    vi.mocked(prisma.$transaction).mockResolvedValue([[], 0] as never);
+    const res = await GET(makeRequest({ q: "a".repeat(200) }));
+    expect(res.status).toBe(200);
+  });
 });
 
-// ── limit clamping ─────────────────────────────────────────────────────────────
+// ── limit validation ─────────────────────────────────────────────────────────
 
-describe("GET /api/documents/search — limit clamping", () => {
+describe("GET /api/documents/search — limit validation", () => {
   beforeEach(() => {
     vi.mocked(getCurrentUserOrSyncToken).mockResolvedValue(mockUser as never);
   });
@@ -96,9 +109,17 @@ describe("GET /api/documents/search — limit clamping", () => {
     vi.mocked(prisma.$transaction).mockResolvedValue([docs, total] as never);
   }
 
-  it("clamps limit > 100 to 100", async () => {
-    setupTransaction(new Array(100).fill({ id: "d", title: "T", folderId: null, updatedAt: new Date() }), 200);
+  it("returns 400 when limit > 100", async () => {
     const res = await GET(makeRequest({ q: "test", limit: "500" }));
+    expect(res.status).toBe(400);
+    const body = await json(res);
+    expect(body.error).toMatch(/100/);
+  });
+
+  it("accepts limit exactly 100", async () => {
+    setupTransaction([], 0);
+    const res = await GET(makeRequest({ q: "test", limit: "100" }));
+    expect(res.status).toBe(200);
     const body = await json(res);
     expect(body.pagination.limit).toBe(100);
   });
@@ -141,7 +162,15 @@ describe("GET /api/documents/search — pagination", () => {
   afterEach(() => vi.restoreAllMocks());
 
   function doc() {
-    return { id: "d", title: "T", folderId: null, updatedAt: new Date() };
+    return {
+      id: "d",
+      title: "T",
+      content: "body",
+      folderId: null,
+      isPublic: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
   }
 
   it("hasMore=true when offset=20, 20 results returned, total=45", async () => {
@@ -192,15 +221,89 @@ describe("GET /api/documents/search — success response", () => {
   });
   afterEach(() => vi.restoreAllMocks());
 
-  it("returns 200 with documents array and pagination envelope", async () => {
-    const docs = [{ id: "abc", title: "My Doc", folderId: null, updatedAt: new Date() }];
+  it("returns 200 with each document including id/title/content/folderId/isPublic/createdAt/updatedAt", async () => {
+    const now = new Date();
+    const docs = [
+      {
+        id: "abc",
+        title: "My Doc",
+        content: "hello world",
+        folderId: "f1",
+        isPublic: true,
+        createdAt: now,
+        updatedAt: now,
+      },
+    ];
     vi.mocked(prisma.$transaction).mockResolvedValue([docs, 1] as never);
 
-    const res = await GET(makeRequest({ q: "doc" }));
+    const res = await GET(makeRequest({ q: "hello" }));
     expect(res.status).toBe(200);
     const body = await json(res);
-    expect(Array.isArray(body.documents)).toBe(true);
     expect(body.documents).toHaveLength(1);
-    expect(body.pagination).toBeDefined();
+    const d = body.documents[0];
+    expect(d).toMatchObject({
+      id: "abc",
+      title: "My Doc",
+      content: "hello world",
+      folderId: "f1",
+      isPublic: true,
+    });
+    expect(typeof d.createdAt).toBe("string");
+    expect(typeof d.updatedAt).toBe("string");
+    expect(body.pagination).toEqual({ total: 1, limit: 20, offset: 0, hasMore: false });
+  });
+
+  it("requests Prisma to filter by title OR content (case-insensitive)", async () => {
+    vi.mocked(prisma.$transaction).mockImplementation(((ops: unknown[]) => {
+      // Force evaluation of the chained findMany/count builders by returning empty results.
+      void ops;
+      return Promise.resolve([[], 0]);
+    }) as never);
+
+    const findManySpy = vi.mocked(prisma.document.findMany);
+    findManySpy.mockResolvedValue([] as never);
+    vi.mocked(prisma.document.count).mockResolvedValue(0 as never);
+
+    await GET(makeRequest({ q: "alpha" }));
+
+    expect(findManySpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: [
+            { title: { contains: "alpha", mode: "insensitive" } },
+            { content: { contains: "alpha", mode: "insensitive" } },
+          ],
+        }),
+        orderBy: { updatedAt: "desc" },
+      })
+    );
+  });
+
+  it("scopes the query to the authenticated user (ownership)", async () => {
+    vi.mocked(prisma.$transaction).mockResolvedValue([[], 0] as never);
+    const findManySpy = vi.mocked(prisma.document.findMany);
+    findManySpy.mockResolvedValue([] as never);
+    vi.mocked(prisma.document.count).mockResolvedValue(0 as never);
+
+    await GET(makeRequest({ q: "anything" }));
+
+    expect(findManySpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ userId: "user-1", deletedAt: null }),
+      })
+    );
+  });
+
+  it("passes limit and offset through to Prisma", async () => {
+    vi.mocked(prisma.$transaction).mockResolvedValue([[], 0] as never);
+    const findManySpy = vi.mocked(prisma.document.findMany);
+    findManySpy.mockResolvedValue([] as never);
+    vi.mocked(prisma.document.count).mockResolvedValue(0 as never);
+
+    await GET(makeRequest({ q: "x", limit: "10", offset: "30" }));
+
+    expect(findManySpy).toHaveBeenCalledWith(
+      expect.objectContaining({ take: 10, skip: 30 })
+    );
   });
 });

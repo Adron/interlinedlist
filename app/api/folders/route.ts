@@ -54,6 +54,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
+    if (name.trim().length > 80) {
+      return NextResponse.json(
+        { error: "Name must be 80 characters or fewer" },
+        { status: 400 }
+      );
+    }
+
     if (parentId != null) {
       if (typeof parentId !== "string") {
         return NextResponse.json({ error: "Invalid parentId" }, { status: 400 });

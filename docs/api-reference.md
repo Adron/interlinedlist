@@ -1825,13 +1825,13 @@ Embed the URL in the document's markdown: `![alt](url)`.
 ### GET /api/documents/search
 
 **Auth required:** yes  
-**Description:** Search the authenticated user's documents by title or content (case-insensitive).
+**Description:** Search the authenticated user's documents by title or content (case-insensitive). Results are ordered by `updatedAt` descending and scoped to the caller; soft-deleted documents are excluded.
 
 **Query parameters**
 
 | Param | Type | Required | Description |
 |-------|------|----------|-------------|
-| `q` | string | yes | Search query |
+| `q` | string | yes | Search query, 1–200 characters |
 | `limit` | integer | no | Default 20, max 100 |
 | `offset` | integer | no | Default 0 |
 
@@ -1839,11 +1839,26 @@ Embed the URL in the document's markdown: `![alt](url)`.
 ```json
 {
   "documents": [
-    { "id": "doc1", "title": "Meeting Notes", "folderId": "f1", "updatedAt": "..." }
+    {
+      "id": "doc1",
+      "title": "Meeting Notes",
+      "content": "Full document body...",
+      "folderId": "f1",
+      "isPublic": false,
+      "createdAt": "2026-06-21T12:00:00.000Z",
+      "updatedAt": "2026-06-21T12:00:00.000Z"
+    }
   ],
   "pagination": { "total": 3, "limit": 20, "offset": 0, "hasMore": false }
 }
 ```
+
+**Error responses**
+
+| Status | Condition |
+|--------|-----------|
+| 400 | `q` missing, empty, or longer than 200 characters; `limit` greater than 100 |
+| 401 | Not authenticated |
 
 ---
 

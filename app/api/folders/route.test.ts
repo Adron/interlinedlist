@@ -153,6 +153,14 @@ describe("POST /api/folders — name validation", () => {
     const res = await POST(makePostRequest({ name: 123 }));
     expect(res.status).toBe(400);
   });
+
+  it("returns 400 when name exceeds 80 characters", async () => {
+    const longName = "x".repeat(81);
+    const res = await POST(makePostRequest({ name: longName }));
+    expect(res.status).toBe(400);
+    const body = await json(res);
+    expect(body.error).toMatch(/80 characters/i);
+  });
 });
 
 // ── POST — parentId validation ────────────────────────────────────────────────
