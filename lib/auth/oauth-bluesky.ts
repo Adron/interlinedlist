@@ -1,6 +1,19 @@
 /**
  * Bluesky (AT Protocol) OAuth helpers
  * Uses @atproto/oauth-client-node for the full OAuth flow
+ *
+ * NOTE — token refresh is handled by @atproto/oauth-client-node, not by an
+ * app-level helper. AT Protocol access tokens are DPoP-bound: refresh
+ * requires a DPoP proof signed with the same key used during the original
+ * handshake. The cross-post path in lib/bluesky/post-status.ts calls
+ * NodeOAuthClient.restore(did), which proactively refreshes the token when
+ * needed (using the stored dpopJwk) and persists the rotated tokenSet back
+ * to LinkedIdentity.providerData via the store from
+ * lib/bluesky/session-from-provider-data.ts. There is intentionally no
+ * getValidBlueskyAccessToken() helper — implementing DPoP refresh outside
+ * the library would duplicate non-trivial cryptography. If restore() throws
+ * TokenRefreshError / TokenInvalidError, the cross-post surfaces a
+ * "please re-link your Bluesky account" error.
  */
 
 import { APP_URL } from '@/lib/config/app';

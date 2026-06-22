@@ -210,7 +210,7 @@ test.describe('Folders API — duplicate name on create (409)', () => {
 // ---------------------------------------------------------------------------
 // DELETE detaches lists and soft-deletes the folder
 // ---------------------------------------------------------------------------
-test.describe('Folders API — DELETE moves lists to root', () => {
+test.describe.serial('Folders API — DELETE moves lists to root', () => {
   let deleteFolderId: string;
   let listId: string;
 

@@ -1,6 +1,22 @@
 /**
  * LinkedIn OAuth 2.0 helpers
  * Uses authorization code flow (LinkedIn does not require PKCE)
+ *
+ * NOTE — no refresh-token helper.
+ * The "Sign In with LinkedIn using OpenID Connect" product plus the
+ * w_member_social / rw_organization_admin / w_organization_social scopes the
+ * app requests does NOT return a refresh_token from the token endpoint. The
+ * response carries only access_token + expires_in + scope. Consequently:
+ *   - LinkedInTokenResponse below does not model refresh_token.
+ *   - The callback in app/api/auth/linkedin/callback/route.ts does not write
+ *     a refresh_token field into providerData (the field is absent on every
+ *     row).
+ *   - There is no getValidLinkedInAccessToken() helper alongside the Twitter
+ *     equivalent in lib/twitter/token-refresh.ts.
+ * Refresh tokens are only available on the LinkedIn Marketing Developer
+ * Platform product, which this app does not subscribe to. When a token
+ * expires (~60 days), the cross-post fails and the user must re-link from
+ * /integrations. See docs/operational.md → LinkedIn for the long form.
  */
 
 import { randomBytes } from 'crypto';

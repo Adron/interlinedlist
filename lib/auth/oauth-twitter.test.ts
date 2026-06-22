@@ -11,6 +11,7 @@ import {
   buildTwitterAuthUrl,
   exchangeTwitterCode,
   fetchTwitterUser,
+  refreshTwitterToken,
   TWITTER_PROVIDER,
 } from './oauth-twitter';
 
@@ -388,5 +389,90 @@ describe('fetchTwitterUser', () => {
 
     const user = await fetchTwitterUser('token');
     expect(user.profile_image_url).toBeUndefined();
+  });
+});
+
+// ─── refreshTwitterToken ───────────────────────────────────────────────────
+
+describe('refreshTwitterToken', () => {
+  const saved = {
+    TWITTER_CLIENT_ID: process.env.TWITTER_CLIENT_ID,
+    TWITTER_CLIENT_SECRET: process.env.TWITTER_CLIENT_SECRET,
+  };
+
+  beforeEach(() => {
+    setEnv({
+      TWITTER_CLIENT_ID: 'test-client-id',
+      TWITTER_CLIENT_SECRET: 'test-client-secret',
+    });
+  });
+
+  afterEach(() => {
+    setEnv(saved);
+    vi.restoreAllMocks();
+  });
+
+  it('POSTs to the Twitter token endpoint with grant_type=refresh_token', async () => {
+    const mockFetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        access_token: 'new-access',
+        refresh_token: 'new-refresh',
+        expires_in: 7200,
+      }),
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    await refreshTwitterToken('old-refresh-token');
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [url, init] = mockFetch.mock.calls[0];
+    expect(url).toBe('https://api.twitter.com/2/oauth2/token');
+    expect(init.method).toBe('POST');
+    const body = (init.body as URLSearchParams).toString();
+    expect(body).toContain('grant_type=refresh_token');
+    expect(body).toContain('refresh_token=old-refresh-token');
+    expect(body).toContain('client_id=test-client-id');
+  });
+
+  it('sends Basic Authorization header with base64-encoded credentials', async () => {
+    const mockFetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ access_token: 'a', refresh_token: 'r' }),
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    await refreshTwitterToken('whatever');
+
+    const [, init] = mockFetch.mock.calls[0];
+    const expected = Buffer.from('test-client-id:test-client-secret').toString('base64');
+    expect(init.headers['Authorization']).toBe(`Basic ${expected}`);
+  });
+
+  it('returns the new token pair on success', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        access_token: 'new-access',
+        refresh_token: 'new-refresh',
+        expires_in: 7200,
+      }),
+    }));
+
+    const result = await refreshTwitterToken('old');
+    expect(result.access_token).toBe('new-access');
+    expect(result.refresh_token).toBe('new-refresh');
+    expect(result.expires_in).toBe(7200);
+  });
+
+  it('throws when the HTTP response is not ok', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce({
+      ok: false,
+      text: async () => 'invalid_grant',
+    }));
+
+    await expect(refreshTwitterToken('rotten')).rejects.toThrow(
+      /Twitter token refresh failed: invalid_grant/
+    );
   });
 });

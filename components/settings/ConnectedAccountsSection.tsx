@@ -106,6 +106,9 @@ export default function ConnectedAccountsSection({
         if (data && Array.isArray(data.targets)) {
           setLinkedInPostingTargets(data.targets);
         }
+        if (data && typeof data.orgScopeMissing === 'boolean') {
+          setLinkedInOrgScopeMissing(data.orgScopeMissing);
+        }
       })
       .catch(() => {});
   }, []);
@@ -117,6 +120,9 @@ export default function ConnectedAccountsSection({
       const data = await res.json();
       if (Array.isArray(data.targets)) {
         setLinkedInPostingTargets(data.targets);
+      }
+      if (typeof data.orgScopeMissing === 'boolean') {
+        setLinkedInOrgScopeMissing(data.orgScopeMissing);
       }
     } catch {
       // Ignore — the existing list stays in place.

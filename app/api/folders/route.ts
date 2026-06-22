@@ -69,6 +69,27 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Pre-check for name collision. The DB unique constraint
+    // [userId, parentId, name] does NOT enforce uniqueness at root level
+    // because Postgres treats NULL parentIds as distinct, so we do a
+    // manual check here to return a clean 409.
+    const trimmedName = name.trim();
+    const resolvedParentId = parentId || null;
+    const existing = await prisma.listFolder.findFirst({
+      where: {
+        userId: user.id,
+        parentId: resolvedParentId,
+        name: trimmedName,
+        deletedAt: null,
+      },
+    });
+    if (existing) {
+      return NextResponse.json(
+        { error: "A folder with that name already exists here" },
+        { status: 409 }
+      );
+    }
+
     try {
       const folder = await prisma.listFolder.create({
         data: {

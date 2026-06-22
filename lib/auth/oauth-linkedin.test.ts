@@ -221,9 +221,9 @@ describe('buildLinkedInAuthUrl', () => {
     expect(url).not.toContain('w_organization_social');
   });
 
-  it('adds link=true when link parameter is true', () => {
+  it('does NOT include a link=true query param when link is true (link mode is signaled via scope, not a param)', () => {
     const url = buildLinkedInAuthUrl('state', true);
-    expect(url).toContain('link=true');
+    expect(new URL(url).searchParams.get('link')).toBeNull();
   });
 
   it('does not include link param when link is false', () => {

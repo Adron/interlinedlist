@@ -1,6 +1,18 @@
 /**
  * GitHub OAuth 2.0 helpers
  * Uses authorization code flow with PKCE
+ *
+ * NOTE — no refresh-token helper.
+ * InterlinedList uses a GitHub OAuth App (registered at
+ * https://github.com/settings/developers), not a GitHub App. OAuth App user
+ * access tokens do NOT expire by default and the token-exchange response
+ * contains only access_token and scope — no expires_in or refresh_token.
+ * GitHubTokenResponse below intentionally omits those fields and the callback
+ * writes only { access_token, scopes } into LinkedIdentity.providerData.
+ * If the integration is ever migrated to a GitHub App (which DOES issue
+ * expiring tokens with refresh), mirror lib/twitter/token-refresh.ts:
+ * add refreshGitHubToken() here and a getValidGitHubAccessToken() helper
+ * that lib/github/issues.ts can call before each API request.
  */
 
 import { createHash, randomBytes } from 'crypto';

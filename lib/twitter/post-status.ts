@@ -187,12 +187,18 @@ async function uploadVideoToTwitter(
   }
 }
 
+interface PostTweetResult {
+  tweet: { id: string; url?: string } | null;
+  /** HTTP status from the tweets endpoint, used to drive 401 refresh-retry. */
+  status: number;
+}
+
 async function postTweet(
   accessToken: string,
   text: string,
   mediaIds: string[],
   replyToId?: string
-): Promise<{ id: string; url?: string } | null> {
+): Promise<PostTweetResult> {
   const body: Record<string, unknown> = { text };
   if (mediaIds.length > 0) {
     body.media = { media_ids: mediaIds };
@@ -213,12 +219,12 @@ async function postTweet(
   if (!res.ok) {
     const errText = await res.text();
     console.error('Twitter post tweet failed:', errText);
-    return null;
+    return { tweet: null, status: res.status };
   }
 
   const data = (await res.json()) as { data?: { id: string } };
-  if (!data.data?.id) return null;
-  return { id: data.data.id };
+  if (!data.data?.id) return { tweet: null, status: res.status };
+  return { tweet: { id: data.data.id }, status: res.status };
 }
 
 export async function postToTwitter(
@@ -236,7 +242,16 @@ export async function postToTwitter(
     };
   }
 
-  const accessToken = providerData.access_token;
+  // Proactively refresh the access token when it is expired or near expiry.
+  // Twitter access tokens with `offline.access` last ~2 hours; without this
+  // step a cross-post initiated more than 2 hours after sign-in returns 401.
+  const { getValidTwitterAccessToken, forceRefreshTwitterAccessToken } =
+    await import('@/lib/twitter/token-refresh');
+  const refreshed = await getValidTwitterAccessToken({
+    id: identity.id,
+    providerData,
+  });
+  let accessToken = refreshed ?? providerData.access_token;
   const handle = identity.providerUsername;
 
   try {
@@ -280,14 +295,34 @@ export async function postToTwitter(
         if (id) mediaIds.push(id);
       }
 
-      const tweet = await postTweet(
+      let result = await postTweet(
         accessToken,
         text,
         mediaIds,
         lastTweetId ?? undefined
       );
 
-      if (!tweet) {
+      // Refresh-on-401 fallback: the proactive refresh may have skipped
+      // (legacy row with no expires_at, or Twitter invalidated the token
+      // before its declared expiry). Try one forced refresh and retry the
+      // tweet call before declaring failure.
+      if (!result.tweet && result.status === 401) {
+        const refreshedToken = await forceRefreshTwitterAccessToken({
+          id: identity.id,
+          providerData,
+        });
+        if (refreshedToken) {
+          accessToken = refreshedToken;
+          result = await postTweet(
+            accessToken,
+            text,
+            mediaIds,
+            lastTweetId ?? undefined
+          );
+        }
+      }
+
+      if (!result.tweet) {
         return {
           providerId: identity.id,
           instanceName: 'Twitter',
@@ -296,9 +331,9 @@ export async function postToTwitter(
         };
       }
 
-      lastTweetId = tweet.id;
-      allTweetIds.push(tweet.id);
-      if (!firstTweetId) firstTweetId = tweet.id;
+      lastTweetId = result.tweet.id;
+      allTweetIds.push(result.tweet.id);
+      if (!firstTweetId) firstTweetId = result.tweet.id;
     }
 
     const firstUrl =

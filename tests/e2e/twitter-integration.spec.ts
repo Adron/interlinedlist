@@ -120,11 +120,14 @@ test.describe('Settings — Twitter connected accounts', () => {
 
     await page.goto('/integrations');
 
-    // When unconfigured the button is replaced with "Coming soon"
-    // (The component renders a disabled span with text "Coming soon")
-    // We locate it within the Twitter card, which is the last .card on the page
-    // (GitHub, Bluesky, LinkedIn, Mastodon, then Twitter/X)
-    await expect(page.getByText('Coming soon')).toBeVisible();
+    // When unconfigured the button is replaced with "Coming soon".
+    // The Products dropdown also renders "Coming Soon" labels for several
+    // products, so scope the locator to the Twitter / X card to avoid
+    // strict-mode multi-match.
+    const twitterCard = page.locator('.card', {
+      has: page.locator('.badge', { hasText: 'Twitter / X' }),
+    });
+    await expect(twitterCard.getByText('Coming soon')).toBeVisible();
   });
 
   test('success banner appears after simulated OAuth callback redirect', async ({ page }) => {

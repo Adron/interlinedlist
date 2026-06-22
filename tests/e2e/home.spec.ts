@@ -8,8 +8,12 @@ test.describe('Home', () => {
 
   test('shows Login and Sign Up links for unauthenticated visitors', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByRole('link', { name: 'Login' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Sign Up' })).toBeVisible();
+    // Scope to the top nav (the <header className="app-topbar">) — the footer
+    // also renders Login / Sign Up links, which would otherwise cause the
+    // strict-mode locator to match two elements.
+    const topbar = page.locator('header.app-topbar');
+    await expect(topbar.getByRole('link', { name: 'Login' })).toBeVisible();
+    await expect(topbar.getByRole('link', { name: 'Sign Up' })).toBeVisible();
   });
 
   test('public message feed is visible without logging in', async ({ page }) => {

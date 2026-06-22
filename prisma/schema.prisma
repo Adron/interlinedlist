@@ -557,6 +557,7 @@ model LinkedInPersonalPage {
   pageLogoUrl    String?
   discoveredAt   DateTime  @default(now())
   lastSyncedAt   DateTime?
+  removedAt      DateTime?
 
   identity          LinkedIdentity                    @relation(fields: [identityId], references: [id], onDelete: Cascade)
   targetPreferences LinkedInPostingTargetPreference[]

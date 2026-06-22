@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth/session';
 import { getAvailableLinkedInTargets } from '@/lib/linkedin/targets';
 import { parseRequestedLinkedInTargets } from '@/lib/linkedin/resolve-linkedin-target';
+import { hasLinkedInOrgScope } from '@/lib/linkedin/provider-data';
 import type { LinkedInPostingTargetOption } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -54,9 +55,27 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const targets = await buildTargetsWithEnabled(user.id);
+  const [targets, identity] = await Promise.all([
+    buildTargetsWithEnabled(user.id),
+    prisma.linkedIdentity.findFirst({
+      where: { userId: user.id, provider: 'linkedin' },
+      select: { providerData: true },
+    }),
+  ]);
 
-  return NextResponse.json({ targets });
+  let orgScopeMissing = false;
+  if (identity?.providerData) {
+    const scope =
+      typeof identity.providerData === 'object' &&
+      identity.providerData !== null &&
+      'scope' in identity.providerData
+        ? (identity.providerData as { scope?: unknown }).scope
+        : undefined;
+    const scopeStr = typeof scope === 'string' ? scope : null;
+    orgScopeMissing = !hasLinkedInOrgScope(scopeStr);
+  }
+
+  return NextResponse.json({ targets, orgScopeMissing });
 }
 
 export async function PUT(request: NextRequest) {

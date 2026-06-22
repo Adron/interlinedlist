@@ -87,6 +87,44 @@ export async function exchangeTwitterCode(
   return response.json();
 }
 
+/**
+ * Exchange a stored refresh_token for a fresh access_token + refresh_token pair.
+ *
+ * Twitter OAuth 2.0 refresh tokens are *single-use* — the response contains a
+ * new refresh token that supersedes the one passed in. Callers must persist the
+ * new refresh_token immediately, or subsequent refresh attempts will fail with
+ * `invalid_grant`.
+ *
+ * Throws on any non-200 response so the caller can decide how to surface the
+ * failure (typically: log + return null + force the user to re-link).
+ */
+export async function refreshTwitterToken(
+  refreshToken: string
+): Promise<TwitterTokenResponse> {
+  const { clientId, clientSecret } = getTwitterConfig();
+  const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+
+  const response = await fetch(TWITTER_TOKEN_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Authorization: `Basic ${credentials}`,
+    },
+    body: new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+      client_id: clientId,
+    }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Twitter token refresh failed: ${text}`);
+  }
+
+  return response.json();
+}
+
 export interface TwitterUser {
   id: string;
   name: string;

@@ -20,10 +20,11 @@ test.describe('Logo icon mark in nav bar and footer', () => {
     await page.goto('/');
 
     // The Logo component (iconOnly=true) renders an <img alt="InterlinedList Logo">
-    // that points at /logo-icon.png.  The nav bar wraps it in a link to "/".
-    const navLogo = page
-      .getByRole('link', { name: 'Home' })
-      .getByRole('img', { name: 'InterlinedList Logo' });
+    // that points at /logo-icon.png.  The nav bar wraps it in a link whose
+    // accessible name is the current page title (e.g. "InterlinedList" on /).
+    // Scope the locator to the topbar so we don't collide with the footer logo.
+    const topbar = page.locator('header.app-topbar');
+    const navLogo = topbar.getByRole('img', { name: 'InterlinedList Logo' });
 
     await expect(navLogo).toBeVisible();
     await expect(navLogo).toHaveAttribute('src', /logo-icon\.png/);

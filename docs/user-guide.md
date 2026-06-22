@@ -15,34 +15,40 @@ Welcome to InterlinedList. This guide covers every feature available to you as a
    - [Adding Tags](#adding-tags)
    - [Quoting and Pushing a Message](#quoting-and-pushing-a-message)
    - [Scheduling a Post](#scheduling-a-post)
+   - [Replies, Threads, and Dig Reactions](#replies-threads-and-dig-reactions)
 3. [Cross-Posting to Social Networks](#cross-posting-to-social-networks)
    - [Cross-Posting to Mastodon](#cross-posting-to-mastodon)
    - [Cross-Posting to Bluesky](#cross-posting-to-bluesky)
    - [Cross-Posting to LinkedIn](#cross-posting-to-linkedin)
    - [Cross-Posting to Twitter / X](#cross-posting-to-twitter--x)
-4. [Connected Accounts](#connected-accounts)
+4. [Integrations (Connected Accounts)](#integrations)
    - [GitHub](#github)
    - [Bluesky](#bluesky)
    - [LinkedIn](#linkedin)
    - [Mastodon](#mastodon)
    - [Twitter / X](#twitter--x)
-5. [Scheduled Posts](#scheduled-posts)
-6. [Lists](#lists)
+5. [Dashboard](#dashboard)
+6. [Scheduled Posts](#scheduled-posts)
+7. [Lists](#lists)
    - [Searching Your Lists](#searching-your-lists)
    - [List Folders](#list-folders)
    - [Toggling List Visibility](#toggling-list-visibility)
-7. [Documents](#documents)
+8. [Documents](#documents)
    - [Creating Subfolders](#creating-subfolders)
    - [Searching Your Documents](#searching-your-documents)
    - [Moving a Document to a Different Folder](#moving-a-document-to-a-different-folder)
-8. [Organizations](#organizations)
-9. [Following Other Users](#following-other-users)
-10. [Notifications](#notifications)
-11. [Settings and Profile](#settings-and-profile)
-12. [Subscriptions](#subscriptions)
-13. [Exporting Your Data](#exporting-your-data)
-14. [Mobile Push Notifications](#mobile-push-notifications)
-15. [Branding & Style Guide](#branding--style-guide)
+   - [Document Templates](#document-templates)
+9. [Organizations](#organizations)
+10. [Following Other Users](#following-other-users)
+    - [People Page](#people-page)
+11. [Notifications](#notifications)
+12. [Settings and Profile](#settings-and-profile)
+    - [Location Features](#location-features)
+13. [Subscriptions](#subscriptions)
+14. [Exporting Your Data](#exporting-your-data)
+15. [Mobile Push Notifications](#mobile-push-notifications)
+16. [Other Pages](#other-pages)
+17. [Branding & Style Guide](#branding--style-guide)
     - [Brand Story](#brand-story)
     - [Logo Assets](#logo-assets)
     - [Logo Usage Rules](#logo-usage-rules)
@@ -105,11 +111,19 @@ When you push another user's post, a blue banner appears at the top of the compo
 
 See [Scheduled Posts](#scheduled-posts) for full details.
 
+### Replies, Threads, and Dig Reactions
+
+InterlinedList supports inline replies, threaded conversations, and a lightweight reaction called **Dig**.
+
+- **Replying.** Below every visible message, a **Reply** button opens a reply composer attached to that post. Replies are themselves posts: they can carry the same character limit (default 666), can be public or private, and can include images or video. Replies cannot be combined with a push of another message.
+- **Viewing a thread.** Click the message timestamp (or the **View thread** link) to open the full thread view at `/message/<id>/thread`. This view shows the original post at the top and every reply chained below it, with each reply showing its own Reply and Dig buttons.
+- **Dig reaction.** Each message has an **I Dig!** button. Clicking it records a dig and increments the count beside the button. Click again to undo it. Digs are tracked per-user — you can only dig a message once — and the author receives a notification the first time someone digs their post. The button is disabled if you are not signed in.
+
 ---
 
 ## Cross-Posting to Social Networks
 
-Once you have connected a social account (see [Connected Accounts](#connected-accounts)), the corresponding icon appears in the advanced posting panel toolbar. Click an icon to toggle cross-posting on or off for that account. When one or more cross-post destinations are selected, a summary line below the compose box confirms where the post will go.
+Once you have connected a social account (see [Integrations](#integrations)), the corresponding icon appears in the advanced posting panel toolbar. Click an icon to toggle cross-posting on or off for that account. When one or more cross-post destinations are selected, a summary line below the compose box confirms where the post will go.
 
 After you submit, a brief status line shows which networks received the post and flags any that failed.
 
@@ -133,7 +147,7 @@ Each destination in that list is labelled so you can tell them apart at a glance
 - **(company page)** — a LinkedIn company page discovered through your personal LinkedIn account (one you administer yourself, synced via the **Sync company pages** button).
 - **(page)** — a LinkedIn page connected through an organization you belong to on InterlinedList.
 
-Your personal profile is selected by default (or the first available page if your personal profile is not enabled). You control which destinations appear in this list from the **Posting targets** section of the LinkedIn card on the Connected Accounts page (see [LinkedIn](#linkedin) under Connected Accounts).
+Your personal profile is selected by default (or the first available page if your personal profile is not enabled). You control which destinations appear in this list from the **Posting targets** section of the LinkedIn card on the Integrations page (see [LinkedIn](#linkedin) under Integrations).
 
 If one LinkedIn destination fails, the others still receive the post — the status line below the compose box shows a warning for any destination that did not go through.
 
@@ -147,15 +161,15 @@ Posts longer than 280 characters are automatically split into a thread so that t
 
 ---
 
-## Connected Accounts
+## Integrations
 
-Go to **Settings > Connected Accounts** to link, verify, or remove social and developer accounts.
+The **Integrations** page (`/integrations`, reached from the Settings page using the **Integrations** button) is where you link, verify, or remove the social and developer accounts InterlinedList can post to or read from. Each provider has its own card on this page: GitHub, Bluesky, LinkedIn, Mastodon, and Twitter / X. The page also has a **Generative AI** section where you can store API keys used by AI-assisted features. The historical name for this page was "Connected Accounts" — anchor links to `#connected-accounts` still work for backward compatibility.
 
 ### GitHub
 
 Connecting GitHub lets you sign in with your GitHub credentials and sync GitHub Issues with your lists.
 
-1. On the Connected Accounts page, find the **GitHub** card and click **Connect**.
+1. On the Integrations page, find the **GitHub** card and click **Connect**.
 2. Sign in to GitHub if prompted and approve the requested permissions.
 3. You are returned to InterlinedList with GitHub shown as connected.
 
@@ -165,7 +179,7 @@ You can also set a **default GitHub repository** (in `owner/repo` format) that i
 
 ### Bluesky
 
-1. On the Connected Accounts page, find the **Bluesky** card.
+1. On the Integrations page, find the **Bluesky** card.
 2. Type your Bluesky handle in the text field (for example, `yourname.bsky.social`).
 3. Click **Connect**.
 4. Sign in to Bluesky and approve the connection.
@@ -173,7 +187,7 @@ You can also set a **default GitHub repository** (in `owner/repo` format) that i
 
 ### LinkedIn
 
-1. On the Connected Accounts page, find the **LinkedIn** card and click **Connect** (the button appears when LinkedIn sign-in is available on your InterlinedList instance).
+1. On the Integrations page, find the **LinkedIn** card and click **Connect** (the button appears when LinkedIn sign-in is available on your InterlinedList instance).
 2. Sign in to LinkedIn and approve the permissions. The request includes permission to see the LinkedIn company pages you administer, so those pages can be offered as posting destinations.
 3. You are returned to InterlinedList with LinkedIn shown as connected. Your avatar appears next to your LinkedIn username on the card. Any company pages you administer are discovered automatically and added to your posting targets.
 
@@ -193,7 +207,7 @@ If the same LinkedIn page is reachable both through your own connection and thro
 
 The **Company pages** area at the bottom of the LinkedIn card lets you keep your personal-account company pages up to date.
 
-1. In the LinkedIn card on the Connected Accounts page, scroll down to the **Company pages** area.
+1. In the LinkedIn card on the Integrations page, scroll down to the **Company pages** area.
 2. Click **Sync company pages**.
 3. InterlinedList queries LinkedIn for every company page you currently administer and updates the list. A confirmation message tells you how many pages were found. If you have been removed from a page's administrators on LinkedIn, that page is removed from your targets at the same time.
 4. The refreshed pages immediately appear in the **Posting targets** list above and as selectable destinations in the compose box and in scheduled posts.
@@ -206,7 +220,7 @@ You do not need to sync on a schedule — just click the button any time your pa
 
 You can connect as many Mastodon instances as you like, and each one will appear as a separate cross-post option in the compose toolbar.
 
-1. On the Connected Accounts page, scroll to the **Mastodon** section.
+1. On the Integrations page, scroll to the **Mastodon** section.
 2. Type the domain of your Mastodon instance (for example, `mastodon.social`) in the text field.
 3. Click **Add Mastodon instance**.
 4. Sign in to your Mastodon account on that instance and approve the connection.
@@ -228,7 +242,7 @@ This section covers everything about the Twitter / X integration from start to f
 
 Before you can cross-post to Twitter / X, you need to link your Twitter account once.
 
-1. Click **Settings** in the navigation, then choose **Connected Accounts**.
+1. Click **Settings** in the navigation, then click **Integrations** to open `/integrations`.
 2. Scroll to the **Twitter / X** card.
 3. Click **Connect**. You are taken to Twitter / X's sign-in page.
 4. Enter your Twitter / X username and password if prompted (or confirm with an existing session).
@@ -243,7 +257,7 @@ InterlinedList requests the following access from Twitter / X:
 
 - **Read your tweets** — needed to verify your account is reachable and to avoid duplicate posts.
 - **Write tweets** — needed to post content to your timeline and create threads when a message is long.
-- **Read your profile** — needed to display your username and avatar in Connected Accounts and in the compose toolbar.
+- **Read your profile** — needed to display your username and avatar on the Integrations page and in the compose toolbar.
 - **Offline access** — needed to post on your behalf when you use scheduled posts, so the connection does not expire between when you schedule and when the post goes live.
 
 InterlinedList does not read your direct messages, follow or unfollow anyone on your behalf, or access any information beyond what is listed above.
@@ -278,7 +292,7 @@ You can edit a scheduled post before it goes live — see [Scheduled Posts](#sch
 
 ### Disconnecting Your Twitter / X Account
 
-1. Go to **Settings > Connected Accounts**.
+1. Go to **Settings > Integrations**.
 2. Find the **Twitter / X** card. Your username is shown there.
 3. Click **Disconnect**.
 4. The card returns to "Not connected". All stored authorization tokens are removed from InterlinedList.
@@ -293,22 +307,42 @@ The Twitter / X integration requires configuration by the site administrator. If
 
 **Authorization failed — I was redirected back to the login page with an error.**
 
-This can happen if you cancel the Twitter / X permissions screen or if there is a temporary problem with Twitter / X's servers. Try again by returning to **Settings > Connected Accounts** and clicking **Connect**. If it keeps failing, check that your Twitter / X account is in good standing (not locked or suspended).
+This can happen if you cancel the Twitter / X permissions screen or if there is a temporary problem with Twitter / X's servers. Try again by returning to **Settings > Integrations** and clicking **Connect**. If it keeps failing, check that your Twitter / X account is in good standing (not locked or suspended).
 
 **My posts are not appearing on Twitter / X.**
 
 - Check that the **Twitter / X** icon in the compose toolbar is highlighted blue before you submit. If it is grey, cross-posting is not enabled for that post.
 - After posting, look for the status line below the compose box. It shows a confirmation if the post succeeded, or an error message if it did not.
-- Go to **Settings > Connected Accounts** and click **Verify** on the Twitter / X card. If verification fails, try disconnecting and reconnecting your account.
+- Go to **Settings > Integrations** and click **Verify** on the Twitter / X card. If verification fails, try disconnecting and reconnecting your account.
 - Twitter / X has its own rate limits. If you have posted many times in a short period, subsequent cross-posts may be delayed or rejected by Twitter / X. Wait a few minutes and try again.
 
 **My account shows as "Not connected" even though I connected it recently.**
 
-Your Twitter / X authorization may have expired or been revoked. This can happen if you changed your Twitter / X password, revoked app permissions from within Twitter / X's settings, or if there was a token refresh error. Go to **Settings > Connected Accounts** and reconnect your account to restore the link.
+Your Twitter / X authorization may have expired or been revoked. This can happen if you changed your Twitter / X password, revoked app permissions from within Twitter / X's settings, or if there was a token refresh error. Go to **Settings > Integrations** and reconnect your account to restore the link.
 
 **A cross-post to Twitter / X failed but the message was saved on InterlinedList.**
 
 Your message is safe on InterlinedList. The failure only means it was not sent to Twitter / X that time. You can manually share the post from InterlinedList, or try composing a new message with the Twitter / X toggle enabled.
+
+---
+
+## Dashboard
+
+The **Dashboard** (`/dashboard`) is the hub for managing what you have posted, scheduled, and exported. The page is divided into tiles plus a profile card and a tree of your lists:
+
+- **Scheduled posts** tile — opens `/dashboard/scheduled`, where you can edit or cancel any scheduled post.
+- **Exports** tile — opens `/exports`. See [Exporting Your Data](#exporting-your-data).
+- **Settings** tile — opens `/settings`.
+- **Architecture Aggregates** tile — only visible to the owner of the system "Public" organization. Opens an admin-only browser for live database aggregates.
+- **Profile Information** card — a quick view of your username, display name, avatar, and bio with a link to edit your profile.
+- **Lists tree** — a navigable tree of your lists and list folders for quick access.
+
+### Editing or Cancelling a Scheduled Post
+
+1. Open the Dashboard and click **Scheduled posts**, or navigate directly to `/dashboard/scheduled`.
+2. Each scheduled post is shown with its content, scheduled time, and the destinations selected.
+3. Click the edit icon to change the time, the message content, or which networks will receive the post. The same **LinkedIn destinations** picker that appears in the compose box is available here.
+4. To cancel a scheduled post, open it and delete it from the editor.
 
 ---
 
@@ -332,14 +366,16 @@ A note below the compose button shows the scheduled date and time. To cancel sch
 
 ## Lists
 
-Lists let you organize items — notes, links, tasks, or any structured data — into collections with custom fields.
+Lists let you organize items — notes, links, tasks, or any structured data — into collections with custom fields. **Creating a list requires an active subscription.** Existing lists remain readable if your subscription lapses.
 
-- **Creating a list:** Click **New List** from the Lists page, give it a title and optional description, and choose whether it is public or private.
-- **Adding data rows:** Open a list and use the row editor to add entries. Each list can have custom properties (text, number, date, and more) that act as columns.
-- **Watching a list:** You can watch lists that belong to other users. Watchers receive updates when the list changes.
-- **Connecting lists:** Lists can be linked to one another to show relationships between collections.
-- **Exporting a list:** Lists can be exported to common formats. See [Exporting Your Data](#exporting-your-data) for details.
-- **GitHub Issues sync:** If your GitHub account is connected with the issues scope, a list can be linked to a GitHub repository. Issues are pulled in and displayed as data rows.
+- **Creating a list.** Click **New List** from the Lists page (`/lists/new`). Give it a title, optional description, and a custom schema. The new-list form has a **From Template** tab that lets you start from a pre-defined schema.
+- **Editing rows.** Open a list and use the row editor to add or modify entries. Each list can have custom properties (text, number, date, and more) that act as columns. Individual rows can be edited at `/lists/<id>/edit/<rowId>` for a focused form view.
+- **Public list view.** When a list is marked public, anyone can view it at `/user/<username>/lists/<id>` (no sign-in required). Authenticated visitors who aren't the owner see a **Watch this list** button.
+- **Watchers.** As the list owner you can add other users as watchers with one of three roles: **watcher** (read-only updates), **collaborator** (can add/edit rows), or **manager** (can change watchers). Watchers see updates in their dashboards; collaborators and managers can also contribute. The Add Watcher dialog uses the user-search picker, excluding people who are already watching.
+- **List connections.** Two lists you own can be linked together to indicate a relationship. Connections show up on each list's page; they can be deleted from the connection management view.
+- **Templates.** When creating a list, the **From Template** tab on `/lists/new` lets you start from a saved list schema.
+- **Exporting a list.** See [Exporting Your Data](#exporting-your-data).
+- **GitHub Issues sync.** If your GitHub account is connected with the issues scope, a list can be linked to a GitHub repository. Issues are pulled in and cached as data rows. Use the **Refresh** action on the list to re-fetch from GitHub on demand.
 
 ### Searching Your Lists
 
@@ -440,16 +476,32 @@ After a document is created you can move it into any folder you own, or bring it
 3. Choose a destination folder from the list. To remove the document from all folders, select **No folder (root)**.
 4. The change is saved automatically. The folder tree in the sidebar updates to reflect the new location.
 
+### Document Templates
+
+Documents have a built-in template system to speed up recurring formats.
+
+- **Templates folder.** Templates live inside a special folder called `_templates`. The folder is created automatically the first time you open the template picker — you do not need to create it by hand.
+- **Default templates.** A "Seed defaults" action populates the `_templates` folder with a starter set: Recipe, Social Media Campaign, Post Series Plan, Thread Outline, Weekly Digest, Announcement, Release Notes, Meeting Notes, Project Brief, Personal Bio, Reading Notes, Interview Guide, Retrospective, Decision Record, and Event Recap. Re-running it is safe — already-seeded templates are skipped.
+- **New from Template.** Use the **New from Template** button on the Documents page. A modal lists every document inside `_templates` (defaults plus any you have added yourself). Pick a template and InterlinedList creates a new document that starts from a copy of the template's contents.
+- **Authoring your own templates.** Any document you place in `_templates` becomes an available template. To turn an existing document into a template, move it into `_templates`.
+- **Subscriber-only.** Creating documents — including starting one from a template — requires an active subscription.
+
+A similar **From Template** tab is available at `/lists/new` when creating a list, so you can start a list from a pre-defined schema.
+
 ---
 
 ## Organizations
 
-Organizations are shared spaces that multiple users can belong to.
+Organizations are shared spaces that multiple users can belong to. **Creating an organization requires an active subscription.**
 
-- **Joining an organization:** Organizations can be public or invite-only. Browse public organizations and request to join, or accept an invitation from an administrator.
-- **Roles:** Each member has a role (member or a higher level). Your role determines what you can do within the organization.
-- **LinkedIn pages:** An organization owner or administrator can connect the organization's LinkedIn page and assign members to it. Assigned members can then cross-post to that page — it appears in their **Posting targets** list (see [LinkedIn](#linkedin) under Connected Accounts) and as a destination in the compose box.
-- **Leaving an organization:** Open the organization settings and choose to leave.
+- **Creating an organization.** Go to `/organizations/new` and fill in the name and details. Non-subscribers are redirected to the Subscriptions page.
+- **Roles.** Every membership has one of three roles:
+  - **Owner** — full control, including connecting/disconnecting integrations like the org LinkedIn credential and removing other owners (subject to last-owner protection).
+  - **Admin** — manages members and configuration short of disconnecting OAuth credentials; can connect LinkedIn for the org and assign pages.
+  - **Member** — uses the organization's connected destinations to post.
+- **Managing members.** Owners and admins can add members from the **Members** section of the organization page using the user picker (search by username, display name, or email). Roles can be changed inline; the system protects against demoting or removing the last owner.
+- **LinkedIn organization pages.** An organization owner or admin can connect the organization's LinkedIn account at `/organizations/<slug>/linkedin`, sync the LinkedIn Company Pages that account administers, and assign members to specific pages. Once assigned, that page appears in the member's **Posting targets** list as a destination labelled "(page)". For members with an assignment, the assigned page also takes over as the default destination when they cross-post with LinkedIn enabled but no explicit picker selection — overriding their personal LinkedIn. Disconnecting the org credential falls every assigned member back to their personal LinkedIn.
+- **Leaving an organization.** Open the organization settings and choose to leave (subject to last-owner protection).
 
 ---
 
@@ -457,19 +509,30 @@ Organizations are shared spaces that multiple users can belong to.
 
 You can follow other users to see their public posts in your feed.
 
-- **Sending a follow request:** Visit a user's profile and click **Follow**. If their account is public, the follow is approved immediately. If their account is private, your request waits for them to approve it.
-- **Approving followers:** When someone requests to follow your private account, you receive a notification. Go to your followers list to approve or decline.
-- **Unfollowing:** Visit the profile and click **Unfollow**, or manage your following list from Settings.
+- **Sending a follow request.** Visit a user's profile and click **Follow**. If their account is public, the follow is approved immediately. If their account is private, your request waits for them to approve it.
+- **Approving or rejecting followers.** When someone requests to follow your private account, you receive a notification. Visit `/people` (the People page — see below) or your followers list to approve, reject, or remove followers.
+- **Removing a follower.** From your followers list you can drop a follower from your account; they keep their other follows.
+- **Unfollowing.** Visit the profile and click **Unfollow**, or manage your following list from your profile menu.
+- **Followers and Following pages.** Each user has public `/user/<username>/followers` and `/user/<username>/following` pages listing their network (subject to account privacy).
+
+### People Page
+
+The People page (`/people`) is the discovery and management hub for your social graph. It shows:
+
+- A **Followers** count linking to `/user/<your-username>/followers`.
+- A **Following** count linking to `/user/<your-username>/following`.
+- A **Pending Requests** count (private accounts only) with a list of inbound follow requests you can approve or reject directly.
 
 ---
 
 ## Notifications
 
-The notification tray shows activity related to your account — new followers, follow requests, replies, pushes, and system announcements.
+InterlinedList surfaces notifications in two places: the **bell tray** in the top navigation and a dedicated `/notifications` page.
 
-- Unread notifications are highlighted. Click a notification to navigate to the related content.
-- Your notification tray displays your most recent notifications up to your configured limit (adjustable in Settings).
-- You can also receive push notifications on your mobile device if you have the InterlinedList app installed and have granted notification permission (see [Mobile Push Notifications](#mobile-push-notifications)).
+- **Bell tray.** The bell icon in the nav shows an unread badge with the count. Opening it reveals your most recent notifications up to the tray limit you've set in Settings (default 20; configurable from 10 to 40). Unread notifications are highlighted; clicking one navigates to the related content (post, profile, or reply thread).
+- **Full notifications page.** Click **See all** in the tray, or go directly to `/notifications`. The page shows every notification in reverse chronological order with full content and includes a **Mark all as read** button that clears unread state on every notification at once.
+- **Per-notification actions.** From the full page you can delete a notification to remove it from your history.
+- **Mobile push.** You can also receive push notifications on your iOS device if you have the InterlinedList app installed and have granted notification permission (see [Mobile Push Notifications](#mobile-push-notifications)).
 
 ---
 
@@ -477,44 +540,74 @@ The notification tray shows activity related to your account — new followers, 
 
 Access **Settings** from the navigation to manage every aspect of your account.
 
-- **Profile:** Update your display name, username, bio, and avatar.
-- **Email:** Change your email address. A verification link is sent to your new address before the change takes effect.
-- **Password:** Change your password at any time.
-- **Theme:** Choose light, dark, or system theme.
-- **Default visibility:** Set whether new posts default to public or private.
-- **Messages per page:** Control how many posts appear in your feed at once.
-- **Viewing preference:** Choose to see all messages or only public messages by default.
-- **Show link previews:** Toggle whether URLs in posts expand into preview cards.
-- **Advanced posting panel:** Keep the posting toolbar open by default so image, video, and cross-post controls are always visible.
-- **Notification tray limit:** Set how many notifications the tray holds before older ones are dropped.
-- **Connected Accounts:** Link and manage GitHub, Bluesky, LinkedIn, Mastodon, and Twitter / X (see [Connected Accounts](#connected-accounts)).
-- **API / AI keys:** Store a personal OpenAI or Anthropic API key if any AI-assisted features are available on your instance.
+- **Profile.** Update your display name, username, bio, and avatar.
+- **Email.** Change your email address. A verification link is sent to your new address before the change takes effect.
+- **Password.** Change your password at any time.
+- **Theme.** Choose light, dark, or system theme. The optional **Darkone** theme is described in [The Darkone Theme](#the-darkone-theme).
+- **Default visibility.** Set whether new posts default to public or private.
+- **Messages per page.** Control how many posts appear in your feed at once.
+- **Viewing preference.** Choose to see all messages or only public messages by default.
+- **Show link previews.** Toggle whether URLs in posts expand into preview cards.
+- **Advanced posting panel.** Keep the posting toolbar open by default so image, video, and cross-post controls are always visible.
+- **Notification tray limit.** Set how many notifications the tray holds before older ones are dropped (10–40, default 20).
+- **Integrations.** Link and manage GitHub, Bluesky, LinkedIn, Mastodon, and Twitter / X (see [Integrations](#integrations)).
+- **API / AI keys.** Store a personal OpenAI or Anthropic API key if any AI-assisted features are available on your instance.
+- **Permissions.** Grant or revoke browser permissions InterlinedList uses (notifications, geolocation). See "Location features" below.
+
+### Location Features
+
+InterlinedList has optional location-aware widgets that show the local weather and a clock for your current location.
+
+- **Location Permission.** From Settings, the **Permissions** section lets you grant InterlinedList access to your browser's geolocation. This is what powers the local weather and clock widgets — InterlinedList does not store or share your raw coordinates.
+- **Profile Location.** Separately, you can save a location to your profile (city/state). This is a static label shown on your profile.
+- **Location and Weather widgets.** When location is available, the right-side sidebar shows a **Location** widget (city, state, timezone) and a **Weather** widget (current conditions and high/low). Weather data comes from NOAA's `api.weather.gov` and is cached on the server for 30 minutes.
+- **Clock page.** `/clock` is a full-screen analog clock showing the current time in your location's timezone.
 
 ---
 
 ## Subscriptions
 
-Some advanced features require an active subscription. The gear icon in the compose box is available only to subscribers and unlocks:
+InterlinedList has two tiers: **Free** and **Subscriber**. The current details on the public [Pricing page](/pricing) (`/pricing`) are authoritative; this section summarises the split as it stands today.
 
-- Image and video attachments
-- Cross-posting to social networks
+**Free tier** includes:
+
+- Writing and reading posts (with the default character limit)
+- Following, replies, threads, and the Dig reaction
+- A public profile
+- The dashboard and home feed
+- Basic notifications and the bell tray
+- Theme choice (light, dark, system, and Darkone)
+
+**Subscriber tier** adds everything above plus:
+
+- Cross-posting to social networks (Mastodon, Bluesky, LinkedIn — including organization and personal company pages — and Twitter / X)
+- Image and video attachments on posts
 - Scheduled posts
-- Tags
-- Creating lists and list folders
-- Creating documents
+- Tags on posts
+- Higher post character limits
+- Creating lists and list folders (existing lists stay readable if your subscription lapses; creating new ones requires an active subscription)
+- Creating documents, folders, and document templates
+- Creating organizations (joining one is free)
+- Priority support
 
-To subscribe, go to **Settings > Subscription** and follow the prompts to complete checkout. If you already subscribe and need to update billing details or cancel, the same page provides a link to the billing portal.
+**Billing.** Subscriptions are available on monthly or annual cadence; the annual plan offers a discount that is shown on the Pricing page. To subscribe or change your plan, go to your account settings and follow the checkout link. To update billing details or cancel, use the billing portal link on the same page.
+
+**Cancellation.** If you cancel, your account remains; the Subscriber-only features stop on the next billing date. Existing lists, documents, and organizations stay readable — only the ability to *create* new ones is gated.
 
 ---
 
 ## Exporting Your Data
 
-You can download copies of your data from InterlinedList.
+You can download copies of your data from InterlinedList. Exports live at `/exports` (linked from the Dashboard's **Exports** tile).
 
-- **Messages:** Export a full archive of your posts.
-- **Lists:** Export list data including all rows and custom properties.
+Four export types are available, each with its own card:
 
-To start an export, go to **Settings > Export** (or the relevant section for the data type), choose the format, and download the file when it is ready.
+- **Messages.** Export every post you've authored.
+- **Lists.** Export your list definitions (titles, schemas, folder placement).
+- **List data rows.** Export the row data inside your lists, including all custom property values.
+- **Follows.** Export the followers and following graph for your account.
+
+Each card shows the current record count and a download button. Exports are produced on demand and downloaded directly to your browser.
 
 ---
 
@@ -527,6 +620,19 @@ If you use InterlinedList on an iOS device, you can enable push notifications to
 3. Notifications are delivered through Apple's notification service and appear in your device's notification centre.
 
 If you stop receiving notifications, open the app and check that notifications are still allowed in your device's system settings under InterlinedList.
+
+---
+
+## Other Pages
+
+A handful of pages exist outside the main feed/list/document flow but are worth knowing about.
+
+- **Help Center (`/help`).** A library of how-to articles. Visiting `/help` redirects you to `/help/getting-started`. From there a sidebar lists the available topics — getting started, posting basics, lists, documents, integrations, and more — and each topic has its own URL like `/help/<topic>`.
+- **Blog (`/blog`).** Public blog posts about product updates and longer-form writing. Individual posts live at `/blog/<slug>`.
+- **Pricing (`/pricing`).** Public marketing page that documents the Free vs Subscriber feature split, monthly and annual prices, and the link into checkout. See [Subscriptions](#subscriptions) for the working summary.
+- **People (`/people`).** Discovery and graph-management hub for your followers, following, and pending requests — see [Following Other Users](#following-other-users).
+- **Clock (`/clock`).** Full-screen analog clock for your location's timezone (requires browser geolocation).
+- **Products dropdown.** The nav has a **Products** dropdown that lists the InterlinedList app plus a Synchronization Tools sub-menu. All items in the sub-menu are currently labelled **(Coming Soon)** — they are placeholders for related products.
 
 ---
 

@@ -180,7 +180,12 @@ describe("POST /api/folders — parentId validation", () => {
   });
 
   it("returns 201 when parentId references a valid folder owned by the user", async () => {
-    vi.mocked(prisma.listFolder.findFirst).mockResolvedValue({ id: "p1", name: "Parent", userId: "user-1" } as never);
+    // The route calls findFirst twice when parentId is provided: once to
+    // verify the parent, and once to manually check for a sibling-name
+    // collision (added to plug the NULL-parentId gap in the DB unique index).
+    vi.mocked(prisma.listFolder.findFirst)
+      .mockResolvedValueOnce({ id: "p1", name: "Parent", userId: "user-1" } as never)
+      .mockResolvedValueOnce(null as never);
     vi.mocked(prisma.listFolder.create).mockResolvedValue({ id: "new-1", name: "Work", parentId: "p1" } as never);
 
     const res = await POST(makePostRequest({ name: "Work", parentId: "p1" }));
@@ -239,6 +244,25 @@ describe("POST /api/folders — name collision", () => {
     expect(res.status).toBe(409);
     const body = await json(res);
     expect(body.error).toMatch(/already exists/i);
+  });
+
+  it("returns 409 when an existing sibling already has the requested name (root level)", async () => {
+    // Postgres treats NULL parentIds as distinct, so the [userId, parentId, name]
+    // unique constraint cannot detect duplicates at root. The route's manual
+    // findFirst() catches the collision before reaching .create().
+    vi.mocked(prisma.listFolder.findFirst).mockResolvedValueOnce({
+      id: "f-existing",
+      name: "Projects",
+      userId: "user-1",
+      parentId: null,
+    } as never);
+
+    const res = await POST(makePostRequest({ name: "Projects" }));
+    expect(res.status).toBe(409);
+    const body = await json(res);
+    expect(body.error).toMatch(/already exists/i);
+    // .create must NOT have been called when the manual check trips
+    expect(vi.mocked(prisma.listFolder.create)).not.toHaveBeenCalled();
   });
 
   it("propagates non-P2002 Prisma errors as 500", async () => {

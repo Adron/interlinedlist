@@ -10,6 +10,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { postToTwitter } from './post-status';
 import type { CrossPostOptions, TwitterProviderData } from './post-status';
 
+// Mock the token-refresh module so we can assert that postToTwitter calls it
+// AND so the dynamic import inside postToTwitter does not pull in Prisma at
+// test time. The default behaviour mirrors a no-op refresh: return the
+// stored token unchanged. Individual tests override the implementation.
+const getValidTwitterAccessTokenMock = vi.fn();
+const forceRefreshTwitterAccessTokenMock = vi.fn();
+
+vi.mock('@/lib/twitter/token-refresh', () => ({
+  getValidTwitterAccessToken: (...args: unknown[]) =>
+    getValidTwitterAccessTokenMock(...args),
+  forceRefreshTwitterAccessToken: (...args: unknown[]) =>
+    forceRefreshTwitterAccessTokenMock(...args),
+}));
+
 // ─── helpers ───────────────────────────────────────────────────────────────
 
 function makeIdentity(overrides?: Partial<{ access_token: string; username: string | null }>) {
@@ -43,6 +57,19 @@ function mockSingleTweetFetch(tweetId = 'tweet-123') {
     text: async () => '',
   });
 }
+
+// Default the refresh mocks to a no-op so existing tests continue to behave
+// as they did before refresh wiring landed: passthrough the stored token,
+// never force-refresh.
+beforeEach(() => {
+  getValidTwitterAccessTokenMock.mockReset();
+  getValidTwitterAccessTokenMock.mockImplementation(
+    async (identity: { providerData?: TwitterProviderData | null }) =>
+      identity.providerData?.access_token ?? null
+  );
+  forceRefreshTwitterAccessTokenMock.mockReset();
+  forceRefreshTwitterAccessTokenMock.mockResolvedValue(null);
+});
 
 // ─── missing credentials ───────────────────────────────────────────────────
 
@@ -505,5 +532,141 @@ describe('postToTwitter — unexpected errors', () => {
     // but if the imports succeed and postTweet returns null, a different path runs.
     // Either way the result must not be a JS exception thrown to the caller.
     expect(typeof result.success).toBe('boolean');
+  });
+});
+
+// ─── token refresh wiring ──────────────────────────────────────────────────
+
+describe('postToTwitter — token refresh wiring', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('calls getValidTwitterAccessToken before posting', async () => {
+    vi.stubGlobal('fetch', mockSingleTweetFetch('t1'));
+
+    await postToTwitter(makeIdentity(), makeOptions());
+
+    expect(getValidTwitterAccessTokenMock).toHaveBeenCalledTimes(1);
+    const [identityArg] = getValidTwitterAccessTokenMock.mock.calls[0];
+    expect(identityArg).toMatchObject({
+      id: 'identity-1',
+      providerData: { access_token: 'valid-token' },
+    });
+  });
+
+  it('uses the refreshed token returned by getValidTwitterAccessToken when posting', async () => {
+    getValidTwitterAccessTokenMock.mockResolvedValueOnce('refreshed-access-token');
+    const mockFetch = mockSingleTweetFetch('t1');
+    vi.stubGlobal('fetch', mockFetch);
+
+    await postToTwitter(makeIdentity({ access_token: 'stale-token' }), makeOptions());
+
+    const tweetCall = mockFetch.mock.calls.find(
+      (call: unknown[]) => call[0] === 'https://api.twitter.com/2/tweets'
+    );
+    expect(tweetCall).toBeDefined();
+    const [, opts] = tweetCall!;
+    expect(opts.headers['Authorization']).toBe('Bearer refreshed-access-token');
+  });
+
+  it('falls back to the stored access_token when getValidTwitterAccessToken returns null', async () => {
+    getValidTwitterAccessTokenMock.mockResolvedValueOnce(null);
+    const mockFetch = mockSingleTweetFetch('t1');
+    vi.stubGlobal('fetch', mockFetch);
+
+    await postToTwitter(makeIdentity({ access_token: 'stored-token' }), makeOptions());
+
+    const tweetCall = mockFetch.mock.calls.find(
+      (call: unknown[]) => call[0] === 'https://api.twitter.com/2/tweets'
+    );
+    const [, opts] = tweetCall!;
+    expect(opts.headers['Authorization']).toBe('Bearer stored-token');
+  });
+
+  it('does not call the refresh helper when providerData has no access_token', async () => {
+    const identity = {
+      id: 'no-cred',
+      provider: 'twitter',
+      providerUsername: 'x',
+      providerData: null,
+    };
+
+    await postToTwitter(identity, makeOptions());
+
+    expect(getValidTwitterAccessTokenMock).not.toHaveBeenCalled();
+  });
+});
+
+// ─── refresh-on-401 retry ─────────────────────────────────────────────────
+
+describe('postToTwitter — 401 refresh-and-retry', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('force-refreshes and retries the tweet once on a 401 response', async () => {
+    // First tweet POST returns 401; force-refresh returns a new token; retry
+    // returns success.
+    const mockFetch = vi.fn()
+      // 1st: tweet POST → 401
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        text: async () => 'Unauthorized',
+      })
+      // 2nd: tweet POST retry → success
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ data: { id: 'tweet-after-refresh' } }),
+        text: async () => '',
+      });
+    vi.stubGlobal('fetch', mockFetch);
+
+    forceRefreshTwitterAccessTokenMock.mockResolvedValueOnce('post-refresh-token');
+
+    const result = await postToTwitter(makeIdentity(), makeOptions());
+
+    expect(result.success).toBe(true);
+    expect(result.tweetId).toBe('tweet-after-refresh');
+    expect(forceRefreshTwitterAccessTokenMock).toHaveBeenCalledTimes(1);
+
+    // Second tweet POST must use the newly refreshed token
+    const tweetCalls = mockFetch.mock.calls.filter(
+      (call: unknown[]) => call[0] === 'https://api.twitter.com/2/tweets'
+    );
+    expect(tweetCalls.length).toBe(2);
+    expect((tweetCalls[1] as [string, { headers: Record<string, string> }])[1].headers['Authorization']).toBe('Bearer post-refresh-token');
+  });
+
+  it('does not retry on a 401 when force-refresh returns null', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      text: async () => 'Unauthorized',
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    forceRefreshTwitterAccessTokenMock.mockResolvedValueOnce(null);
+
+    const result = await postToTwitter(makeIdentity(), makeOptions());
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/Failed to post tweet/);
+
+    const tweetCalls = mockFetch.mock.calls.filter(
+      (call: unknown[]) => call[0] === 'https://api.twitter.com/2/tweets'
+    );
+    expect(tweetCalls.length).toBe(1);
+  });
+
+  it('does not force-refresh on non-401 failures', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      text: async () => 'Server error',
+    }));
+
+    const result = await postToTwitter(makeIdentity(), makeOptions());
+
+    expect(result.success).toBe(false);
+    expect(forceRefreshTwitterAccessTokenMock).not.toHaveBeenCalled();
   });
 });
