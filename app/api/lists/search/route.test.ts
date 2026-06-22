@@ -234,11 +234,108 @@ describe("GET /api/lists/search — itemCount field", () => {
   afterEach(() => vi.restoreAllMocks());
 
   it("maps _count.dataRows to itemCount and removes _count", async () => {
-    const row = { id: "l4", title: "Counts", isPublic: true, _count: { dataRows: 7 } };
+    const row = {
+      id: "l4",
+      title: "Counts",
+      description: null,
+      isPublic: true,
+      folderId: null,
+      createdAt: new Date("2026-01-01T00:00:00Z"),
+      updatedAt: new Date("2026-01-02T00:00:00Z"),
+      _count: { dataRows: 7 },
+    };
     vi.mocked(prisma.$transaction).mockResolvedValue([[row], 1] as never);
     const res = await GET(makeRequest({ q: "count" }));
     const body = await json(res);
     expect(body.lists[0].itemCount).toBe(7);
     expect(body.lists[0]._count).toBeUndefined();
+  });
+});
+
+// ── matching, ownership, response shape ───────────────────────────────────────
+
+describe("GET /api/lists/search — matching and ownership", () => {
+  beforeEach(() => {
+    vi.mocked(getCurrentUserOrSyncToken).mockResolvedValue(mockUser as never);
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  function row(overrides: Partial<{ id: string; title: string; description: string | null; folderId: string | null }> = {}) {
+    return {
+      id: "l1",
+      title: "My List",
+      description: null,
+      isPublic: true,
+      folderId: null,
+      createdAt: new Date("2026-01-01T00:00:00Z"),
+      updatedAt: new Date("2026-01-02T00:00:00Z"),
+      _count: { dataRows: 2 },
+      ...overrides,
+    };
+  }
+
+  it("returns a list whose title matches the query", async () => {
+    vi.mocked(prisma.$transaction).mockResolvedValue([
+      [row({ title: "Grocery List" })],
+      1,
+    ] as never);
+    const res = await GET(makeRequest({ q: "grocery" }));
+    expect(res.status).toBe(200);
+    const body = await json(res);
+    expect(body.lists).toHaveLength(1);
+    expect(body.lists[0].title).toBe("Grocery List");
+  });
+
+  it("returns a list whose description matches the query", async () => {
+    vi.mocked(prisma.$transaction).mockResolvedValue([
+      [row({ title: "Untitled", description: "weekly shopping run" })],
+      1,
+    ] as never);
+    const res = await GET(makeRequest({ q: "shopping" }));
+    expect(res.status).toBe(200);
+    const body = await json(res);
+    expect(body.lists[0].description).toBe("weekly shopping run");
+  });
+
+  it("returns null description verbatim without coercion", async () => {
+    vi.mocked(prisma.$transaction).mockResolvedValue([[row({ description: null })], 1] as never);
+    const res = await GET(makeRequest({ q: "my" }));
+    const body = await json(res);
+    expect(body.lists[0]).toHaveProperty("description", null);
+  });
+
+  it("scopes the query to the authenticated user (userId + deletedAt:null)", async () => {
+    vi.mocked(prisma.$transaction).mockResolvedValue([[], 0] as never);
+    await GET(makeRequest({ q: "anything" }));
+
+    const findManyCall = vi.mocked(prisma.list.findMany).mock.calls[0]?.[0] as any;
+    const countCall = vi.mocked(prisma.list.count).mock.calls[0]?.[0] as any;
+
+    expect(findManyCall.where.userId).toBe(mockUser.id);
+    expect(findManyCall.where.deletedAt).toBeNull();
+    expect(findManyCall.where.OR).toEqual([
+      { title: { contains: "anything", mode: "insensitive" } },
+      { description: { contains: "anything", mode: "insensitive" } },
+    ]);
+    expect(findManyCall.orderBy).toEqual({ updatedAt: "desc" });
+    expect(countCall.where.userId).toBe(mockUser.id);
+  });
+
+  it("returns the full DTO shape (id, title, description, isPublic, folderId, itemCount, createdAt, updatedAt)", async () => {
+    vi.mocked(prisma.$transaction).mockResolvedValue([
+      [row({ id: "abc", title: "Hello", description: "world", folderId: "f-1" })],
+      1,
+    ] as never);
+    const res = await GET(makeRequest({ q: "hello" }));
+    const body = await json(res);
+    const list = body.lists[0];
+    expect(list.id).toBe("abc");
+    expect(list.title).toBe("Hello");
+    expect(list.description).toBe("world");
+    expect(list.isPublic).toBe(true);
+    expect(list.folderId).toBe("f-1");
+    expect(list.itemCount).toBe(2);
+    expect(typeof list.createdAt).toBe("string");
+    expect(typeof list.updatedAt).toBe("string");
   });
 });
