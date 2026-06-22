@@ -140,7 +140,16 @@ describe("GET /api/lists/search — pagination", () => {
   afterEach(() => vi.restoreAllMocks());
 
   function rawList() {
-    return { id: "l", title: "List", isPublic: true, _count: { dataRows: 0 } };
+    return {
+      id: "l",
+      title: "List",
+      description: null,
+      isPublic: true,
+      folderId: null,
+      createdAt: new Date("2026-01-01T00:00:00Z"),
+      updatedAt: new Date("2026-01-02T00:00:00Z"),
+      _count: { dataRows: 0 },
+    };
   }
 
   it("hasMore=true when offset=20, 20 results returned, total=45", async () => {
@@ -177,17 +186,28 @@ describe("GET /api/lists/search — isPublic field passthrough", () => {
   });
   afterEach(() => vi.restoreAllMocks());
 
+  function rowWith(isPublic: unknown, id = "l1", title = "Public") {
+    return {
+      id,
+      title,
+      description: null,
+      isPublic,
+      folderId: null,
+      createdAt: new Date("2026-01-01T00:00:00Z"),
+      updatedAt: new Date("2026-01-02T00:00:00Z"),
+      _count: { dataRows: 1 },
+    };
+  }
+
   it("reflects boolean true as-is from the DB row", async () => {
-    const row = { id: "l1", title: "Public", isPublic: true, _count: { dataRows: 1 } };
-    vi.mocked(prisma.$transaction).mockResolvedValue([[row], 1] as never);
+    vi.mocked(prisma.$transaction).mockResolvedValue([[rowWith(true)], 1] as never);
     const res = await GET(makeRequest({ q: "pub" }));
     const body = await json(res);
     expect(body.lists[0].isPublic).toBe(true);
   });
 
   it("reflects boolean false as-is from the DB row", async () => {
-    const row = { id: "l2", title: "Private", isPublic: false, _count: { dataRows: 0 } };
-    vi.mocked(prisma.$transaction).mockResolvedValue([[row], 1] as never);
+    vi.mocked(prisma.$transaction).mockResolvedValue([[rowWith(false, "l2", "Private")], 1] as never);
     const res = await GET(makeRequest({ q: "priv" }));
     const body = await json(res);
     expect(body.lists[0].isPublic).toBe(false);
@@ -197,8 +217,7 @@ describe("GET /api/lists/search — isPublic field passthrough", () => {
     // Simulates a misconfigured consumer passing a string; the route echoes DB value unchanged.
     // The route uses `=== true` checks on Prisma's typed boolean, so a string never equals true.
     const stringTrue = "true" as unknown as boolean;
-    const row = { id: "l3", title: "Bad", isPublic: stringTrue, _count: { dataRows: 0 } };
-    vi.mocked(prisma.$transaction).mockResolvedValue([[row], 1] as never);
+    vi.mocked(prisma.$transaction).mockResolvedValue([[rowWith(stringTrue, "l3", "Bad")], 1] as never);
     const res = await GET(makeRequest({ q: "bad" }));
     const body = await json(res);
     // The JSON serialised value should be the string "true", not boolean true.
