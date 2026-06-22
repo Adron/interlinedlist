@@ -43,7 +43,11 @@ export async function GET(request: NextRequest) {
         select: {
           id: true,
           title: true,
+          description: true,
           isPublic: true,
+          folderId: true,
+          createdAt: true,
+          updatedAt: true,
           _count: { select: { dataRows: true } },
         },
         orderBy: { updatedAt: "desc" },

@@ -90,7 +90,16 @@ describe("GET /api/lists/search — limit clamping", () => {
   afterEach(() => vi.restoreAllMocks());
 
   function rawList(isPublic = true) {
-    return { id: "l", title: "List", isPublic, _count: { dataRows: 3 } };
+    return {
+      id: "l",
+      title: "List",
+      description: null,
+      isPublic,
+      folderId: null,
+      createdAt: new Date("2026-01-01T00:00:00Z"),
+      updatedAt: new Date("2026-01-02T00:00:00Z"),
+      _count: { dataRows: 3 },
+    };
   }
 
   it("clamps limit > 100 to 100", async () => {

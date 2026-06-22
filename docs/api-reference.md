@@ -1612,7 +1612,7 @@ List folders organise lists into a hierarchy. They use the `ListFolder` model (d
 
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
-| `name` | string | yes | |
+| `name` | string | yes | 1–80 characters after trim |
 | `parentId` | string | no | ID of parent folder owned by this user |
 
 **Response** `201 Created`
@@ -1624,7 +1624,7 @@ List folders organise lists into a hierarchy. They use the `ListFolder` model (d
 
 | Status | Condition |
 |--------|-----------|
-| 400 | Missing name |
+| 400 | Missing name, or name exceeds 80 characters |
 | 401 | Not authenticated |
 | 403 | No subscription |
 | 404 | parentId not found |
@@ -1635,7 +1635,7 @@ List folders organise lists into a hierarchy. They use the `ListFolder` model (d
 ### PUT /api/folders/:id
 
 **Auth required:** yes  
-**Description:** Rename or move a list folder.
+**Description:** Rename or move a list folder. Both fields are optional; send only what you want to change. Reparenting under the folder itself or any of its descendants is rejected (cycle protection).
 
 **Path parameters**
 
@@ -1648,6 +1648,11 @@ List folders organise lists into a hierarchy. They use the `ListFolder` model (d
 { "name": "New Name", "parentId": "f3" }
 ```
 
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `name` | string | no | 1–80 characters after trim |
+| `parentId` | string \| null | no | New parent folder ID, or `null` to move to root |
+
 **Response** `200 OK`
 ```json
 { "message": "Folder updated successfully", "folder": { "id": "f1", "name": "New Name", "parentId": "f3" } }
@@ -1657,7 +1662,8 @@ List folders organise lists into a hierarchy. They use the `ListFolder` model (d
 
 | Status | Condition |
 |--------|-----------|
-| 404 | Folder not found |
+| 400 | Name exceeds 80 characters, folder set as its own parent, or move would create a cycle |
+| 404 | Folder not found, or proposed parent does not exist |
 | 409 | Name collision at the destination |
 
 ---
@@ -1665,7 +1671,7 @@ List folders organise lists into a hierarchy. They use the `ListFolder` model (d
 ### DELETE /api/folders/:id
 
 **Auth required:** yes  
-**Description:** Soft-delete a list folder. Any lists inside are detached (their `folderId` is set to null).
+**Description:** Soft-delete a list folder. Any child folders are recursively soft-deleted, and every list inside this folder (or any descendant folder) is detached to root (`folderId` set to `null`). Lists themselves are never soft-deleted by this cascade.
 
 **Path parameters**
 
