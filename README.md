@@ -169,6 +169,7 @@ This command will:
 **Default Test Account Credentials:**
 
 All test accounts use the same password:
+
 ```
 Password: TestAccount123!
 ```
@@ -220,10 +221,6 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - `npm run test:e2e:headed` - Run e2e tests with visible browser window
 - `npm run test:e2e:ui` - Open Playwright interactive UI for debugging tests
 - `npm run test:e2e:report` - Open HTML report from the last e2e run
-- `npm run cli:build` - Build the Document Sync CLI for all platforms and copy to `public/downloads/` (quiet; same as `deploy-all-production` with `--binaries-only`)
-- `npm run deploy-all-production` - Build all CLI binaries, install under `public/downloads/` for docs/static URLs, print next steps for commit and deploy
-- `npm run cli:test` - Run CLI unit tests
-- `npm run cli:test-local` - Run CLI integration tests against a local dev server
 
 ## Testing
 
