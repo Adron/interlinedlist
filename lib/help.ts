@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
-import { HELP_TOPICS } from './help-config';
+import { HELP_TOPICS, findHelpTopic, getAllHelpTopics, type HelpTopic } from './help-config';
 
 const HELP_DIR = path.join(process.cwd(), 'docs', 'help');
 
@@ -19,27 +19,25 @@ export interface HelpSearchEntry {
 }
 
 /**
- * Get all valid help slugs from config.
+ * Get all valid help slugs from config, including nested children.
+ * Nested slugs are returned as path-form strings (e.g. "api/messages").
  */
 export function getHelpSlugs(): string[] {
-  return HELP_TOPICS.map((t) => t.slug);
+  return getAllHelpTopics().map((t) => t.slug);
 }
 
 /**
  * Get help content for a given slug.
  * Returns null if slug is invalid or file not found.
+ * Slugs may be nested (e.g. "api/messages" → docs/help/api/messages.md).
  * Topics with sourceFile load from that path (relative to process.cwd()).
  */
 export function getHelpContent(slug: string): HelpContent | null {
-  const validSlugs = getHelpSlugs();
-  if (!validSlugs.includes(slug)) {
-    return null;
-  }
+  const topic = findHelpTopic(slug);
+  if (!topic) return null;
 
-  const topic = HELP_TOPICS.find((t) => t.slug === slug);
-  const sourceFile = (topic as { sourceFile?: string })?.sourceFile;
-  const filePath = sourceFile
-    ? path.join(process.cwd(), sourceFile)
+  const filePath = topic.sourceFile
+    ? path.join(process.cwd(), topic.sourceFile)
     : path.join(HELP_DIR, `${slug}.md`);
 
   if (!fs.existsSync(filePath)) {
@@ -51,7 +49,7 @@ export function getHelpContent(slug: string): HelpContent | null {
 
   return {
     slug,
-    title: (frontmatter.title as string) || topic?.title || slug,
+    title: (frontmatter.title as string) || topic.title || slug,
     content,
   };
 }
@@ -73,13 +71,16 @@ function stripMarkdown(md: string): string {
 }
 
 /**
- * Get plain-text search entries for all help topics.
+ * Get plain-text search entries for all help topics (including nested children).
  * Safe to call at server render time only (uses fs).
  */
 export function getAllHelpSearchEntries(): HelpSearchEntry[] {
-  return HELP_TOPICS.flatMap((topic) => {
+  return getAllHelpTopics().flatMap((topic: HelpTopic) => {
     const content = getHelpContent(topic.slug);
     if (!content) return [];
     return [{ slug: topic.slug, title: content.title, plain: stripMarkdown(content.content) }];
   });
 }
+
+// Re-export so consumers can use a single import surface.
+export { HELP_TOPICS };

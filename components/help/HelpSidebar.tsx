@@ -3,7 +3,7 @@
 import { useState, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { getHelpTopics } from '@/lib/help-config';
+import { getHelpTopics, type HelpTopic } from '@/lib/help-config';
 import type { HelpSearchEntry } from '@/lib/help';
 
 interface HelpSidebarProps {
@@ -58,6 +58,74 @@ function ExcerptWithHighlight({
       <mark className="px-0 py-0 bg-warning rounded-1">{match}</mark>
       {after}
     </span>
+  );
+}
+
+interface TopicNodeProps {
+  topic: HelpTopic;
+  pathname: string;
+  inOffcanvas?: boolean;
+}
+
+/** Decide whether the given path is inside the subtree rooted at `topic`. */
+function isOnSubtree(pathname: string, topic: HelpTopic): boolean {
+  const href = `/help/${topic.slug}`;
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function TopicNode({ topic, pathname, inOffcanvas }: TopicNodeProps) {
+  const href = `/help/${topic.slug}`;
+  const isActive = pathname === href;
+  const hasChildren = !!topic.children?.length;
+  const autoOpen = hasChildren && isOnSubtree(pathname, topic);
+  const [manuallyOpen, setManuallyOpen] = useState<boolean | null>(null);
+  const open = manuallyOpen ?? autoOpen;
+
+  if (!hasChildren) {
+    return (
+      <Link
+        href={href}
+        className={`nav-link ${isActive ? 'active' : ''}`}
+        {...(inOffcanvas ? { 'data-bs-dismiss': 'offcanvas' } : {})}
+      >
+        {topic.title}
+      </Link>
+    );
+  }
+
+  return (
+    <div>
+      <div className="d-flex align-items-stretch">
+        <Link
+          href={href}
+          className={`nav-link flex-grow-1 ${isActive ? 'active' : ''}`}
+          {...(inOffcanvas ? { 'data-bs-dismiss': 'offcanvas' } : {})}
+        >
+          {topic.title}
+        </Link>
+        <button
+          type="button"
+          className="btn btn-sm border-0 bg-transparent text-muted px-2"
+          onClick={() => setManuallyOpen(!open)}
+          aria-label={open ? `Collapse ${topic.title}` : `Expand ${topic.title}`}
+          aria-expanded={open}
+        >
+          <i className={`bx ${open ? 'bx-chevron-down' : 'bx-chevron-right'}`} style={{ fontSize: '16px' }} />
+        </button>
+      </div>
+      {open && (
+        <div className="help-sidebar-children ms-3 border-start ps-2">
+          {topic.children!.map((child) => (
+            <TopicNode
+              key={child.slug}
+              topic={child}
+              pathname={pathname}
+              inOffcanvas={inOffcanvas}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -152,22 +220,16 @@ export default function HelpSidebar({ searchEntries, inOffcanvas }: HelpSidebarP
           )}
         </nav>
       ) : (
-        /* Normal topic list */
+        /* Normal topic tree */
         <nav className="help-sidebar nav flex-column">
-          {topics.map((topic) => {
-            const href = `/help/${topic.slug}`;
-            const isActive = pathname === href;
-            return (
-              <Link
-                key={topic.slug}
-                href={href}
-                className={`nav-link ${isActive ? 'active' : ''}`}
-                {...(inOffcanvas ? { 'data-bs-dismiss': 'offcanvas' } : {})}
-              >
-                {topic.title}
-              </Link>
-            );
-          })}
+          {topics.map((topic) => (
+            <TopicNode
+              key={topic.slug}
+              topic={topic}
+              pathname={pathname}
+              inOffcanvas={inOffcanvas}
+            />
+          ))}
         </nav>
       )}
     </div>

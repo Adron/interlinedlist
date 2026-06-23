@@ -6,11 +6,12 @@ import AnalyticsActionTracker from '@/components/AnalyticsActionTracker';
 import HelpHighlight from '@/components/help/HelpHighlight';
 
 interface HelpTopicPageProps {
-  params: Promise<{ slug: string }> | { slug: string };
+  params: Promise<{ slug: string[] }> | { slug: string[] };
 }
 
 export default async function HelpTopicPage({ params }: HelpTopicPageProps) {
-  const { slug } = await Promise.resolve(params);
+  const { slug: slugSegments } = await Promise.resolve(params);
+  const slug = slugSegments.join('/');
   const content = getHelpContent(slug);
 
   if (!content) {
@@ -57,5 +58,5 @@ export default async function HelpTopicPage({ params }: HelpTopicPageProps) {
 
 export async function generateStaticParams() {
   const slugs = getHelpSlugs();
-  return slugs.map((slug) => ({ slug }));
+  return slugs.map((slug) => ({ slug: slug.split('/') }));
 }

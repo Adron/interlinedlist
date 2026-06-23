@@ -1,5 +1,7 @@
 # InterlinedList API Reference
 
+> **Canonical reference.** This document is the canonical HTTP API reference for InterlinedList. The in-app help pages at `/help/api/*` and the integrator overview at `docs/developer/http-api-reference.md` derive their content from this file. When endpoints change, **update this file first**, then propagate to any derived material.
+
 ## Table of Contents
 
 1. [Overview](#overview)
@@ -3912,7 +3914,7 @@ or, when unassigning:
 ### POST /api/analytics/ingest
 
 **Auth required:** no  
-**Description:** First-party analytics beacon. Records a page view or a named action. The handler always responds `204 No Content` — invalid bodies are silently dropped to avoid breaking page navigations. If the caller does not have an analytics session cookie, the response sets `interlinedlist_analytics_session` (configurable lifetime; 1 year by default).
+**Description:** First-party analytics beacon. Records a page view or a named action. The handler always responds `204 No Content` — invalid bodies are silently dropped to avoid breaking page navigations. If the caller does not have an analytics session cookie, the response sets `interlinedlist_analytics_session` (lifetime is `ANALYTICS_SESSION_MAX_AGE_DAYS` from `lib/analytics/session.ts` — 30 days by default).
 
 **Request body**
 ```json
