@@ -33,6 +33,7 @@ Welcome to InterlinedList. This guide covers every feature available to you as a
    - [Searching Your Lists](#searching-your-lists)
    - [List Folders](#list-folders)
    - [Toggling List Visibility](#toggling-list-visibility)
+   - [Editing a List's Properties](#editing-a-lists-properties)
 8. [Documents](#documents)
    - [Creating Subfolders](#creating-subfolders)
    - [Searching Your Documents](#searching-your-documents)
@@ -388,34 +389,59 @@ A search bar on the Lists page lets you quickly find a list by name or descripti
 
 ### List Folders
 
-Subscribers can group their lists into folders to keep them organised.
+List Folders let you organise your lists into a tree of folders. Folders can hold lists, other folders, or both, so you can build whatever hierarchy works best — for example, a top-level **Work** folder with **Clients** and **Projects** folders nested inside it.
+
+- **Subscription required to create folders.** Creating a new list folder requires an active subscription. If your subscription has lapsed, you can still view and use any folders you already have — opening them, moving lists in and out, and browsing the tree — but the **New Folder** button will prompt you to subscribe before a new folder can be created.
+- **Naming rules.** Each folder name must be between 1 and 80 characters long, and must be unique among its siblings. Two folders at the root level cannot share a name, and two folders inside the same parent folder cannot share a name. Folders in different parents can have the same name.
+- **Where folders show up.** Once created, folders appear in the Lists sidebar tree and in the folder view of the Lists page, with their lists nested underneath them.
 
 #### Creating a folder
 
 1. On the Lists page, click **New Folder**.
-2. Type a name for the folder and click **Create**.
-3. The folder appears in the sidebar and in the folder view of your lists.
+2. Type a name for the folder (1–80 characters).
+3. Optionally choose a parent folder from the drop-down to nest the new folder inside an existing one. Leave the parent field blank to create a top-level folder.
+4. Click **Create**. The folder appears in the sidebar and in the folder view of your lists right away.
 
-Folders can be nested inside other folders. When creating a folder you can optionally select a parent folder, or leave that field blank to create a top-level folder.
+If you are not a subscriber, the **New Folder** action is unavailable and you will be redirected to the Subscriptions page when you try to create one.
+
+#### Creating subfolders
+
+There is no separate "subfolder" action — any folder you create with a parent set is a subfolder of that parent. To nest a folder inside another, pick the parent in the **Parent folder** drop-down when creating the new folder. The result appears nested beneath its parent in the Lists tree.
+
+You can nest folders as deeply as you like.
 
 #### Renaming a folder
 
 1. Hover over or select the folder you want to rename.
 2. Click the **Rename** option that appears next to the folder name.
-3. Type the new name and confirm. Each folder name must be unique within its parent level.
+3. Type the new name (1–80 characters) and confirm.
+
+Remember that the new name must be unique among the folder's siblings — if another folder at the same level already uses that name, you will be asked to pick a different one.
+
+#### Moving a folder to a different parent
+
+You can re-organise your folder tree at any time by moving a folder under a different parent, or back to the top level.
+
+1. Select the folder you want to move.
+2. Choose **Move folder** and pick a new parent folder from the list. To move the folder to the top level, select **No parent (root)**.
+3. Save the change. The folder, along with everything inside it, appears in its new location.
+
+A folder cannot be moved underneath itself or any folder nested inside it — for example, you cannot move **Work** into **Work > Clients**, because that would create a loop. The picker will not allow these destinations.
 
 #### Moving a list into a folder
 
 1. Open the list you want to move, or find it on the Lists page.
 2. Click **Edit Schema** to open the edit view for that list.
-3. In the edit view, locate the **Folder** field and choose the folder you want to move the list into from the drop-down.
+3. In the edit view, locate the **Folder** field and choose the folder you want to move the list into from the drop-down. To remove the list from all folders and return it to the top level, select the empty / "No folder" option.
 4. Save your changes. The list will now appear inside the chosen folder.
 
 #### Deleting a folder
 
 1. Select the folder you want to remove.
 2. Click **Delete Folder** and confirm the prompt.
-3. The folder is removed. Any lists that were inside it are automatically moved back to the top level — they are not deleted.
+3. The folder is removed, along with any subfolders nested inside it.
+
+Lists are never deleted by this action. Any lists that were inside the folder you removed — or inside any of its subfolders — are automatically moved back to the top level (no folder). You can then move them into a different folder later if you wish.
 
 ### Toggling List Visibility
 
@@ -425,6 +451,63 @@ You can change a list between public and private at any time directly from the e
 2. Click **Edit Schema**.
 3. In the edit view, find the **Visibility** section and select either **Public** or **Private**.
 4. Click **Update Schema** to save. The new visibility takes effect immediately and is shown as a badge on the list card and in the list header.
+
+### Editing a List's Properties
+
+You can change the columns (properties) of an existing list without losing the data you've already entered. Open the list you want to change, then open the **Edit Schema** view to see all of its properties. From here you can add, rename, reorder, and delete properties, and your existing rows are preserved across all of these changes (except deletions — see below).
+
+Previously the only way to change a list's properties was a destructive rebuild that erased every row. That is no longer the case. The schema editor now updates your list in place and keeps your row data intact.
+
+**Allowed property types**
+
+When you add or change a property, you can choose from these types:
+
+- **Text** — short or long pieces of writing.
+- **Number** — any numeric value.
+- **Yes / no** — a true-or-false toggle.
+- **Date** — a calendar date.
+- **URL** — a web address.
+- **Email** — an email address.
+
+**Naming rules**
+
+- A property's **display name** (the label you see at the top of its column) must be between 1 and 120 characters.
+- A property's **internal identifier** (its key) must be between 1 and 60 characters and must be unique within the list.
+- The internal identifier cannot be changed after the property is created. If you want to change the label, rename the property — the identifier stays the same, and your row data stays put. If you really need a different identifier, delete the property and add a new one (note that this erases the data stored for that column).
+
+#### Adding a property
+
+1. Open the list and click **Edit Schema**.
+2. Tap or click the **Add property** control.
+3. Give the new property a display name, an internal identifier, and a type.
+4. Save your changes.
+
+Existing rows will have no value for the new property — they appear empty in that column. You can open each row and fill the values in as needed.
+
+#### Renaming a property
+
+1. Open **Edit Schema**.
+2. Find the property you want to rename and edit its **display name**.
+3. Save your changes.
+
+Only the label changes. Every row keeps its existing value for that property, and the property's internal identifier stays the same.
+
+#### Reordering properties
+
+1. Open **Edit Schema**.
+2. Drag a property up or down in the list, or use the **move up** and **move down** controls beside it, to put the properties in the order you want.
+3. Save your changes.
+
+The new order takes effect as soon as you save and is reflected everywhere the list is displayed.
+
+#### Deleting a property
+
+1. Open **Edit Schema**.
+2. Find the property you want to remove and tap or click its **delete** control.
+3. If any rows in the list currently have a value stored for that property, the editor warns you before going further so you don't lose data by accident. Confirm the deletion only if you're sure.
+4. Save your changes.
+
+Deleting a property removes the column from the list and erases the values stored for it in every row. The rest of each row's data is untouched.
 
 ---
 

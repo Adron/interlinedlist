@@ -1094,31 +1094,45 @@ Pass the returned URL in the `imageUrls` array when calling `POST /api/messages`
 
 ### GET /api/lists/search
 
-**Auth required:** yes  
-**Description:** Search the authenticated user's lists by `title` or `description` (case-insensitive `contains`). Returns paginated results.
+**Auth required:** yes (session cookie or `X-Sync-Token` header)  
+**Description:** Search the authenticated user's lists by `title` or `description` (case-insensitive `contains`). Results are ordered by `updatedAt` descending and scoped to the caller; soft-deleted lists are excluded.
 
 **Query parameters**
 
-| Param | Type | Default | Description |
-|-------|------|---------|-------------|
-| `q` | string | — | Required. Empty string returns 400. |
-| `limit` | number | 20 | Clamped to 100. |
-| `offset` | number | 0 | ≥ 0. |
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `q` | string | yes | Search query, 1–200 characters |
+| `limit` | integer | no | Default 20, max 100 |
+| `offset` | integer | no | Default 0; negative values are coerced to 0 |
 
 **Response** `200 OK`
 ```json
 {
-  "lists": [ { "id": "...", "title": "...", "isPublic": false, "itemCount": 42 } ],
-  "pagination": { "total": 87, "limit": 20, "offset": 0, "hasMore": true }
+  "lists": [
+    {
+      "id": "list1",
+      "title": "Reading List",
+      "description": "Books to read this year",
+      "isPublic": false,
+      "folderId": "f1",
+      "itemCount": 42,
+      "createdAt": "2026-06-21T12:00:00.000Z",
+      "updatedAt": "2026-06-21T12:00:00.000Z"
+    }
+  ],
+  "pagination": { "total": 3, "limit": 20, "offset": 0, "hasMore": false }
 }
 ```
+
+`itemCount` is the number of `dataRows` belonging to the list.
 
 **Error responses**
 
 | Status | Condition |
 |--------|-----------|
-| 400 | Missing `q` |
+| 400 | `q` missing, empty, or longer than 200 characters; `limit` greater than 100 |
 | 401 | Not authenticated |
+| 500 | Internal server error |
 
 ---
 
@@ -1340,17 +1354,150 @@ Pass the returned URL in the `imageUrls` array when calling `POST /api/messages`
 ### PUT /api/lists/:id/schema
 
 **Auth required:** yes  
-**Description:** Replace the list's schema from a DSL string. This deletes all existing property definitions and recreates them.
+**Description:** Update the list's column definitions. This endpoint accepts **two distinct request body shapes** and the server dispatches by body shape:
+
+- A body containing a top-level `schema` **string** triggers the original **destructive DSL rebuild** flow (see [Destructive DSL rebuild](#destructive-dsl-rebuild-schema-string-body) below).
+- A body containing a top-level `properties` **array** triggers the **non-destructive property update** flow (see [Non-destructive property update](#non-destructive-property-update-properties-body) below).
+
+The two branches differ in side effects, validation, and error semantics. Both share the same path and HTTP method; clients select which to use purely by the shape of the JSON they POST. The non-destructive branch is checked first: if `body.properties` is an array, the destructive branch is never reached for that request.
+
+**Path parameters**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `id` | string | List ID. |
+
+---
+
+#### Destructive DSL rebuild (`schema` string body)
+
+**Description:** Replace the list's schema from a DSL string. This deletes all existing property definitions and recreates them. Preserved for backward compatibility with existing clients.
 
 **Request body**
 ```json
-{ "schema": "title: My List\n---\nstatus: text required\n...", "isPublic": false }
+{
+  "schema": "title: My List\n---\nstatus: text required\n...",
+  "parentId": null,
+  "isPublic": false
+}
 ```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `schema` | string | yes | DSL document defining the list title, description, and fields. |
+| `parentId` | string \| null | no | Optional parent list ID. `null` clears the parent. The parent must belong to the same user and must not create a circular reference. |
+| `isPublic` | boolean | no | Toggle the list's public visibility. |
 
 **Response** `200 OK`
 ```json
 { "message": "Schema updated successfully", "data": { ... } }
 ```
+
+**Error responses**
+
+- `400` — `schema` missing; DSL fails to validate or parse; `parentId` is not a string or null; setting the supplied `parentId` would create a circular reference.
+- `401` — not authenticated.
+- `404` — list does not exist, is soft-deleted, **or belongs to another user** (note: this branch returns 404 for cross-user access, distinct from the non-destructive branch below which returns 403). Also returned when a supplied `parentId` does not resolve to a list owned by the caller.
+
+---
+
+#### Non-destructive property update (`properties[]` body)
+
+**Description:** Apply a row-level diff to the list's properties. Existing rows referenced by `id` are updated in place; rows without an `id` are created; rows present in the current schema but absent from the request are deleted. Row data for surviving keys is preserved; deleted-property keys are stripped from every row's JSON data.
+
+**Request body**
+```json
+{
+  "properties": [
+    {
+      "id": null,
+      "propertyKey": "title",
+      "propertyName": "Title",
+      "propertyType": "text",
+      "displayOrder": 0,
+      "isVisible": true,
+      "isRequired": false,
+      "defaultValue": null,
+      "helpText": null,
+      "placeholder": null
+    }
+  ]
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `properties` | array | yes | Authoritative list of properties the list should have after the request completes. Order in the array determines `displayOrder` (see below). |
+| `properties[].id` | string \| null | no | `null`, omitted, or any falsy value marks the property as **new** and creates a row. A non-null value must reference an existing `ListProperty` on this list — referencing an unknown id returns 400. |
+| `properties[].propertyKey` | string | yes | 1–60 characters. Unique within the request. **Cannot be changed for an existing `id`**; rename `propertyName` instead. |
+| `properties[].propertyName` | string | yes | 1–120 characters. Display label. |
+| `properties[].propertyType` | string | yes | One of `text`, `number`, `boolean`, `date`, `url`, `email`. |
+| `properties[].displayOrder` | number | no | Accepted but ignored — see note below. |
+| `properties[].isVisible` | boolean | no | Defaults to `true`. |
+| `properties[].isRequired` | boolean | no | Defaults to `false`. |
+| `properties[].defaultValue` | string \| null | no | Defaults to `null`. |
+| `properties[].helpText` | string \| null | no | Defaults to `null`. |
+| `properties[].placeholder` | string \| null | no | Defaults to `null`. |
+
+> **`displayOrder` is authoritative — but derived from array index.** After validation, properties are renumbered contiguously from `0` in the order received. Any `displayOrder` value supplied in the body is overwritten with the property's position in the `properties` array.
+
+**Query parameters**
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `force` | `"true"` | conditional | Required to confirm a request that would delete one or more properties whose key still has non-null, non-empty data on at least one row. Without `?force=true`, such a request fails with `409`. |
+
+**Behavior**
+
+- Properties whose `id` matches an existing row are **updated** in place (all other writable fields applied, `propertyKey` left untouched). Row data for the key is preserved verbatim.
+- Properties without an `id` (or with `id: null`) are **created**. Existing rows store no value for the new key until written.
+- Properties present in the list's current schema but **absent** from the request are **deleted**. Their `propertyKey` is removed from every row's `rowData` JSON in the same transaction.
+- All updates, creates, and deletes happen inside a single transaction.
+
+**Response** `200 OK`
+
+Returns the full set of properties as they exist after the transaction, ordered by `displayOrder` ascending.
+
+```json
+{
+  "properties": [
+    {
+      "id": "prop_abc",
+      "listId": "list_xyz",
+      "propertyKey": "title",
+      "propertyName": "Title",
+      "propertyType": "text",
+      "displayOrder": 0,
+      "isVisible": true,
+      "isRequired": false,
+      "defaultValue": null,
+      "helpText": null,
+      "placeholder": null,
+      "validationRules": null,
+      "visibilityCondition": null,
+      "createdAt": "...",
+      "updatedAt": "..."
+    }
+  ]
+}
+```
+
+**Error responses**
+
+- `400` — `properties` is not an array; any property is not an object; `propertyKey` or `propertyName` is the wrong type or outside its length bounds; duplicate `propertyKey` within the request; unknown `propertyType`; `id` references a property not on this list; attempt to change `propertyKey` for an existing `id`.
+- `401` — not authenticated.
+- `403` — list exists but belongs to another user (note: this branch returns **403**, distinct from the destructive DSL branch which returns **404** for the same condition).
+- `404` — list does not exist or is soft-deleted.
+- `409` — at least one property marked for deletion has non-null, non-empty data on at least one row, and `?force=true` was not supplied. Response body:
+
+  ```json
+  {
+    "error": "Some properties marked for deletion contain row data. Re-submit with ?force=true to confirm.",
+    "propertiesWithData": ["legacy_field", "another_key"]
+  }
+  ```
+
+  Re-submit the same body with `?force=true` to proceed; deleted properties' values will be stripped from every row's `rowData`.
 
 ---
 
@@ -1581,12 +1728,12 @@ Returns `200` if the watcher relationship already exists.
 
 ## List Folders
 
-List folders organise lists into a hierarchy. They use the `ListFolder` model (distinct from document folders).
+List folders organise a user's lists into a hierarchy. They use the `ListFolder` model and mirror the behavior of the `/api/documents/folders` endpoints but operate on lists rather than documents. Authentication uses `getCurrentUserOrSyncToken` (session cookie or `Authorization: Bearer <sync-token>`). A folder belonging to another user surfaces as `404`, never `403`.
 
 ### GET /api/folders
 
 **Auth required:** yes  
-**Description:** Get all non-deleted list folders for the authenticated user as a flat array. Each item has `id`, `name`, and `parentId`.
+**Description:** Return every non-deleted list folder owned by the authenticated user as a flat array. Each item has `id`, `name`, and `parentId`; clients reconstruct the hierarchy using `parentId`.
 
 **Response** `200 OK`
 ```json
@@ -1598,44 +1745,53 @@ List folders organise lists into a hierarchy. They use the `ListFolder` model (d
 }
 ```
 
+**Error responses**
+
+| Status | Condition |
+|--------|-----------|
+| 401 | Not authenticated |
+
 ---
 
 ### POST /api/folders
 
-**Auth required:** yes  
-**Description:** Create a new list folder. Requires subscription.
+**Auth required:** yes (subscribers only)  
+**Description:** Create a new list folder. Requires an active subscription.
 
 **Request body**
 ```json
-{ "name": "Work", "parentId": null }
+{ "name": "My Folder", "parentId": null }
 ```
 
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
 | `name` | string | yes | 1–80 characters after trim |
-| `parentId` | string | no | ID of parent folder owned by this user |
+| `parentId` | string \| null | no | ID of a folder owned by this user; omit or pass `null` for a root folder |
 
 **Response** `201 Created`
 ```json
-{ "message": "Folder created successfully", "folder": { "id": "f1", "name": "Work", "parentId": null } }
+{
+  "message": "Folder created successfully",
+  "folder": { "id": "f1", "name": "My Folder", "parentId": null }
+}
 ```
 
 **Error responses**
 
 | Status | Condition |
 |--------|-----------|
-| 400 | Missing name, or name exceeds 80 characters |
+| 400 | Missing name, name exceeds 80 characters, or `parentId` is not a string |
 | 401 | Not authenticated |
-| 403 | No subscription |
-| 404 | parentId not found |
-| 409 | A folder with that name already exists here |
+| 403 | User is not a subscriber |
+| 404 | `parentId` folder not found or not owned by this user |
+| 409 | A folder with that name already exists in the same parent (`{ "error": "A folder with that name already exists here" }`) |
 
 ---
 
 ### PUT /api/folders/:id
 
 **Auth required:** yes  
-**Description:** Rename or move a list folder. Both fields are optional; send only what you want to change. Reparenting under the folder itself or any of its descendants is rejected (cycle protection).
+**Description:** Rename and/or reparent a list folder. Both fields are optional — send only what you want to change. Reparenting under the folder itself or any of its descendants is rejected (cycle protection).
 
 **Path parameters**
 
@@ -1655,16 +1811,20 @@ List folders organise lists into a hierarchy. They use the `ListFolder` model (d
 
 **Response** `200 OK`
 ```json
-{ "message": "Folder updated successfully", "folder": { "id": "f1", "name": "New Name", "parentId": "f3" } }
+{
+  "message": "Folder updated successfully",
+  "folder": { "id": "f1", "name": "New Name", "parentId": "f3" }
+}
 ```
 
 **Error responses**
 
 | Status | Condition |
 |--------|-----------|
-| 400 | Name exceeds 80 characters, folder set as its own parent, or move would create a cycle |
-| 404 | Folder not found, or proposed parent does not exist |
-| 409 | Name collision at the destination |
+| 400 | Name empty or exceeds 80 characters, `parentId` not a string, folder set as its own parent, or move would create a cycle |
+| 401 | Not authenticated |
+| 404 | Folder not found (including folders owned by another user), or proposed parent does not exist |
+| 409 | A folder with that name already exists in the target parent (exact body: `{ "error": "A folder with that name already exists here" }`) |
 
 ---
 
@@ -1683,6 +1843,13 @@ List folders organise lists into a hierarchy. They use the `ListFolder` model (d
 ```json
 { "message": "Folder deleted successfully" }
 ```
+
+**Error responses**
+
+| Status | Condition |
+|--------|-----------|
+| 401 | Not authenticated |
+| 404 | Folder not found (including folders owned by another user) |
 
 ---
 
@@ -1748,9 +1915,10 @@ List folders organise lists into a hierarchy. They use the `ListFolder` model (d
 ---
 
 ### PUT /api/documents/:id
+### PATCH /api/documents/:id
 
 **Auth required:** yes  
-**Description:** Update a document's title, content, visibility, or folder.
+**Description:** Update a document's title, content, visibility, or folder. `PATCH` is accepted as an equivalent alias for `PUT` (the iOS client uses `PATCH` for partial updates, including moving documents between folders via `folderId`).
 
 **Path parameters**
 

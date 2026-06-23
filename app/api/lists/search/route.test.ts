@@ -79,32 +79,40 @@ describe("GET /api/lists/search — q validation", () => {
     const res = await GET(makeRequest({ q: "   " }));
     expect(res.status).toBe(400);
   });
+
+  it("returns 400 when q is longer than 200 chars", async () => {
+    const res = await GET(makeRequest({ q: "a".repeat(201) }));
+    expect(res.status).toBe(400);
+    const body = await json(res);
+    expect(body.error).toMatch(/200/);
+  });
+
+  it("accepts q exactly 200 chars", async () => {
+    vi.mocked(prisma.$transaction).mockResolvedValue([[], 0] as never);
+    const res = await GET(makeRequest({ q: "a".repeat(200) }));
+    expect(res.status).toBe(200);
+  });
 });
 
-// ── limit clamping ─────────────────────────────────────────────────────────────
+// ── limit validation ──────────────────────────────────────────────────────────
 
-describe("GET /api/lists/search — limit clamping", () => {
+describe("GET /api/lists/search — limit validation", () => {
   beforeEach(() => {
     vi.mocked(getCurrentUserOrSyncToken).mockResolvedValue(mockUser as never);
   });
   afterEach(() => vi.restoreAllMocks());
 
-  function rawList(isPublic = true) {
-    return {
-      id: "l",
-      title: "List",
-      description: null,
-      isPublic,
-      folderId: null,
-      createdAt: new Date("2026-01-01T00:00:00Z"),
-      updatedAt: new Date("2026-01-02T00:00:00Z"),
-      _count: { dataRows: 3 },
-    };
-  }
+  it("returns 400 when limit > 100", async () => {
+    const res = await GET(makeRequest({ q: "list", limit: "500" }));
+    expect(res.status).toBe(400);
+    const body = await json(res);
+    expect(body.error).toMatch(/100/);
+  });
 
-  it("clamps limit > 100 to 100", async () => {
-    vi.mocked(prisma.$transaction).mockResolvedValue([new Array(100).fill(rawList()), 200] as never);
-    const res = await GET(makeRequest({ q: "list", limit: "9999" }));
+  it("accepts limit exactly 100", async () => {
+    vi.mocked(prisma.$transaction).mockResolvedValue([[], 0] as never);
+    const res = await GET(makeRequest({ q: "list", limit: "100" }));
+    expect(res.status).toBe(200);
     const body = await json(res);
     expect(body.pagination.limit).toBe(100);
   });
