@@ -47,6 +47,21 @@ Authorization: Bearer <token>
 ```
 Sync tokens are stored hashed in the database and are not scoped — they carry the same permissions as a session for that user.
 
+> **Note on auth helpers.** Most route handlers use `getCurrentUserOrSyncToken(request)` and therefore accept either a session cookie or `Authorization: Bearer <sync-token>`. A subset — primarily `/api/auth/*`, all `/api/exports/*`, `/api/stripe/*`, `/api/user/identities/*`, `/api/user/organizations`, `/api/linkedin/*`, `/api/organizations/*`, `/api/messages/:id/dig`, and `/api/architecture-aggregates/*` — calls `getCurrentUser()` and therefore requires the session cookie. Endpoints requiring a session cookie are marked in their description.
+
+### Subscription Tiers
+
+`User.customerStatus` is one of:
+
+| Value | Meaning |
+|-------|---------|
+| `free` | Free tier — most premium features are gated by `isSubscriber()`. |
+| `subscriber` | Active paid subscription, billing plan unknown or non-standard. |
+| `subscriber:monthly` | Active monthly subscription (set by the Stripe webhook). |
+| `subscriber:annual` | Active annual subscription (set by the Stripe webhook). |
+
+Anything starting with `subscriber` is treated as a paid subscriber by `lib/subscription/is-subscriber.ts`. The Stripe webhook also keeps `subscriber:*` during the `past_due` grace period.
+
 ### Error Format
 
 All error responses share a consistent shape:
@@ -791,7 +806,7 @@ When scheduling: `"message": "Message scheduled successfully"` and `"scheduledAt
 
 ### PATCH /api/messages/:id
 
-**Auth required:** yes  
+**Auth required:** yes (session cookie only)  
 **Description:** Edit a scheduled message that has not yet been published. Only `scheduledAt` and `scheduledCrossPostConfig` can be updated.
 
 **Path parameters**
@@ -863,7 +878,7 @@ When scheduling: `"message": "Message scheduled successfully"` and `"scheduledAt
 
 ### POST /api/messages/:id/dig
 
-**Auth required:** yes  
+**Auth required:** yes (session cookie only)  
 **Description:** Record a "dig" reaction on a message. Idempotent — calling twice does not create a duplicate dig. The author is notified asynchronously the first time. Permission is gated by `canViewerDigMessage` (the message must be visible to the viewer; a 404 is returned for hidden messages).
 
 **Response** `200 OK`
@@ -884,7 +899,7 @@ When scheduling: `"message": "Message scheduled successfully"` and `"scheduledAt
 
 ### DELETE /api/messages/:id/dig
 
-**Auth required:** yes  
+**Auth required:** yes (session cookie only)  
 **Description:** Remove the viewer's dig on a message.
 
 **Response** `200 OK`
@@ -904,7 +919,7 @@ When scheduling: `"message": "Message scheduled successfully"` and `"scheduledAt
 ### POST /api/messages/:id/metadata
 
 **Auth required:** no (intended for internal use; no auth check)  
-**Description:** Re-detect links in the message content and refresh stored Open Graph / oEmbed metadata. Updates `Message.linkMetadata`. Use this if a link's metadata is stale.
+**Description:** Re-detect links in the message content and refresh stored Open Graph / oEmbed metadata. Updates `Message.linkMetadata`. The `POST /api/messages` handler automatically triggers this endpoint asynchronously after creating any message that contains at least one URL, so manual calls are only necessary when a link's metadata is stale or the original fetch failed.
 
 **Response** `200 OK`
 ```json
@@ -927,8 +942,8 @@ When the message contains no links the response is `200 OK` with `{ "message": "
 
 ### GET /api/messages/:id/replies
 
-**Auth required:** no  
-**Description:** Get direct replies to a message, ordered oldest first.
+**Auth required:** no (a signed-in author can see replies to their own private posts via the session cookie)  
+**Description:** Get direct replies to a message, ordered oldest first. Each reply object includes a `replyCount` for nested replies. If the parent message is private and the caller is not the author, the endpoint returns `404`.
 
 **Path parameters**
 
@@ -938,8 +953,14 @@ When the message contains no links the response is `200 OK` with `{ "message": "
 
 **Response** `200 OK`
 ```json
-{ "replies": [ { ... } ], "total": 4 }
+{ "replies": [ { "id": "msg789", "content": "...", "replyCount": 2, ... } ], "total": 4 }
 ```
+
+**Error responses**
+
+| Status | Condition |
+|--------|-----------|
+| 404 | Parent message not found, or parent is not visible to the caller |
 
 ---
 
@@ -1034,7 +1055,19 @@ Pass the returned URL in the `imageUrls` array when calling `POST /api/messages`
 **Response** `200 OK`
 ```json
 {
-  "data": [ { "id": "list1", "title": "My List", "isPublic": false, ... } ],
+  "lists": [
+    {
+      "id": "list1",
+      "title": "My List",
+      "description": null,
+      "isPublic": false,
+      "parentId": null,
+      "parent": null,
+      "children": [],
+      "createdAt": "...",
+      "updatedAt": "..."
+    }
+  ],
   "pagination": { "total": 12, "limit": 50, "offset": 0, "hasMore": false }
 }
 ```
@@ -1094,7 +1127,7 @@ Pass the returned URL in the `imageUrls` array when calling `POST /api/messages`
 
 ### GET /api/lists/search
 
-**Auth required:** yes (session cookie or `X-Sync-Token` header)  
+**Auth required:** yes (session cookie or `Authorization: Bearer <sync-token>`)  
 **Description:** Search the authenticated user's lists by `title` or `description` (case-insensitive `contains`). Results are ordered by `updatedAt` descending and scoped to the caller; soft-deleted lists are excluded.
 
 **Query parameters**
@@ -1262,6 +1295,13 @@ Pass the returned URL in the `imageUrls` array when calling `POST /api/messages`
 }
 ```
 
+**Error responses**
+
+| Status | Condition |
+|--------|-----------|
+| 401 | Not authenticated |
+| 404 | List not found or not owned by the caller |
+
 ---
 
 ### POST /api/lists/:id/data
@@ -1280,7 +1320,7 @@ Pass the returned URL in the `imageUrls` array when calling `POST /api/messages`
 { "data": { "status": "open", "title": "New task" } }
 ```
 
-**Request body (bulk)**
+**Request body (bulk, local lists only)**
 ```json
 {
   "bulk": true,
@@ -1291,10 +1331,23 @@ Pass the returned URL in the `imageUrls` array when calling `POST /api/messages`
 }
 ```
 
-**Response** `201 Created`
+**Response** `201 Created` (single)
 ```json
 { "message": "Row created successfully", "data": { "id": "row1", "rowData": { ... } } }
 ```
+
+**Response** `201 Created` (bulk) — note the different shape: bulk returns a `count`, not the row data.
+```json
+{ "message": "2 rows created successfully", "count": 2 }
+```
+
+**Error responses**
+
+| Status | Condition |
+|--------|-----------|
+| 400 | Missing `data`, validation failed (`{ "error": "Validation failed", "details": { ... } }`), or `bulk: true` requested against a GitHub-backed list |
+| 401 | Not authenticated |
+| 404 | List not found or not owned by the caller |
 
 ---
 
@@ -1649,13 +1702,17 @@ Returns `200` if the watcher relationship already exists.
 { "fromListId": "list1", "toListId": "list2", "label": "depends on" }
 ```
 
-**Response** `201 Created` — the connection object.
+**Response** `201 Created` — the raw connection object (not wrapped). Example:
+```json
+{ "id": "c1", "fromListId": "list1", "toListId": "list2", "label": "depends on", "createdAt": "..." }
+```
 
 **Error responses**
 
 | Status | Condition |
 |--------|-----------|
-| 400 | Missing IDs or self-connection |
+| 400 | Missing `fromListId` or `toListId`, or self-connection |
+| 401 | Not authenticated |
 | 403 | User does not own both lists |
 | 409 | Connection already exists |
 
@@ -2146,6 +2203,46 @@ Each operation has `op` (`create`, `update`, or `delete`), `type` (`folder` or `
 ```json
 { "lastSyncAt": "2026-06-04T12:05:00.000Z" }
 ```
+
+---
+
+### GET /api/users/:username/documents
+
+**Auth required:** no  
+**Description:** List the public documents belonging to a user, along with every folder referenced by those documents (folders are walked all the way to the root so the client can reconstruct breadcrumbs). Soft-deleted documents and folders are excluded.
+
+**Path parameters**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `username` | string | The user's username |
+
+**Response** `200 OK`
+```json
+{
+  "documents": [
+    {
+      "id": "doc1",
+      "title": "Public Notes",
+      "folderId": "f1",
+      "relativePath": "public-notes.md",
+      "createdAt": "2026-06-04T10:00:00.000Z",
+      "updatedAt": "2026-06-04T10:00:00.000Z"
+    }
+  ],
+  "folders": [
+    { "id": "f1", "name": "Public", "parentId": null }
+  ]
+}
+```
+
+`content` is intentionally not returned by this listing endpoint — fetch the full document via `GET /api/documents/:id` when needed.
+
+**Error responses**
+
+| Status | Condition |
+|--------|-----------|
+| 404 | User not found |
 
 ---
 
@@ -2669,6 +2766,14 @@ Use the returned URL as the `avatar` field in `PATCH /api/user/update`.
 }
 ```
 
+**Error responses**
+
+| Status | Condition |
+|--------|-----------|
+| 400 | Missing `userId`, or attempting to follow yourself |
+| 401 | Not authenticated |
+| 404 | Target user not found |
+
 ---
 
 ### DELETE /api/follow/:userId
@@ -2718,12 +2823,25 @@ Use the returned URL as the `avatar` field in `PATCH /api/user/update`.
 ### GET /api/follow/requests
 
 **Auth required:** yes  
-**Description:** Get pending follow requests directed at the authenticated user.
+**Description:** Get pending follow requests directed at the authenticated user. Each entry is the public follower-user record plus the `Follow` row's `id` (as `followId`) and timestamp.
 
 **Response** `200 OK`
 ```json
-{ "requests": [ { "id": "fol2", "followerId": "u3", "status": "pending", "createdAt": "..." } ] }
+{
+  "requests": [
+    {
+      "id": "u3",
+      "username": "bob",
+      "displayName": "Bob",
+      "avatar": null,
+      "followId": "fol2",
+      "createdAt": "2026-06-04T10:00:00.000Z"
+    }
+  ]
+}
 ```
+
+Use the entry's `id` (the follower's user id) when calling `POST /api/follow/:userId/approve` or `POST /api/follow/:userId/reject`.
 
 ---
 
@@ -2810,7 +2928,25 @@ Use the returned URL as the `avatar` field in `PATCH /api/user/update`.
 | `offset` | number | 0 | ≥ 0 |
 | `status` | string | — | Optional filter: `pending` or `approved` |
 
-**Response** `200 OK` — paginated `{ items: [...], total, limit, offset }` shape produced by `getFollowers`. Each item carries follower id, follow status, and the public user fields (`username`, `displayName`, `avatar`, `isPrivate`).
+**Response** `200 OK`
+```json
+{
+  "followers": [
+    {
+      "id": "u2",
+      "username": "alice",
+      "displayName": "Alice",
+      "avatar": null,
+      "followId": "fol_123",
+      "status": "approved",
+      "createdAt": "2026-06-04T10:00:00.000Z"
+    }
+  ],
+  "pagination": { "total": 42, "limit": 50, "offset": 0, "hasMore": false }
+}
+```
+
+The shape is produced by `getFollowers`. Each item is the public follower user (`id`, `username`, `displayName`, `avatar`) augmented with `followId`, `status`, and `createdAt` from the underlying `Follow` row.
 
 **Error responses**
 
@@ -2824,7 +2960,7 @@ Use the returned URL as the `avatar` field in `PATCH /api/user/update`.
 ### GET /api/follow/:userId/following
 
 **Auth required:** yes  
-**Description:** Paginated list of users `:userId` is following. Same query parameters and response shape as `/api/follow/:userId/followers`.
+**Description:** Paginated list of users `:userId` is following. Same query parameters as `/api/follow/:userId/followers`. The response uses the same envelope but the top-level array key is `following` instead of `followers`.
 
 ---
 
@@ -2961,7 +3097,24 @@ If the underlying follow tables are missing (fresh dev DB), the endpoint returns
 | `offset` | integer | no | Default 0 |
 | `role` | string | no | Filter by `owner`, `admin`, or `member` |
 
-**Response** `200 OK` — pagination envelope with member objects.
+**Response** `200 OK`
+```json
+{
+  "members": [
+    {
+      "id": "u1",
+      "username": "alice",
+      "displayName": "Alice",
+      "avatar": null,
+      "emailVerified": true,
+      "role": "owner",
+      "active": true,
+      "joinedAt": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "pagination": { "total": 12, "limit": 50, "offset": 0, "hasMore": false }
+}
+```
 
 ---
 
@@ -4073,17 +4226,21 @@ All endpoints under `/api/admin/*` are gated by `checkAdminAndPublicOwner()`: th
 
 ## Cron Endpoints (Internal)
 
-These endpoints are called automatically by Vercel Cron and are not intended for direct use. They are secured by a `CRON_SECRET` environment variable: the caller must supply `Authorization: Bearer <CRON_SECRET>` or the `x-vercel-cron` header with the same value.
+These endpoints are called automatically by Vercel Cron and are **not intended for direct use**. They are secured by the `CRON_SECRET` environment variable: the caller must supply `Authorization: Bearer <CRON_SECRET>` or the `x-vercel-cron` request header containing the same value. If `CRON_SECRET` is unset, the secret check is skipped (intended for local development only).
 
 ### GET /api/cron/publish-scheduled-messages
 
-Publishes any messages whose `scheduledAt` is in the past. Executes cross-posting according to each message's `scheduledCrossPostConfig`, then clears `scheduledAt` and `scheduledCrossPostConfig`.
+Publishes any messages whose `scheduledAt` is in the past. Executes cross-posting according to each message's `scheduledCrossPostConfig`, then clears `scheduledAt` and `scheduledCrossPostConfig`. Returns a summary of `published`, `total`, and any per-message `errors`.
 
 LinkedIn target resolution matches the live `POST /api/messages` path: an active `OrgLinkedInPage` assignment for the author posts as `urn:li:organization:<linkedInPageId>` using the org credential and overrides the personal LinkedIn identity. Without an assignment (or when the org credential has been disconnected) the cron falls back to the author's personal `LinkedIdentity`. Per-target failures are recorded but do not abort the run.
 
 ### GET /api/cron/sync-github-lists
 
-Refreshes the GitHub Issues cache for GitHub-backed lists.
+Refreshes the GitHub Issues cache for every active GitHub-backed list. Returns:
+```json
+{ "message": "Sync complete", "synced": 12, "total": 14, "errors": ["List abc123: ..."] }
+```
+`errors` is omitted when there are none.
 
 ---
 
