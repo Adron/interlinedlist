@@ -110,6 +110,36 @@ All endpoints require `Authorization: Bearer <token>`.
 
 iOS clients should use `ASWebAuthenticationSession` to open the OAuth authorize URL. The server redirects back to a custom URL scheme after authentication and returns a Bearer token in the query string — no session cookie is involved.
 
+### Phase 2 prerequisite — already satisfied
+
+The canonical iOS OAuth redirect URI is `interlinedlist://oauth/callback`. **Backend support is already in place**, so this is not future work for the server team — it is purely an iOS-side registration plus a per-environment env-var check.
+
+**Server (done, no code changes required)**
+
+- Allowlist env var: `OAUTH_ALLOWED_REDIRECT_URIS` (comma-separated, no spaces). See `.env.example` for the canonical example. Any `redirect_uri` not on this list is rejected before the user reaches the provider.
+- Custom-scheme detection: `isMobileRedirectUri()` in `lib/auth/pkce.ts` flags any non-`http(s)` scheme. Every OAuth provider's callback (Mastodon, Bluesky, LinkedIn, Twitter, GitHub) automatically takes the mobile branch when the redirect is custom-scheme: it creates a `SyncToken`, hashes it, and redirects to `interlinedlist://oauth/callback?token=<bearer>` instead of setting a session cookie.
+- All `authorize` and `callback` routes already accept `?redirect_uri=interlinedlist://oauth/callback`. No route additions needed.
+
+**iOS (your work)**
+
+- Register the URL scheme `interlinedlist` (no `://`, no path) in Xcode → app target → **Info → URL Types**. Steps in the next subsection.
+- Use `ASWebAuthenticationSession` with `callbackURLScheme: "interlinedlist"`. Code sample under "Handling the callback in Swift" below.
+- Pass `redirect_uri=interlinedlist://oauth/callback` on every `/api/auth/<provider>/authorize` request.
+
+**Ops (per-environment verification — the one human checkpoint)**
+
+The allowlist is read from env at runtime, so this is a deploy-config question, not a code question. Confirm with whoever owns each environment:
+
+| Environment | What to confirm |
+|-------------|-----------------|
+| Production | `OAUTH_ALLOWED_REDIRECT_URIS` contains `interlinedlist://oauth/callback` (alongside the prod web callback) |
+| Staging / preview | Same env var present with both the staging web callback and the custom-scheme entry |
+| Local dev | `.env.local` includes `interlinedlist://oauth/callback`; `.env.example` already does |
+
+If any environment is missing the custom-scheme entry, authorize requests from iOS will be rejected at the `/api/auth/<provider>/authorize` step. That is the only realistic blocker.
+
+> **Summary for the iOS plan doc:** backend already supports `interlinedlist://oauth/callback`; iOS registers `interlinedlist` in `Info.plist` URL Types; ops verifies the env-var entry per environment. Cross-reference: `docs/operational.md` §"Mobile OAuth (Sync Token Handoff)" and `docs/api-reference.md` "Following / Authentication" sections.
+
 ### Registering your custom URL scheme in Xcode
 
 1. Open your project in Xcode.

@@ -2739,6 +2739,34 @@ Use the returned URL as the `avatar` field in `PATCH /api/user/update`.
 
 ## Following
 
+All follow endpoints accept either a session cookie or a bearer sync token.
+
+### Response-shape conventions
+
+The four "list-ish" endpoints under this section do **not** share a single envelope. Clients should treat them as three distinct shapes:
+
+| Endpoint | Shape | Paginated? | List key |
+|----------|-------|------------|----------|
+| `GET /api/follow/:userId/followers` | `{ <key>: [...], pagination: {...} }` | yes | `followers` |
+| `GET /api/follow/:userId/following` | `{ <key>: [...], pagination: {...} }` | yes | `following` |
+| `GET /api/follow/requests` | `{ requests: [...] }` | **no** | `requests` |
+| `GET /api/follow/:userId/mutual` | `{ mutualFollowers, mutualFollowing }` | n/a (counts) | — |
+
+The list key name (`followers` / `following` / `requests`) is the resource name, not a generic `items`, so a single generic fetcher needs a per-endpoint adapter. Once unwrapped, every row in the three list endpoints conforms to the same `FollowUser` row type:
+
+```json
+{
+  "id": "u2",
+  "username": "alice",
+  "displayName": "Alice",
+  "avatar": null,
+  "followId": "fol_123",
+  "createdAt": "2026-06-04T10:00:00.000Z"
+}
+```
+
+`followers` and `following` rows additionally carry `"status": "approved" | "pending"`. `requests` rows do not — they are pending by definition.
+
 ### POST /api/follow/:userId
 
 **Auth required:** yes  
@@ -2821,7 +2849,11 @@ Use the returned URL as the `avatar` field in `PATCH /api/user/update`.
 ### GET /api/follow/requests
 
 **Auth required:** yes  
-**Description:** Get pending follow requests directed at the authenticated user. Each entry is the public follower-user record plus the `Follow` row's `id` (as `followId`) and timestamp.
+**Description:** Get pending follow requests directed at the authenticated user. Each entry is the public follower-user record plus the `Follow` row's `id` (as `followId`) and timestamp, ordered by `createdAt` descending.
+
+**Query parameters**
+
+None. Unlike `/followers` and `/following`, this endpoint **does not paginate** and ignores `limit` / `offset` / `status` — it returns every pending request in one response. If a client expects to handle very large pending queues, page through `/api/follow/:userId/followers?status=pending` against the authenticated user's id instead, which uses the standard `pagination` envelope.
 
 **Response** `200 OK`
 ```json
@@ -2839,7 +2871,18 @@ Use the returned URL as the `avatar` field in `PATCH /api/user/update`.
 }
 ```
 
-Use the entry's `id` (the follower's user id) when calling `POST /api/follow/:userId/approve` or `POST /api/follow/:userId/reject`.
+Notes:
+
+- The envelope is `{ requests }` only — there is no `pagination` object on this response.
+- Each entry's `id` is the **follower's user id**. Use it as `:userId` when calling `POST /api/follow/:userId/approve` or `POST /api/follow/:userId/reject`.
+- `followId` is the underlying `Follow` row id; clients that surface a per-request UI should key off `followId` since `id` (the follower) can theoretically appear in more than one request only if cleaned up out-of-band.
+
+**Error responses**
+
+| Status | Condition |
+|--------|-----------|
+| 401 | Not authenticated |
+| 500 | Unexpected server error |
 
 ---
 
@@ -2958,21 +3001,72 @@ The shape is produced by `getFollowers`. Each item is the public follower user (
 ### GET /api/follow/:userId/following
 
 **Auth required:** yes  
-**Description:** Paginated list of users `:userId` is following. Same query parameters as `/api/follow/:userId/followers`. The response uses the same envelope but the top-level array key is `following` instead of `followers`.
+**Description:** Paginated list of users `:userId` is following.
+
+**Query parameters**
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `limit` | number | 50 | 1–100 |
+| `offset` | number | 0 | ≥ 0 |
+| `status` | string | — | Optional filter: `pending` or `approved` |
+
+**Response** `200 OK`
+```json
+{
+  "following": [
+    {
+      "id": "u4",
+      "username": "carol",
+      "displayName": "Carol",
+      "avatar": null,
+      "followId": "fol_456",
+      "status": "approved",
+      "createdAt": "2026-06-04T10:00:00.000Z"
+    }
+  ],
+  "pagination": { "total": 17, "limit": 50, "offset": 0, "hasMore": false }
+}
+```
+
+The top-level array key is `following` (not `followers`); the row shape and `pagination` object are identical to `/api/follow/:userId/followers`. Each item is the public user record of the followed user (`id`, `username`, `displayName`, `avatar`) plus `followId`, `status`, and `createdAt` from the underlying `Follow` row. Ordered by `createdAt` descending.
+
+**Error responses**
+
+| Status | Condition |
+|--------|-----------|
+| 400 | `limit` out of `1..100`, negative `offset`, or invalid `status` |
+| 401 | Not authenticated |
 
 ---
 
 ### GET /api/follow/:userId/mutual
 
 **Auth required:** yes  
-**Description:** Mutual connection counts between the authenticated user and `:userId`.
+**Description:** Mutual connection **counts** (not a list) between the authenticated user and `:userId`. Both counts are restricted to `approved` follow relationships — pending requests are not included.
+
+**Definitions**
+
+- `mutualFollowers`: number of users who follow **both** the authenticated user and `:userId`.
+- `mutualFollowing`: number of users that **both** the authenticated user and `:userId` follow.
 
 **Response** `200 OK`
 ```json
 { "mutualFollowers": 4, "mutualFollowing": 6 }
 ```
 
-If the underlying follow tables are missing (fresh dev DB), the endpoint returns zeroes with `200 OK` rather than 500.
+**Notes**
+
+- This is a bare counts payload — there is no envelope, no `pagination`, and no list of users. If you need the underlying users, call `/followers` or `/following` for each side and intersect on the client.
+- If the underlying follow tables are missing (e.g. a fresh dev DB before `npm run db:migrate`), the endpoint returns `{ "mutualFollowers": 0, "mutualFollowing": 0 }` with `200 OK` rather than `500`. Clients should not key off this case — a real zero and a missing-table zero are indistinguishable.
+- When `:userId` equals the authenticated user's id the response is well-defined but trivially symmetric.
+
+**Error responses**
+
+| Status | Condition |
+|--------|-----------|
+| 401 | Not authenticated |
+| 500 | Unexpected server error (other than the missing-table fallback above) |
 
 ---
 

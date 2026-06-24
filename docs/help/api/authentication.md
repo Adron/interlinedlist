@@ -126,12 +126,68 @@ All OAuth flows are redirect-based. Navigate to the authorize URL; on success th
 
 Append `?link=true` to any of the above to add the identity to an already-authenticated session rather than starting a new sign-in.
 
-Native clients can append `?redirect_uri=<your-app-scheme>://callback` so the callback returns a Bearer token instead of setting a cookie.
+Native clients can append `?redirect_uri=<your-app-scheme>://callback` so the callback returns a Bearer token instead of setting a cookie. See the next section for the canonical iOS flow.
 
 Check whether a provider is configured on the current deployment:
 
 - `GET /api/auth/linkedin/status` → `{ "configured": true, "redirectUri": "..." }`
 - `GET /api/auth/twitter/status` → `{ "configured": true, "redirectUri": "..." }`
+
+## Mobile / Native OAuth (Bearer-token handoff)
+
+This section is the canonical reference for the iOS / native OAuth flow. The same pattern works for any custom-scheme client (macOS, Android, CLI, desktop).
+
+### Canonical iOS redirect URI
+
+```
+interlinedlist://oauth/callback
+```
+
+### Phase 2 prerequisite — backend support is already in place
+
+Server-side support for the iOS custom scheme is **already shipped**. There are no backend code changes required to begin Phase 2 client work.
+
+| Layer | Status | Detail |
+|-------|--------|--------|
+| Custom-scheme detection | Done | Any non-`http(s)` `redirect_uri` is recognized as a mobile flow; the callback issues a Bearer token instead of setting a session cookie. |
+| Redirect-URI allowlist | Done | The `OAUTH_ALLOWED_REDIRECT_URIS` env var is the source of truth. Any URI not on the list is rejected before the user reaches the provider. |
+| Provider coverage | Done | Mastodon, Bluesky, LinkedIn, X (Twitter), and GitHub all take the mobile branch automatically when `redirect_uri` is custom-scheme. |
+| Bearer-token issuance | Done | The server creates a hashed `SyncToken`, then redirects to `<your-scheme>://oauth/callback?token=<bearer>`. |
+
+### What the iOS team needs to do
+
+1. **Register the URL scheme** `interlinedlist` (no `://`, no path) in Xcode → app target → **Info → URL Types**.
+2. **Use `ASWebAuthenticationSession`** with `callbackURLScheme: "interlinedlist"`.
+3. **Pass the redirect URI** on every authorize request — e.g. `GET /api/auth/mastodon/authorize?instance=mastodon.social&redirect_uri=interlinedlist://oauth/callback`.
+4. **Extract the token** from the callback URL's `token` query parameter and store it in the Keychain. Send it as `Authorization: Bearer <token>` on all subsequent API calls.
+
+A worked Swift example is in `docs/mobile-client-setup.md` § 4.
+
+### What ops needs to confirm (per environment)
+
+The allowlist is read from env at runtime, so this is a deploy-config check:
+
+| Environment | Required entry in `OAUTH_ALLOWED_REDIRECT_URIS` |
+|-------------|--------------------------------------------------|
+| Production | `interlinedlist://oauth/callback` (alongside the prod web callback) |
+| Staging / preview | `interlinedlist://oauth/callback` (alongside the staging web callback) |
+| Local dev | `.env.example` already includes it; copy into `.env.local` |
+
+If the entry is missing in a given environment, authorize requests from iOS will be rejected at the `/api/auth/<provider>/authorize` step. This is the only realistic blocker for the iOS team.
+
+### Flow summary
+
+```
+iOS app
+  → ASWebAuthenticationSession opens
+      https://interlinedlist.com/api/auth/<provider>/authorize
+        ?redirect_uri=interlinedlist://oauth/callback
+  → Provider's OAuth screen
+  → Server callback issues SyncToken
+  → Redirect: interlinedlist://oauth/callback?token=<bearer>
+  → iOS app extracts token, stores in Keychain
+  → All API calls: Authorization: Bearer <token>
+```
 
 ## Multi-account & logout
 
