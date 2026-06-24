@@ -414,7 +414,7 @@ describe('PUT /api/linkedin/posting-targets — successful replace', () => {
     expect(res.status).toBe(200);
 
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
-    const ops = vi.mocked(prisma.$transaction).mock.calls[0][0] as unknown[];
+    const ops = vi.mocked(prisma.$transaction).mock.calls[0][0] as unknown as unknown[];
     expect(ops).toHaveLength(2);
 
     expect(prisma.linkedInPostingTargetPreference.deleteMany).toHaveBeenCalledWith({
@@ -489,7 +489,7 @@ describe('PUT /api/linkedin/posting-targets — successful replace', () => {
     expect(res.status).toBe(200);
 
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
-    const ops = vi.mocked(prisma.$transaction).mock.calls[0][0] as unknown[];
+    const ops = vi.mocked(prisma.$transaction).mock.calls[0][0] as unknown as unknown[];
     expect(ops).toHaveLength(1);
     expect(prisma.linkedInPostingTargetPreference.deleteMany).toHaveBeenCalledWith({
       where: { userId: 'user-1' },

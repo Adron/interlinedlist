@@ -19,15 +19,12 @@
 13. [Notifications](#notifications)
 14. [Push Notifications](#push-notifications)
 15. [Exports](#exports)
-16. [Stripe / Subscriptions](#stripe--subscriptions)
-17. [GitHub Integration](#github-integration)
-18. [LinkedIn Integration](#linkedin-integration)
-19. [LinkedIn Organization Integration](#linkedin-organization-integration)
-20. [Utility Endpoints](#utility-endpoints)
-21. [OAuth Provider Flows](#oauth-provider-flows)
-22. [Administration](#administration)
-23. [Cron Endpoints (Internal)](#cron-endpoints-internal)
-24. [Webhook Endpoints (Internal)](#webhook-endpoints-internal)
+16. [GitHub Integration](#github-integration)
+17. [LinkedIn Integration](#linkedin-integration)
+18. [LinkedIn Organization Integration](#linkedin-organization-integration)
+19. [Utility Endpoints](#utility-endpoints)
+20. [OAuth Provider Flows](#oauth-provider-flows)
+21. [Administration](#administration)
 
 ---
 
@@ -49,7 +46,7 @@ Authorization: Bearer <token>
 ```
 Sync tokens are stored hashed in the database and are not scoped — they carry the same permissions as a session for that user.
 
-> **Note on auth helpers.** Most route handlers use `getCurrentUserOrSyncToken(request)` and therefore accept either a session cookie or `Authorization: Bearer <sync-token>`. A subset — primarily `/api/auth/*`, all `/api/exports/*`, `/api/stripe/*`, `/api/user/identities/*`, `/api/user/organizations`, `/api/linkedin/*`, `/api/organizations/*`, `/api/messages/:id/dig`, and `/api/architecture-aggregates/*` — calls `getCurrentUser()` and therefore requires the session cookie. Endpoints requiring a session cookie are marked in their description.
+> **Note on auth helpers.** Most route handlers use `getCurrentUserOrSyncToken(request)` and therefore accept either a session cookie or `Authorization: Bearer <sync-token>`. A subset — primarily `/api/auth/*`, all `/api/exports/*`, `/api/user/identities/*`, `/api/user/organizations`, `/api/linkedin/*`, `/api/organizations/*`, `/api/messages/:id/dig`, and `/api/architecture-aggregates/*` — calls `getCurrentUser()` and therefore requires the session cookie. Endpoints requiring a session cookie are marked in their description.
 
 ### Subscription Tiers
 
@@ -59,10 +56,10 @@ Sync tokens are stored hashed in the database and are not scoped — they carry 
 |-------|---------|
 | `free` | Free tier — most premium features are gated by `isSubscriber()`. |
 | `subscriber` | Active paid subscription, billing plan unknown or non-standard. |
-| `subscriber:monthly` | Active monthly subscription (set by the Stripe webhook). |
-| `subscriber:annual` | Active annual subscription (set by the Stripe webhook). |
+| `subscriber:monthly` | Active monthly subscription. |
+| `subscriber:annual` | Active annual subscription. |
 
-Anything starting with `subscriber` is treated as a paid subscriber by `lib/subscription/is-subscriber.ts`. The Stripe webhook also keeps `subscriber:*` during the `past_due` grace period.
+Anything starting with `subscriber` is treated as a paid subscriber by `lib/subscription/is-subscriber.ts`. The `subscriber:*` value is retained during the `past_due` grace period and downgrades to `free` only when the subscription fully cancels.
 
 ### Error Format
 
@@ -771,7 +768,7 @@ Each `crossPostResults` entry has the shape `{ providerId, instanceName, success
 
 LinkedIn posting fans out: each entry in `linkedInTargets` is posted independently and produces its own `crossPostResults` entry, so one failed target does not abort the others. The `instanceName` is `LinkedIn (<page name>)` for org pages and personal company pages, `LinkedIn (personal)` for the personal account when multiple targets are requested, and plain `LinkedIn` for a single default/personal post. An unavailable personal company page fails with `"The selected LinkedIn company page is unavailable — reconnect LinkedIn or re-sync your company pages in Settings."`.
 
-When scheduling: `"message": "Message scheduled successfully"` and `"scheduledAt"` are included instead. The stored `scheduledCrossPostConfig` includes `linkedInTargets` when provided, and the cron publisher posts to each target.
+When scheduling: `"message": "Message scheduled successfully"` and `"scheduledAt"` are included instead. The stored `scheduledCrossPostConfig` includes `linkedInTargets` when provided, and the scheduled publisher posts to each target when the time arrives.
 
 **Error responses**
 
@@ -836,7 +833,7 @@ When scheduling: `"message": "Message scheduled successfully"` and `"scheduledAt
 }
 ```
 
-`scheduledCrossPostConfig.linkedInTargets` is an array of LinkedIn destinations (`{ "kind": "personal" }`, `{ "kind": "orgPage", "pageId": "<uuid>" }`, or `{ "kind": "personalPage", "personalPageId": "<uuid>" }`); the cron publisher posts to each one. The legacy single-object `linkedInTarget` field is still accepted and is stored only when `linkedInTargets` is absent or empty. Set `scheduledCrossPostConfig` to `null` to clear all cross-post settings.
+`scheduledCrossPostConfig.linkedInTargets` is an array of LinkedIn destinations (`{ "kind": "personal" }`, `{ "kind": "orgPage", "pageId": "<uuid>" }`, or `{ "kind": "personalPage", "personalPageId": "<uuid>" }`); the scheduled publisher posts to each one when the time arrives. The legacy single-object `linkedInTarget` field is still accepted and is stored only when `linkedInTargets` is absent or empty. Set `scheduledCrossPostConfig` to `null` to clear all cross-post settings.
 
 **Response** `200 OK` — the updated message object.
 
@@ -2491,7 +2488,6 @@ Same field rules as `POST /api/documents`.
     "openaiApiKey": null,
     "anthropicApiKey": null,
     "customerStatus": "free",
-    "stripeCustomerId": null,
     "notificationTrayLimit": 20,
     "createdAt": "2026-01-01T00:00:00.000Z",
     "isAdministrator": false
@@ -2504,7 +2500,7 @@ Same field rules as `POST /api/documents`.
 ### PATCH /api/user/update
 
 **Auth required:** yes  
-**Description:** Update profile and preference settings for the authenticated user. All fields are optional; only supplied fields are changed. `customerStatus` and `stripeCustomerId` are managed by webhooks and cannot be set here.
+**Description:** Update profile and preference settings for the authenticated user. All fields are optional; only supplied fields are changed. `customerStatus` is managed by the billing system and cannot be set here.
 
 **Request body**
 ```json
@@ -3378,46 +3374,6 @@ All export endpoints return a downloadable CSV file. They use the session cookie
 
 ---
 
-## Stripe / Subscriptions
-
-### POST /api/stripe/create-checkout-session
-
-**Auth required:** yes (session cookie)  
-**Description:** Create a Stripe Checkout session to start or change a subscription. Creates a Stripe customer record for the user if one does not already exist.
-
-**Request body**
-```json
-{ "priceId": "price_..." }
-```
-
-`priceId` must match `STRIPE_PRICE_MONTHLY` or `STRIPE_PRICE_ANNUAL` from the server environment.
-
-**Response** `200 OK`
-```json
-{ "url": "https://checkout.stripe.com/..." }
-```
-
-Redirect the browser to `url` to complete payment.
-
----
-
-### POST /api/stripe/create-portal-session
-
-**Auth required:** yes (session cookie)  
-**Description:** Create a Stripe Customer Portal session so the user can manage their subscription. Pass `{ "flow": "cancel" }` to open directly on the cancellation flow.
-
-**Request body**
-```json
-{ "flow": "cancel" }
-```
-
-**Response** `200 OK`
-```json
-{ "url": "https://billing.stripe.com/..." }
-```
-
----
-
 ## GitHub Integration
 
 These endpoints proxy GitHub API requests using the user's linked GitHub identity. Auth is provided by the linked identity, not by separate credentials.
@@ -4039,7 +3995,7 @@ All endpoints under `/api/admin/*` are gated by `checkAdminAndPublicOwner()`: th
 **Response** `200 OK`
 ```json
 {
-  "users": [ { "id": "...", "email": "...", "username": "...", "displayName": "...", "avatar": "...", "bio": "...", "emailVerified": true, "cleared": false, "customerStatus": "free", "stripeCustomerId": null, "createdAt": "...", "isAdministrator": false } ],
+  "users": [ { "id": "...", "email": "...", "username": "...", "displayName": "...", "avatar": "...", "bio": "...", "emailVerified": true, "cleared": false, "customerStatus": "free", "createdAt": "...", "isAdministrator": false } ],
   "pagination": { "total": 1024, "limit": 10, "offset": 0, "page": 1, "hasMore": true }
 }
 ```
@@ -4081,7 +4037,7 @@ All endpoints under `/api/admin/*` are gated by `checkAdminAndPublicOwner()`: th
 ### PUT /api/admin/users/:userId
 
 **Auth required:** admin + Public owner  
-**Description:** Update a user. Any subset of `email`, `username`, `displayName`, `avatar`, `bio`, `emailVerified`, `cleared`, `customerStatus`, `stripeCustomerId`, `isAdministrator` may be supplied. Email/username uniqueness is re-checked. Promoting/demoting administrator updates the `Administrator` table. Setting `cleared: true` records a `cleared` analytics action.
+**Description:** Update a user. Any subset of `email`, `username`, `displayName`, `avatar`, `bio`, `emailVerified`, `cleared`, `customerStatus`, `isAdministrator` may be supplied. Email/username uniqueness is re-checked. Promoting/demoting administrator updates the `Administrator` table. Setting `cleared: true` records a `cleared` analytics action.
 
 **Response** `200 OK` — `{ "user": { ..., "isAdministrator": true } }`
 
@@ -4224,36 +4180,3 @@ All endpoints under `/api/admin/*` are gated by `checkAdminAndPublicOwner()`: th
 }
 ```
 
----
-
-## Cron Endpoints (Internal)
-
-These endpoints are called automatically by Vercel Cron and are **not intended for direct use**. They are secured by the `CRON_SECRET` environment variable: the caller must supply `Authorization: Bearer <CRON_SECRET>` or the `x-vercel-cron` request header containing the same value. If `CRON_SECRET` is unset, the secret check is skipped (intended for local development only).
-
-### GET /api/cron/publish-scheduled-messages
-
-Publishes any messages whose `scheduledAt` is in the past. Executes cross-posting according to each message's `scheduledCrossPostConfig`, then clears `scheduledAt` and `scheduledCrossPostConfig`. Returns a summary of `published`, `total`, and any per-message `errors`.
-
-LinkedIn target resolution matches the live `POST /api/messages` path: an active `OrgLinkedInPage` assignment for the author posts as `urn:li:organization:<linkedInPageId>` using the org credential and overrides the personal LinkedIn identity. Without an assignment (or when the org credential has been disconnected) the cron falls back to the author's personal `LinkedIdentity`. Per-target failures are recorded but do not abort the run.
-
-### GET /api/cron/sync-github-lists
-
-Refreshes the GitHub Issues cache for every active GitHub-backed list. Returns:
-```json
-{ "message": "Sync complete", "synced": 12, "total": 14, "errors": ["List abc123: ..."] }
-```
-`errors` is omitted when there are none.
-
----
-
-## Webhook Endpoints (Internal)
-
-These endpoints receive signed payloads from third-party services and are not intended for direct calls.
-
-### POST /api/webhooks/stripe
-
-Receives Stripe events (`checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`) and updates `customerStatus` on the corresponding user record. Verified via the `stripe-signature` header using `STRIPE_WEBHOOK_SECRET`.
-
-### POST /api/webhooks/resend
-
-Receives email delivery events from Resend and updates the email log. Verified via Resend's signature mechanism.

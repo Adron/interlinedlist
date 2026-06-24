@@ -113,12 +113,10 @@ See **[Messages](./api/messages)** for the full message body reference.
 | [Notifications](./api/notifications) | Notification tray, mark read, single & bulk operations |
 | [Push Notifications](./api/push-notifications) | Register and unregister device tokens |
 | [Exports](./api/exports) | CSV exports of messages, lists, list rows, and follows |
-| [Stripe Subscriptions](./api/subscriptions) | Checkout and billing portal sessions |
 | [GitHub Integration](./api/github-integration) | Connected-account GitHub issue and repo helpers |
 | [LinkedIn Integration](./api/linkedin-integration) | Personal LinkedIn posting targets |
 | [Utility Endpoints](./api/utility-endpoints) | Image proxy, geolocation, weather, OAuth client metadata, status probes |
 | [Administration](./api/administration) | Admin-only user and email log management |
-| [Cron & Webhooks (Internal)](./api/internal-endpoints) | Scheduled jobs and provider webhooks |
 
 ## Looking for the full single-file reference?
 

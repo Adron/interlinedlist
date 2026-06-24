@@ -42,7 +42,7 @@ Authorization: Bearer il_tok_...
 Endpoints use one of two auth helpers internally:
 
 - `getCurrentUserOrSyncToken(...)` → **Session or Bearer** (most of `/api/messages/*`, `/api/lists/*`, `/api/documents/*`, `/api/follow/*`, `/api/notifications/*`, `/api/user`, `/api/user/avatar/*`, `/api/user/change-email/request`, `/api/push/*`).
-- `getCurrentUser(...)` → **Session only**. Notably this covers `/api/auth/*`, `/api/exports/*`, `/api/stripe/*`, `/api/user/identities/*`, `/api/user/organizations`, all of `/api/linkedin/*` and `/api/organizations/*`, `/api/messages/:id/dig`, the GitHub integration helpers, and the architecture-aggregates dashboard.
+- `getCurrentUser(...)` → **Session only**. Notably this covers `/api/auth/*`, `/api/exports/*`, `/api/user/identities/*`, `/api/user/organizations`, all of `/api/linkedin/*` and `/api/organizations/*`, `/api/messages/:id/dig`, the GitHub integration helpers, and the architecture-aggregates dashboard.
 
 Free users see `403 Forbidden` for subscriber-only features (image/video uploads, scheduling, cross-posting, document creation). Subscriber gating is enforced identically for Bearer callers and session callers.
 
@@ -68,7 +68,7 @@ These are derived recipes that go beyond what's documented per-endpoint in the c
 | `linkedInTargets: object[]` | Explicit LinkedIn target list (personal/orgPage/personalPage). Overrides `crossPostToLinkedIn`. |
 | `crossPostToTwitter: boolean` | The user's linked X (Twitter) account. |
 
-Cross-posting is **skipped automatically** for replies (`parentId` set) and plain pushes (`pushedMessageId` with empty content). For scheduled messages, the cross-post config is stored in `scheduledCrossPostConfig` and executed by the cron job at publish time.
+Cross-posting is **skipped automatically** for replies (`parentId` set) and plain pushes (`pushedMessageId` with empty content). For scheduled messages, the cross-post config is stored in `scheduledCrossPostConfig` and executed by the scheduled publisher at publish time.
 
 The `201` response includes a `crossPostResults` array reporting per-target success or failure:
 
@@ -203,7 +203,6 @@ For LinkedIn account-linking, the `?link=true` flow requests the extended scopes
 - Rate limits are instance-specific. Check your deployment configuration.
 - The web app is same-origin. For third-party browser clients, the deployment must allow your origin in CORS.
 - Admin endpoints under `/api/admin/*` and the architecture-aggregates routes are gated by **both** the `Administrator` table and ownership of the `The Public` system organization. They're not part of the public API contract.
-- Cron endpoints (`/api/cron/*`) require `Authorization: Bearer <CRON_SECRET>` or the `x-vercel-cron` header. Webhook endpoints verify provider-issued signatures (`stripe-signature` for Stripe, Svix-style for Resend).
 
 ## Full endpoint reference
 

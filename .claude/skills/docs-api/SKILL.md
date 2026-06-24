@@ -171,12 +171,6 @@ Three-step example: authenticate → post a message → cross-post
 
 ## Admin Endpoints
 (internal, document minimally)
-
-## Cron Endpoints
-(internal, secured by CRON_SECRET, not for public use)
-
-## Webhook Endpoints
-(Stripe, Resend — signature-verified, not for direct calls)
 ```
 
 ## Constraints
@@ -184,4 +178,5 @@ Three-step example: authenticate → post a message → cross-post
 - Derive every field name from the actual route handler source — do not invent.
 - Mark auth requirement accurately; read `getCurrentUser()` or session checks in each handler.
 - Do not describe UI flows or infrastructure — those belong in the other two docs.
-- Cron and webhook endpoints must be clearly marked as internal/secured.
+- **Do not document Stripe-specific endpoints (`/api/stripe/*`).** Subscriptions are a generic capability — expose only the `customerStatus` tiering surfaced via `GET /api/user`, never the billing provider.
+- **Do not document cron (`/api/cron/*`) or webhook (`/api/webhooks/*`) endpoints.** They are implementation details of scheduling and billing; the public surface is the scheduling fields on `POST /api/messages` (e.g. `scheduledAt`, `scheduledCrossPostConfig`), not the underlying jobs. Treat these as leaky abstractions and keep them out.

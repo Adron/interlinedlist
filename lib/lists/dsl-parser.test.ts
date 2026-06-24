@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { validateDSLSchema, parseDSLSchema, parsedSchemaToDSL } from "./dsl-parser";
+import type { DSLSchema } from "./dsl-types";
 
-const minimalDSL = {
+const minimalDSL: DSLSchema = {
   name: "Test List",
   fields: [{ key: "name", type: "text", label: "Name" }],
 };
@@ -146,13 +147,13 @@ describe("parseDSLSchema", () => {
   });
 
   it("uses required: true when specified", () => {
-    const dsl = { name: "X", fields: [{ key: "f", type: "text", label: "F", required: true }] };
+    const dsl: DSLSchema = { name: "X", fields: [{ key: "f", type: "text", label: "F", required: true }] };
     const parsed = parseDSLSchema(dsl);
     expect(parsed.fields[0].isRequired).toBe(true);
   });
 
   it("assigns displayOrder from array index when not specified", () => {
-    const dsl = {
+    const dsl: DSLSchema = {
       name: "X",
       fields: [
         { key: "a", type: "text", label: "A" },
@@ -165,12 +166,12 @@ describe("parseDSLSchema", () => {
   });
 
   it("respects explicit displayOrder", () => {
-    const dsl = { name: "X", fields: [{ key: "a", type: "text", label: "A", displayOrder: 5 }] };
+    const dsl: DSLSchema = { name: "X", fields: [{ key: "a", type: "text", label: "A", displayOrder: 5 }] };
     expect(parseDSLSchema(dsl).fields[0].displayOrder).toBe(5);
   });
 
   it("merges options into validationRules for select fields", () => {
-    const dsl = {
+    const dsl: DSLSchema = {
       name: "X",
       fields: [{ key: "tier", type: "select", label: "Tier", options: ["free", "pro"] }],
     };
@@ -179,7 +180,7 @@ describe("parseDSLSchema", () => {
   });
 
   it("assigns default priority options when none specified", () => {
-    const dsl = { name: "X", fields: [{ key: "p", type: "priority", label: "Priority" }] };
+    const dsl: DSLSchema = { name: "X", fields: [{ key: "p", type: "priority", label: "Priority" }] };
     const parsed = parseDSLSchema(dsl);
     expect(parsed.fields[0].validationRules?.options).toEqual(["low", "medium", "high", "urgent"]);
   });
@@ -190,12 +191,12 @@ describe("parseDSLSchema", () => {
   });
 
   it("respects visible: false", () => {
-    const dsl = { name: "X", fields: [{ key: "f", type: "text", label: "F", visible: false }] };
+    const dsl: DSLSchema = { name: "X", fields: [{ key: "f", type: "text", label: "F", visible: false }] };
     expect(parseDSLSchema(dsl).fields[0].isVisible).toBe(false);
   });
 
   it("serializes defaultValue to JSON string", () => {
-    const dsl = {
+    const dsl: DSLSchema = {
       name: "X",
       fields: [{ key: "f", type: "text", label: "F", defaultValue: "hello" }],
     };
@@ -204,7 +205,7 @@ describe("parseDSLSchema", () => {
   });
 
   it("converts visibility condition to record format", () => {
-    const dsl = {
+    const dsl: DSLSchema = {
       name: "X",
       fields: [
         {
@@ -226,7 +227,7 @@ describe("parseDSLSchema", () => {
 
 describe("parsedSchemaToDSL (round-trip)", () => {
   it("restores name and description", () => {
-    const original = {
+    const original: DSLSchema = {
       name: "Tasks",
       description: "A task tracker",
       fields: [{ key: "title", type: "text", label: "Title" }],
@@ -245,13 +246,13 @@ describe("parsedSchemaToDSL (round-trip)", () => {
   });
 
   it("restores required flag", () => {
-    const dsl = { name: "X", fields: [{ key: "f", type: "text", label: "F", required: true }] };
+    const dsl: DSLSchema = { name: "X", fields: [{ key: "f", type: "text", label: "F", required: true }] };
     const roundTripped = parsedSchemaToDSL(parseDSLSchema(dsl));
     expect(roundTripped.fields[0].required).toBe(true);
   });
 
   it("restores options from validationRules for select fields", () => {
-    const dsl = {
+    const dsl: DSLSchema = {
       name: "X",
       fields: [{ key: "tier", type: "select", label: "Tier", options: ["free", "pro"] }],
     };

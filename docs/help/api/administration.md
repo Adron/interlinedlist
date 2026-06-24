@@ -41,7 +41,6 @@ GET /api/admin/users?page=1&limit=25&search=octo
       "emailVerified": true,
       "cleared": false,
       "customerStatus": "free",
-      "stripeCustomerId": null,
       "createdAt": "2025-01-01T00:00:00.000Z",
       "isAdministrator": false
     }
@@ -83,7 +82,7 @@ Content-Type: application/json
 { "emailVerified": true, "customerStatus": "subscriber:monthly", "isAdministrator": true }
 ```
 
-Any subset of `email`, `username`, `displayName`, `avatar`, `bio`, `emailVerified`, `cleared`, `customerStatus`, `stripeCustomerId`, `isAdministrator` may be supplied. Email/username uniqueness is re-checked. Promoting/demoting administrator updates the `Administrator` table.
+Any subset of `email`, `username`, `displayName`, `avatar`, `bio`, `emailVerified`, `cleared`, `customerStatus`, `isAdministrator` may be supplied. Email/username uniqueness is re-checked. Promoting/demoting administrator updates the `Administrator` table.
 
 ## Setting a user's password
 
