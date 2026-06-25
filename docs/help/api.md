@@ -8,6 +8,8 @@ InterlinedList exposes an HTTP API that lets you build integrations, native clie
 
 This page is an index. Pick the section you need from the sidebar (or the list below) for full request/response details.
 
+> **Interactive explorer:** Try endpoints live in the browser with the [Swagger / OpenAPI explorer at `/api-docs`](/api-docs). Authorize with a sync token and send real requests. The raw machine-readable spec is served at [`/api/openapi.json`](/api/openapi.json).
+
 ## Base URL
 
 Paths are relative to the InterlinedList deployment you are targeting:
