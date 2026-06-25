@@ -11,6 +11,7 @@ import {
   type RequestedLinkedInTarget,
 } from "@/lib/linkedin/resolve-linkedin-target";
 import { postToTwitter } from "@/lib/twitter/post-status";
+import { isAuthorizedCronRequest } from "@/lib/auth/cron";
 
 export const dynamic = "force-dynamic";
 
@@ -18,16 +19,11 @@ export const dynamic = "force-dynamic";
  * GET /api/cron/publish-scheduled-messages
  * Cron: publishes scheduled messages whose scheduledAt has passed.
  * Runs cross-posting for any scheduled messages that are due.
- * Secured by CRON_SECRET header (Vercel Cron sends this).
+ * Secured by CRON_SECRET (Vercel Cron sends it as `Authorization: Bearer`).
  */
 export async function GET(request: NextRequest) {
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const authHeader = request.headers.get("authorization");
-    const provided = authHeader?.replace(/^Bearer\s+/i, "") || request.headers.get("x-vercel-cron");
-    if (provided !== cronSecret) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  if (!isAuthorizedCronRequest(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const now = new Date();

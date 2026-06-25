@@ -163,17 +163,13 @@ export async function getCurrentUser() {
     }
   }
 
-  // Legacy cookie migration: single value that looks like userId (not a Session id)
-  if (!user && tokens.length === 1) {
-    const legacyUser = await getUserWithFallbacks(tokens[0]);
-    if (legacyUser) {
-      const newCookieValue = await createSession(legacyUser.id, []);
-      const cookieStore = await cookies();
-      cookieStore.set(SESSION_COOKIE_NAME, newCookieValue, getSessionCookieOptions());
-      user = legacyUser;
-      return addIsAdministrator(user);
-    }
-  }
+  // SECURITY: The former "legacy cookie migration" path that treated a single
+  // cookie value as a userId and minted a session for it has been removed. Both
+  // User.id and Session.id are UUIDs and user IDs are exposed throughout the API,
+  // so that path allowed full account takeover by setting the cookie to any known
+  // user ID. Cookie values are now only ever validated as Session IDs. Any user
+  // still holding a pre-session-id legacy cookie will simply be asked to log in
+  // again. Do NOT reintroduce a userId-based fallback here.
 
   if (validTokens.length !== tokens.length) {
     await setSessionCookie(validTokens);
