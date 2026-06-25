@@ -42,6 +42,7 @@ model User {
   customerStatus           String?   @default("free")
   stripeCustomerId         String?
   notificationTrayLimit    Int       @default(20)
+  notificationPreferences  Json?
   messages             Message[]
   lists                List[]
   organizations        UserOrganization[]
