@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { SESSION_COOKIE_NAME } from '@/lib/config/app';
 
 // Matches /@username where username contains only word chars, digits, hyphens, dots
 const AT_USERNAME_RE = /^\/@([\w.-]+)$/;
 
 export async function middleware(request: NextRequest) {
-  const sessionCookie = request.cookies.get('session');
+  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME);
   const { pathname } = request.nextUrl;
 
   // Skip middleware for static assets and API routes

@@ -4,6 +4,7 @@ import { resend, FROM_EMAIL } from '@/lib/email/resend';
 import { logEmailSend, getResendLogParams } from '@/lib/email/log-email';
 import { generatePasswordResetToken, getTokenExpiration } from '@/lib/auth/tokens';
 import { getPasswordResetEmailHtml, getPasswordResetEmailText } from '@/lib/email/templates/password-reset';
+import { rateLimit, getClientIp } from '@/lib/security/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +18,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Email is required' },
         { status: 400 }
+      );
+    }
+
+    // Rate limit to prevent password-reset email bombing (by IP and by address).
+    const ipLimit = rateLimit(`forgot:ip:${getClientIp(request)}`, 10, 60 * 60 * 1000);
+    const emailLimit = rateLimit(`forgot:email:${String(email).toLowerCase()}`, 5, 60 * 60 * 1000);
+    if (!ipLimit.allowed || !emailLimit.allowed) {
+      // Keep the generic response shape to avoid leaking which addresses exist.
+      return NextResponse.json(
+        { message: 'If an account with that email exists, a password reset link has been sent.' },
+        { status: 200 }
       );
     }
 

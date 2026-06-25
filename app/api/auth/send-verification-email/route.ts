@@ -5,6 +5,7 @@ import { logEmailSend, getResendLogParams } from '@/lib/email/log-email';
 import { generateEmailVerificationToken, getEmailVerificationExpiration } from '@/lib/auth/tokens';
 import { getEmailVerificationEmailHtml, getEmailVerificationEmailText } from '@/lib/email/templates/email-verification';
 import { getCurrentUser } from '@/lib/auth/session';
+import { rateLimit } from '@/lib/security/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +17,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
+      );
+    }
+
+    // Throttle verification email resends per user.
+    const limit = rateLimit(`verify-email:${user.id}`, 5, 60 * 60 * 1000);
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(limit.retryAfterSeconds) } }
       );
     }
 
