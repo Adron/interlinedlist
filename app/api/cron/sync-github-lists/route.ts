@@ -2,22 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getGitHubIssuesContextForUserId } from "@/lib/github/issues";
 import { syncListCacheFromGitHub } from "@/lib/lists/github-list-adapter";
+import { isAuthorizedCronRequest } from "@/lib/auth/cron";
 
 export const dynamic = "force-dynamic";
 
 /**
  * GET /api/cron/sync-github-lists
  * Hourly cron: syncs all GitHub-backed lists from GitHub API to cache.
- * Secured by CRON_SECRET header (Vercel Cron sends this).
+ * Secured by CRON_SECRET (Vercel Cron sends it as `Authorization: Bearer`).
  */
 export async function GET(request: NextRequest) {
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const authHeader = request.headers.get("authorization");
-    const provided = authHeader?.replace(/^Bearer\s+/i, "") || request.headers.get("x-vercel-cron");
-    if (provided !== cronSecret) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  if (!isAuthorizedCronRequest(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const lists = await prisma.list.findMany({
