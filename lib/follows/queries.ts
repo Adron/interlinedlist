@@ -7,6 +7,7 @@
 import { prisma } from '@/lib/prisma';
 import { FollowStatus } from '@/lib/types';
 import { sendPushToUser } from '@/lib/push/apns';
+import { resolveChannelEnabled } from '@/lib/notifications/preferences';
 
 export interface PaginationParams {
   limit?: number;
@@ -41,7 +42,7 @@ export async function followUser(followerId: string, followingId: string) {
   // Check if the user being followed has a private account
   const followingUser = await prisma.user.findUnique({
     where: { id: followingId },
-    select: { isPrivateAccount: true },
+    select: { isPrivateAccount: true, notificationPreferences: true },
   });
 
   if (!followingUser) {
@@ -69,7 +70,9 @@ export async function followUser(followerId: string, followingId: string) {
   const pushBody = status === 'pending'
     ? `${name} has requested to follow you`
     : `${name} is now following you`;
-  sendPushToUser(followingId, { title: pushTitle, body: pushBody }).catch(() => {});
+  if (resolveChannelEnabled(followingUser.notificationPreferences, 'follow', 'push')) {
+    sendPushToUser(followingId, { title: pushTitle, body: pushBody }).catch(() => {});
+  }
 
   return follow;
 }

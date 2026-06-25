@@ -99,6 +99,25 @@ Fetch rows with pagination:
 GET /api/lists/lst_abc001/data?limit=50&offset=0
 ```
 
+## Updating the schema
+
+`PUT /api/lists/:id/schema` accepts **two body shapes on the same route** (there is no separate `/schema/structured` route); the server dispatches by payload:
+
+- **DSL rebuild (destructive):** body `{ "schema": "Title\nName:text, Done:boolean", "parentId"?, "isPublic"? }`. Wipes and recreates all properties.
+- **Structured update (non-destructive):** body `{ "properties": [ { "id"?, "propertyKey", "propertyName", "propertyType", "displayOrder"?, "isVisible"?, "isRequired"?, "defaultValue"?, "helpText"?, "placeholder"? } ] }`. Items with an existing `id` are updated in place (row data preserved); items without `id` are created; existing properties omitted from the array are soft-deleted and their key is stripped from every row. `displayOrder` is authoritative by array order (renumbered 0..n-1). Allowed `propertyType`: `text`, `number`, `boolean`, `date`, `url`, `email`.
+
+The structured form returns `400` for a duplicate `propertyKey`, an unknown `propertyType`, an unknown `id`, or an attempt to change `propertyKey` for an existing `id` (rename `propertyName` instead). If a to-be-deleted property still holds non-null row data, the request fails `409` with `{ error, propertiesWithData: [...] }` unless `?force=true` is passed. Success returns `{ "properties": [ ...rows ordered by displayOrder... ] }`.
+
+## Watchers
+
+A watcher's `role` is one of `watcher`, `collaborator`, or `manager`.
+
+- `GET /api/lists/:id/watchers` (owner only) → `{ watchers: [ { id, userId, role, createdAt, user } ] }`.
+- `POST /api/lists/:id/watchers` → body `{ userId?, role? }`. With `userId`, the owner adds that user (list must be public; `role` defaults to `watcher`). Without `userId`, the caller self-subscribes (list must be public and not their own). Idempotent — returns `{ watching: true }` (`201` when newly created, `200` if already watching).
+- `PUT /api/lists/:id/watchers/:userId` (owner only) → body `{ role }`; invalid/missing role → `400`. Returns `{ role }`.
+- `DELETE /api/lists/:id/watchers/:userId` (owner only) → `{ removed: true }`.
+- `GET /api/lists/:id/watchers/users` (owner only) — search users to add. Query: `search`, `limit` (50), `offset` (0), `excludeWatchers` (comma-separated ids; if omitted, current watchers are auto-excluded). Returns `{ users, total, pagination }`.
+
 ## Connections
 
 Connections create labelled, directed relationships between two of your lists — useful for modelling related datasets, parent/child structures, or any graph of linked lists.
