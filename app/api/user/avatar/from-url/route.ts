@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserOrSyncToken } from '@/lib/auth/sync-token';
 import { put } from '@vercel/blob';
 import { resizeAvatarToLimit, getMaxSizeBytes } from '@/lib/avatar/resize';
+import { safeFetch, SsrfError } from '@/lib/security/ssrf';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,20 +19,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'URL is required' }, { status: 400 });
     }
 
-    let parsed: URL;
+    // SSRF-safe fetch: validates the host (and every redirect hop) against the
+    // private/loopback/link-local blocklist before connecting.
+    let response: Response;
     try {
-      parsed = new URL(url);
-    } catch {
-      return NextResponse.json({ error: 'Invalid URL' }, { status: 400 });
+      response = await safeFetch(url, {
+        headers: { 'User-Agent': 'InterlinedList-Avatar-Fetch/1.0' },
+        signal: AbortSignal.timeout(15000),
+      });
+    } catch (err) {
+      if (err instanceof SsrfError) {
+        return NextResponse.json({ error: 'URL is not allowed' }, { status: 400 });
+      }
+      throw err;
     }
-    if (!['http:', 'https:'].includes(parsed.protocol)) {
-      return NextResponse.json({ error: 'URL must be http or https' }, { status: 400 });
-    }
-
-    const response = await fetch(url, {
-      headers: { 'User-Agent': 'InterlinedList-Avatar-Fetch/1.0' },
-      signal: AbortSignal.timeout(15000),
-    });
     if (!response.ok) {
       return NextResponse.json(
         { error: `Failed to fetch image (${response.status})` },

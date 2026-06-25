@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { safeFetch } from '@/lib/security/ssrf';
 
 export const dynamic = 'force-dynamic';
 
@@ -143,7 +144,9 @@ export async function GET(request: NextRequest) {
     const timeoutId = setTimeout(() => controller.abort(), 5000);
 
     try {
-      const response = await fetch(imageUrl, {
+      // safeFetch re-validates every redirect hop against the private-IP
+      // blocklist, so an allowed CDN cannot 30x-bounce into an internal host.
+      const response = await safeFetch(imageUrl, {
         signal: controller.signal,
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; InterlinedList/1.0; +https://interlinedlist.com)',

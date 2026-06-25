@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserOrSyncToken } from '@/lib/auth/sync-token';
 import { trackAction } from '@/lib/analytics/track';
+import { encryptSecret } from '@/lib/crypto/secrets';
 
 export const dynamic = 'force-dynamic';
 
@@ -136,11 +137,12 @@ export async function PATCH(request: NextRequest) {
       ...(notificationTrayLimit !== undefined && {
         notificationTrayLimit: parseInt(notificationTrayLimit, 10),
       }),
+      // Stored encrypted at rest (when SECRETS_ENCRYPTION_KEY is configured).
       ...(openaiApiKey !== undefined && {
-        openaiApiKey: openaiApiKey === null || openaiApiKey === '' ? null : String(openaiApiKey).trim(),
+        openaiApiKey: openaiApiKey === null || openaiApiKey === '' ? null : encryptSecret(String(openaiApiKey).trim()),
       }),
       ...(anthropicApiKey !== undefined && {
-        anthropicApiKey: anthropicApiKey === null || anthropicApiKey === '' ? null : String(anthropicApiKey).trim(),
+        anthropicApiKey: anthropicApiKey === null || anthropicApiKey === '' ? null : encryptSecret(String(anthropicApiKey).trim()),
       }),
     };
     

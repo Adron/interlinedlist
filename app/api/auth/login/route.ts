@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { verifyPassword } from '@/lib/auth/password';
 import { createSession, getSessionCookieOptions } from '@/lib/auth/session';
 import { SESSION_COOKIE_NAME } from '@/lib/config/app';
+import { rateLimit, getClientIp } from '@/lib/security/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +17,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Email and password are required' },
         { status: 400 }
+      );
+    }
+
+    // Rate limit by IP and by target email to slow brute-force / credential stuffing.
+    const ip = getClientIp(request);
+    const ipLimit = rateLimit(`login:ip:${ip}`, 20, 15 * 60 * 1000);
+    const emailLimit = rateLimit(`login:email:${String(email).toLowerCase()}`, 10, 15 * 60 * 1000);
+    if (!ipLimit.allowed || !emailLimit.allowed) {
+      const retryAfter = Math.max(ipLimit.retryAfterSeconds, emailLimit.retryAfterSeconds);
+      return NextResponse.json(
+        { error: 'Too many login attempts. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(retryAfter) } }
       );
     }
 
