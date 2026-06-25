@@ -9,11 +9,21 @@ import { createSession, getSessionCookieOptions } from '@/lib/auth/session';
 import { SESSION_COOKIE_NAME } from '@/lib/config/app';
 import { ensureUserInPublicOrganization } from '@/lib/organizations/queries';
 import { trackAction } from '@/lib/analytics/track';
+import { validatePassword } from '@/lib/auth/password-policy';
+import { rateLimit, getClientIp } from '@/lib/security/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
+    const limit = rateLimit(`register:${getClientIp(request)}`, 5, 60 * 60 * 1000);
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many registration attempts. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(limit.retryAfterSeconds) } }
+      );
+    }
+
     const body = await request.json();
     const { email, username, password, displayName } = body;
 
@@ -25,11 +35,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (password.length < 8) {
-      return NextResponse.json(
-        { error: 'Password must be at least 8 characters' },
-        { status: 400 }
-      );
+    const passwordCheck = validatePassword(password);
+    if (!passwordCheck.valid) {
+      return NextResponse.json({ error: passwordCheck.error }, { status: 400 });
     }
 
     // Check if user already exists

@@ -5,6 +5,7 @@
 
 import { Platform, DetectedLink } from './link-detector';
 import { LinkMetadataItem } from '@/lib/types';
+import { safeFetch } from '@/lib/security/ssrf';
 
 interface OpenGraphData {
   title?: string;
@@ -271,7 +272,7 @@ async function fetchHtml(url: string, timeoutMs = 10000): Promise<string> {
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   
   try {
-    const response = await fetch(url, {
+    const response = await safeFetch(url, {
       signal: controller.signal,
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; InterlinedList/1.0; +https://interlinedlist.com)',
@@ -300,7 +301,7 @@ async function fetchJson(url: string, timeoutMs = 10000): Promise<any> {
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   
   try {
-    const response = await fetch(url, {
+    const response = await safeFetch(url, {
       signal: controller.signal,
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; InterlinedList/1.0; +https://interlinedlist.com)',

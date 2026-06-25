@@ -3,24 +3,17 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * GET /api/test-db
+ * Minimal, unauthenticated DB health probe. Intentionally returns no row counts
+ * or error details — it only reports whether the database is reachable.
+ */
 export async function GET() {
   try {
-    // Test database connection by counting users
-    const userCount = await prisma.user.count();
-
-    return NextResponse.json({
-      success: true,
-      message: 'Database connection successful',
-      userCount,
-    });
-  } catch (error) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
+    // Cheap connectivity check; result is not returned to the client.
+    await prisma.$queryRaw`SELECT 1`;
+    return NextResponse.json({ status: 'ok' });
+  } catch {
+    return NextResponse.json({ status: 'error' }, { status: 503 });
   }
 }
-

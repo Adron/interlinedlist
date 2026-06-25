@@ -344,9 +344,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       totalPages: Math.ceil(total / limit),
     });
   } catch (error: any) {
+    // Log server-side; do not leak internal error details to the client.
     console.error('Architecture aggregates error:', error);
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

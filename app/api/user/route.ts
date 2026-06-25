@@ -11,7 +11,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    return NextResponse.json({ user });
+    // SECURITY: never expose stored secrets to the client. Replace the raw
+    // third-party API keys with "is configured" booleans (the UI only needs to
+    // know whether a key is set; keys are write-only from the settings page).
+    const { openaiApiKey, anthropicApiKey, ...safeUser } = user as typeof user & {
+      openaiApiKey?: string | null;
+      anthropicApiKey?: string | null;
+    };
+
+    return NextResponse.json({
+      user: {
+        ...safeUser,
+        hasOpenaiApiKey: !!openaiApiKey,
+        hasAnthropicApiKey: !!anthropicApiKey,
+      },
+    });
   } catch (error) {
     console.error('Error fetching current user:', error);
     return NextResponse.json(

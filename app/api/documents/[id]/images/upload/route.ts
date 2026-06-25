@@ -3,6 +3,7 @@ import { getCurrentUserOrSyncToken } from "@/lib/auth/sync-token";
 import { put } from "@vercel/blob";
 import { resizeAvatarToLimit, ImageTooLargeAfterResizeError } from "@/lib/avatar/resize";
 import { prisma } from "@/lib/prisma";
+import { svgHasActiveContent } from "@/lib/security/svg";
 
 export const dynamic = "force-dynamic";
 
@@ -72,6 +73,13 @@ export async function POST(
           { status: 400 }
         );
       }
+      // Reject SVGs carrying scripts / event handlers / entities (stored XSS).
+      if (svgHasActiveContent(buffer.toString("utf8"))) {
+        return NextResponse.json(
+          { error: "SVG contains scripts or active content and was rejected." },
+          { status: 400 }
+        );
+      }
       finalBuffer = buffer;
       contentTypeOut = contentType;
       ext = "svg";
@@ -96,8 +104,9 @@ export async function POST(
       }
     }
 
-    const basename = originalName.replace(ALLOWED_EXTENSIONS, "") || "image";
-    const filename = `${basename}.${ext}`;
+    // Random, server-generated key — never interpolate the client filename into
+    // the storage path (avoids path-traversal-style object keys).
+    const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${ext}`;
     const pathname = `documents/${user.id}/${documentId}/${filename}`;
 
     const blob = await put(pathname, finalBuffer, {
