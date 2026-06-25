@@ -9,6 +9,9 @@
  *   user    → docs/user-guide.md      (end-user site guide: posting, lists, settings)
  *   api     → docs/api-reference.md   (API endpoints, auth, request/response shapes)
  *
+ * The OpenAPI spec (docs/openapi.json) is produced deterministically by
+ * scripts/generate-openapi.js (`npm run docs:openapi`) — no API key required.
+ *
  * Usage:
  *   node scripts/generate-docs.js --perspective devops
  *   node scripts/generate-docs.js --perspective user

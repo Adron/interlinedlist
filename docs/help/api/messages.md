@@ -11,6 +11,7 @@ Post, list, reply to, react to, and cross-post messages. The feed combines publi
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | GET | `/api/messages` | Session or Bearer | List messages. Query: `limit`, `offset`, `onlyMine` (bool), `tag` (string). |
+| GET | `/api/messages/search` | Session or Bearer | Search top-level messages by content (case-insensitive substring), scoped to your feed visibility. Query: `q` (required, 1–200 chars), `limit` (default 20, max 100), `offset` (default 0), `onlyMine` (bool, default false). |
 | POST | `/api/messages` | Session or Bearer | Create a message (see body reference below). Returns `201`. |
 | GET | `/api/messages/:id` | Session or Bearer | Get one message by ID. |
 | PATCH | `/api/messages/:id` | Session | Update a future-scheduled message (`scheduledAt`, `scheduledCrossPostConfig`). |
@@ -48,6 +49,15 @@ Authorization: Bearer il_tok_...
   "pagination": { "total": 42, "limit": 2, "offset": 0, "hasMore": true }
 }
 ```
+
+## Searching messages
+
+```http
+GET /api/messages/search?q=feature&limit=20&onlyMine=false
+Authorization: Bearer il_tok_...
+```
+
+Matching is a case-insensitive substring over message `content`, restricted to top-level messages (replies excluded) and scoped to your feed visibility (honors your `viewingPreference`). Each item uses the same message shape as `GET /api/messages`. The response wraps results in `{ "messages": [ ... ], "pagination": { "total", "limit", "offset", "hasMore" } }`. An empty or over-200-character `q`, or a `limit` above 100, returns `400`.
 
 ## Creating a message
 

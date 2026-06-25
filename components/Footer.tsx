@@ -77,6 +77,15 @@ export default async function Footer() {
           >
             Pricing
           </Link>
+          <Link
+            href="/api-docs"
+            style={{
+              color: 'var(--color-text-secondary)',
+              textDecoration: 'none',
+            }}
+          >
+            API Docs
+          </Link>
           <Link href="/terms" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}>
             Terms
           </Link>

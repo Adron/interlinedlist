@@ -83,6 +83,7 @@ export async function notifyMessageDig(params: {
     actionUrl: threadPath(source.id),
     type: NOTIFICATION_TYPE_MESSAGE_DIG,
     metadata: metadata as Prisma.InputJsonValue,
+    eventKey: 'dig',
   });
 }
 
@@ -155,5 +156,6 @@ export async function notifyMessagePush(params: {
     actionUrl: threadPath(source.id),
     type,
     metadata: pushMeta as Prisma.InputJsonValue,
+    eventKey: 'push',
   });
 }

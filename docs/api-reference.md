@@ -702,6 +702,65 @@ Partners who receive or build a branded integration bundle should verify it cont
 
 ---
 
+### GET /api/messages/search
+
+**Auth required:** yes (session cookie or `Authorization: Bearer <sync-token>`)  
+**Description:** Search top-level messages by content. Matching is a case-insensitive substring (`contains`) over the message `content`, restricted to top-level messages (replies are excluded). Results are scoped to the caller's feed visibility using the **same rules as `GET /api/messages`** — the search honors the user's `viewingPreference` setting, so callers only see messages they are allowed to see in their feed. Setting `onlyMine=true` restricts results to the caller's own messages. Ordered by `createdAt` descending.
+
+**Query parameters**
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `q` | string | yes | Search query, trimmed; must be 1–200 characters. Empty (or whitespace-only) → 400; longer than 200 → 400. |
+| `limit` | integer | no | Page size, default 20, max 100. A value greater than 100 → 400. Non-numeric or values below 1 fall back to 20. |
+| `offset` | integer | no | Records to skip, default 0. Negative values are coerced to 0. |
+| `onlyMine` | boolean | no | Default `false`. When `true`, restricts results to the caller's own messages. |
+
+**Response** `200 OK`
+
+Each item uses the **same message object shape as the items in `GET /api/messages`** — it includes the embedded `user`, any pushed-message data, and the per-viewer `dugByMe` dig state.
+
+```json
+{
+  "messages": [
+    {
+      "id": "msg123",
+      "content": "Hello world from the API",
+      "publiclyVisible": true,
+      "imageUrls": [],
+      "videoUrls": [],
+      "tags": [],
+      "crossPostUrls": [],
+      "scheduledAt": null,
+      "pushedMessageId": null,
+      "pushCount": 0,
+      "createdAt": "2026-06-04T10:00:00.000Z",
+      "updatedAt": "2026-06-04T10:00:00.000Z",
+      "user": { "id": "u1", "username": "alice", "displayName": "Alice", "avatar": null },
+      "dugByMe": false
+    }
+  ],
+  "pagination": { "total": 1, "limit": 20, "offset": 0, "hasMore": false }
+}
+```
+
+**Example**
+
+```bash
+curl -b cookies.txt \
+  "https://interlinedlist.com/api/messages/search?q=api&limit=20&onlyMine=false"
+```
+
+**Error responses**
+
+| Status | Condition |
+|--------|-----------|
+| 400 | `q` missing, empty, or longer than 200 characters; `limit` greater than 100 |
+| 401 | Not authenticated |
+| 500 | Internal server error |
+
+---
+
 ### POST /api/messages
 
 **Auth required:** yes  
@@ -1534,6 +1593,72 @@ Returns the full set of properties as they exist after the transaction, ordered 
 }
 ```
 
+**Worked example**
+
+Update one existing property in place (`prop_title`), add a brand-new `done` property, and drop everything else from the schema. Because the omitted properties are deleted, send `?force=true` if any of them still hold row data.
+
+Request — `PUT /api/lists/list_xyz/schema?force=true`:
+```json
+{
+  "properties": [
+    {
+      "id": "prop_title",
+      "propertyKey": "title",
+      "propertyName": "Task Title",
+      "propertyType": "text",
+      "isRequired": true
+    },
+    {
+      "propertyKey": "done",
+      "propertyName": "Done",
+      "propertyType": "boolean"
+    }
+  ]
+}
+```
+
+Response `200 OK` (renumbered by array order; `prop_title` kept its id and row data, `done` was created):
+```json
+{
+  "properties": [
+    {
+      "id": "prop_title",
+      "listId": "list_xyz",
+      "propertyKey": "title",
+      "propertyName": "Task Title",
+      "propertyType": "text",
+      "displayOrder": 0,
+      "isVisible": true,
+      "isRequired": true,
+      "defaultValue": null,
+      "helpText": null,
+      "placeholder": null,
+      "validationRules": null,
+      "visibilityCondition": null,
+      "createdAt": "...",
+      "updatedAt": "..."
+    },
+    {
+      "id": "prop_done",
+      "listId": "list_xyz",
+      "propertyKey": "done",
+      "propertyName": "Done",
+      "propertyType": "boolean",
+      "displayOrder": 1,
+      "isVisible": true,
+      "isRequired": false,
+      "defaultValue": null,
+      "helpText": null,
+      "placeholder": null,
+      "validationRules": null,
+      "visibilityCondition": null,
+      "createdAt": "...",
+      "updatedAt": "..."
+    }
+  ]
+}
+```
+
 **Error responses**
 
 - `400` — `properties` is not an array; any property is not an object; `propertyKey` or `propertyName` is the wrong type or outside its length bounds; duplicate `propertyKey` within the request; unknown `propertyType`; `id` references a property not on this list; attempt to change `propertyKey` for an existing `id`.
@@ -1553,38 +1678,84 @@ Returns the full set of properties as they exist after the transaction, ordered 
 
 ---
 
+> **Watcher roles.** A watcher's `role` is one of `"watcher"`, `"collaborator"`, or `"manager"`. Legacy rows with a null role are reported as `"watcher"`.
+
 ### GET /api/lists/:id/watchers
 
 **Auth required:** yes (list owner only)  
-**Description:** List all watchers for a list.
+**Description:** List all watchers for a list, newest first. Owner-only.
+
+**Path parameters**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `id` | string | List ID |
 
 **Response** `200 OK`
 ```json
 {
   "watchers": [
-    { "id": "w1", "userId": "u2", "role": "watcher", "createdAt": "...", "user": { ... } }
+    {
+      "id": "w1",
+      "userId": "u2",
+      "role": "collaborator",
+      "createdAt": "2026-06-21T12:00:00.000Z",
+      "user": { "id": "u2", "username": "bob", "displayName": "Bob", "avatar": null }
+    }
   ]
 }
 ```
+
+**Error responses**
+
+| Status | Condition |
+|--------|-----------|
+| 401 | Not authenticated |
+| 404 | List not found or not owned by the caller |
 
 ---
 
 ### POST /api/lists/:id/watchers
 
 **Auth required:** yes  
-**Description:** Add a watcher to a public list. If the request body includes `userId`, the list owner can add another user with an optional `role` (`watcher`, `collaborator`, `manager`). Without `userId`, the authenticated user watches the list (cannot watch your own list).
+**Description:** Add a watcher to a **public** list. The behavior depends on whether `userId` is present in the body:
 
-**Request body**
+- **`userId` present** — the **list owner** adds that user as a watcher. The list must be public, the caller must own the list, and `userId` must not be the owner. `role` defaults to `"watcher"`.
+- **`userId` absent** — the caller **self-subscribes** to the list. The list must be public and must not be the caller's own list.
+
+The operation is **idempotent**: re-watching an existing relationship succeeds without creating a duplicate.
+
+**Path parameters**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `id` | string | List ID |
+
+**Request body** (all fields optional)
 ```json
 { "userId": "u2", "role": "collaborator" }
 ```
 
-**Response** `201 Created`
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `userId` | string | no | Owner-only: the user to add. Omit to self-subscribe. |
+| `role` | string | no | `"watcher"` (default), `"collaborator"`, or `"manager"`. Only honored when `userId` is present; an unrecognized value falls back to `"watcher"`. Self-subscribe always creates a `"watcher"` row. |
+
+**Response**
 ```json
 { "watching": true }
 ```
 
-Returns `200` if the watcher relationship already exists.
+Status is `201 Created` when a new watcher row is created, and `200 OK` when the relationship already existed.
+
+**Error responses**
+
+| Status | Condition |
+|--------|-----------|
+| 400 | List is not public (owner-add path); `userId` equals the owner; or attempting to watch your own list (self-subscribe path) |
+| 401 | Not authenticated |
+| 403 | `userId` supplied but the caller is not the list owner |
+| 404 | List not found; target `userId` not found; or list is not public (self-subscribe path) |
 
 ---
 
@@ -3387,6 +3558,116 @@ The top-level array key is `following` (not `followers`); the row shape and `pag
 | 400 | Missing `id` |
 | 401 | Not authenticated |
 | 404 | Notification not found or not owned by the caller |
+
+---
+
+### Notification preferences
+
+Notification preferences let a user enable or disable individual delivery channels per notification event.
+
+> **Divergence from earlier assumptions.** Preferences cover **only** the events the server actually emits, and **only** the channels that actually exist. There is **no `email` channel** in this API, and the `follow` event supports **only the `push` channel**. Earlier client-side assumptions of `{ push, inApp, email }` for every event are not accurate — do not rely on them.
+
+**Event catalog**
+
+| Event key | Supported channels | Covers |
+|-----------|--------------------|--------|
+| `dig` | `push`, `inApp` | Someone digs ("I Dig!") one of your messages. |
+| `push` | `push`, `inApp` | Someone pushes (reposts) one of your messages — both plain pushes and pushes with commentary. |
+| `follow` | `push` only | A new follower or a follow request. |
+
+When a user has never set a preference, **every channel defaults to enabled**. Toggling a channel off genuinely suppresses that delivery channel for that event.
+
+---
+
+### GET /api/user/notification-preferences
+
+**Auth required:** yes  
+**Description:** Return the user's notification preferences as a list of events. Each event reports only the channels it actually supports.
+
+**Response** `200 OK`
+```json
+{
+  "events": [
+    {
+      "key": "dig",
+      "label": "Digs on your messages",
+      "description": "When someone presses “I Dig!” on one of your messages.",
+      "channels": { "push": true, "inApp": true }
+    },
+    {
+      "key": "push",
+      "label": "Pushes of your messages",
+      "description": "When someone pushes (reposts) one of your messages, with or without commentary.",
+      "channels": { "push": true, "inApp": true }
+    },
+    {
+      "key": "follow",
+      "label": "New followers & follow requests",
+      "description": "When someone follows you or requests to follow you.",
+      "channels": { "push": true }
+    }
+  ]
+}
+```
+
+The `channels` object for each event contains only the keys that event supports — note `follow` returns `{ "push": ... }` with no `inApp` key, and no event returns an `email` key.
+
+**Error responses**
+
+| Status | Condition |
+|--------|-----------|
+| 401 | Not authenticated |
+| 500 | Internal server error |
+
+---
+
+### PATCH /api/user/notification-preferences
+
+**Auth required:** yes  
+**Description:** Update the channel toggles for a single notification event. Only the channels named in the request are changed; other channels and other events are left untouched.
+
+**Request body**
+```json
+{
+  "key": "dig",
+  "channels": { "push": false, "inApp": true }
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `key` | string | yes | The event key to update. One of `dig`, `push`, `follow`. |
+| `channels` | object | yes | A map of channel → boolean. Only channels supported by the event are accepted (`push`/`inApp` for `dig` and `push`; `push` only for `follow`). |
+
+**Response** `200 OK`
+
+Returns the updated single event object (the same shape as one element of the `GET` response `events` array).
+
+```json
+{
+  "key": "dig",
+  "label": "Digs on your messages",
+  "description": "When someone presses “I Dig!” on one of your messages.",
+  "channels": { "push": false, "inApp": true }
+}
+```
+
+**Example**
+
+```bash
+curl -b cookies.txt -X PATCH \
+  https://interlinedlist.com/api/user/notification-preferences \
+  -H "Content-Type: application/json" \
+  -d '{ "key": "follow", "channels": { "push": false } }'
+```
+
+**Error responses**
+
+| Status | Condition |
+|--------|-----------|
+| 400 | Unknown `key`; missing or invalid `channels` object (not an object, `null`, or an array); a channel not supported by that event (e.g. `inApp` for `follow`, or any `email`); a non-boolean channel value; no valid channels provided. |
+| 401 | Not authenticated |
+| 500 | Internal server error |
 
 ---
 

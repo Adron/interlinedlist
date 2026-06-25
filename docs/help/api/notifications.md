@@ -15,6 +15,8 @@ Notifications are generated server-side for events like new followers, incoming 
 | DELETE | `/api/notifications/:id` | Session or Bearer | Delete a notification. |
 | PATCH | `/api/notifications/:id/read` | Session or Bearer | Mark one notification read (idempotent). Returns `{ ok: true }`. |
 | POST | `/api/notifications/mark-all-read` | Session or Bearer | Mark all unread notifications read. Returns `{ ok: true, updated: N }`. |
+| GET | `/api/user/notification-preferences` | Session or Bearer | Per-event channel preferences. Returns `{ events: [ ... ] }`. |
+| PATCH | `/api/user/notification-preferences` | Session or Bearer | Toggle channels for one event. Body: `{ key, channels }`. Returns the updated event. |
 
 ## Notification object
 
@@ -80,3 +82,57 @@ DELETE /api/notifications/notif_abc001
 ```
 
 Deletes the notification entirely (rather than just marking it read). The action is irreversible.
+
+## Notification preferences
+
+Preferences enable or disable individual delivery channels per event.
+
+> Preferences cover **only** the events the server actually emits, and **only** the channels that exist. There is **no `email` channel**, and `follow` supports **only `push`**. Earlier client assumptions of `{ push, inApp, email }` for every event are not accurate.
+
+| Event key | Channels | Covers |
+|-----------|----------|--------|
+| `dig` | `push`, `inApp` | Digs on your messages. |
+| `push` | `push`, `inApp` | Pushes (reposts) of your messages, with or without commentary. |
+| `follow` | `push` only | New followers and follow requests. |
+
+When a user has never set a preference, every channel defaults to enabled. Toggling a channel off suppresses that delivery channel for that event.
+
+### Get preferences
+
+```http
+GET /api/user/notification-preferences
+```
+
+```json
+{
+  "events": [
+    { "key": "dig",    "label": "Digs on your messages",        "description": "...", "channels": { "push": true, "inApp": true } },
+    { "key": "push",   "label": "Pushes of your messages",      "description": "...", "channels": { "push": true, "inApp": true } },
+    { "key": "follow", "label": "New followers & follow requests","description": "...", "channels": { "push": true } }
+  ]
+}
+```
+
+Each event's `channels` object contains only the keys that event supports (note `follow` has no `inApp` key, and no event has an `email` key).
+
+### Update one event
+
+```http
+PATCH /api/user/notification-preferences
+Content-Type: application/json
+
+{ "key": "dig", "channels": { "push": false, "inApp": true } }
+```
+
+Returns the updated single event object:
+
+```json
+{
+  "key": "dig",
+  "label": "Digs on your messages",
+  "description": "...",
+  "channels": { "push": false, "inApp": true }
+}
+```
+
+Returns `400` for an unknown `key`, a missing/invalid `channels` object, a channel not supported by that event (e.g. `inApp` or `email` for `follow`), a non-boolean channel value, or when no valid channels are provided.
