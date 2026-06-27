@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Lint, typecheck, unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.19.0
+          cache: npm
+
+      # `npm ci` runs the `postinstall` script (prisma generate), which the
+      # typecheck below depends on. prisma generate needs the schema, not a DB.
+      - name: Install dependencies
+        run: npm ci
+
+      # Lint is non-blocking — next.config.js sets eslint.ignoreDuringBuilds, so
+      # the production build does not gate on lint. We surface it but don't fail CI.
+      - name: Lint (non-blocking)
+        run: npm run lint
+        continue-on-error: true
+
+      # The build DOES fail on type errors, so this gate is blocking.
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Unit tests (Vitest)
+        run: npm run test
+
+# Playwright e2e (`npm run test:e2e`) is intentionally not run here: it needs a
+# Postgres database, seeded test users (tests/e2e/global-setup.ts), and a running
+# dev server. Run it in a separate workflow with a `postgres` service container and
+# the required env (DATABASE_URL, app secrets), e.g. on a nightly schedule or a
+# manual `workflow_dispatch`, so the auth / IDOR / subscription specs stay enforced.

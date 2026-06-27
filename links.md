@@ -1,0 +1,92 @@
+# Published links — interlinedlist.com
+
+Exact public URLs for the documentation/policy **sources** touched by the
+`GAP-ENDPOINTS-DOING-NOW.md` plan, mapped to the file each is published from.
+
+Base URL: **https://interlinedlist.com**
+
+Legend: ✅ live today · 🆕 new page this plan publishes · ✏️ existing page this plan edits
+
+---
+
+## API reference (canonical)
+
+Source of truth `docs/api-reference.md` → generated `docs/openapi.json`
+(`npm run docs:all`), served at:
+
+| Link | Source | Notes |
+|---|---|---|
+| ✏️ https://interlinedlist.com/api-docs | `docs/api-reference.md` | Human API reference page |
+| ✏️ https://interlinedlist.com/api/openapi.json | `docs/openapi.json` (`app/api/openapi.json/route.ts`) | Raw OpenAPI spec |
+
+All endpoint changes in the plan (org `memberCount`/`userRole`, `/watchers/me`
+role, avatar `user`, GitHub Bearer, `/api/tags/*`, follow `followedBy`, the full
+moderation surface) land here.
+
+---
+
+## API help pages (`docs/help/api/<slug>.md` → `/help/api/<slug>`)
+
+| Link | Source | Gap(s) |
+|---|---|---|
+| ✅ https://interlinedlist.com/help/api | `docs/help/api.md` | landing |
+| ✅ https://interlinedlist.com/help/api/authentication | `docs/help/api/authentication.md` | — |
+| ✅ https://interlinedlist.com/help/api/users-and-profile | `docs/help/api/users-and-profile.md` | E (avatar) |
+| ✏️ https://interlinedlist.com/help/api/public-profiles | `docs/help/api/public-profiles.md` | **A1, A2, A3** |
+| ✏️ https://interlinedlist.com/help/api/messages | `docs/help/api/messages.md` | **D1, D3, B (PATCH), B6 (tags — folded in here)** |
+| ✏️ https://interlinedlist.com/help/api/lists | `docs/help/api/lists.md` | **C1, C2, C3, A2** |
+| ✅ https://interlinedlist.com/help/api/list-folders | `docs/help/api/list-folders.md` | — |
+| ✅ https://interlinedlist.com/help/api/documents | `docs/help/api/documents.md` | — |
+| ✅ https://interlinedlist.com/help/api/document-folders | `docs/help/api/document-folders.md` | — |
+| ✏️ https://interlinedlist.com/help/api/following | `docs/help/api/following.md` | **B9** |
+| ✏️ https://interlinedlist.com/help/api/organizations | `docs/help/api/organizations.md` | **B, B1** |
+| ✅ https://interlinedlist.com/help/api/notifications | `docs/help/api/notifications.md` | — |
+| ✅ https://interlinedlist.com/help/api/push-notifications | `docs/help/api/push-notifications.md` | — |
+| ✅ https://interlinedlist.com/help/api/exports | `docs/help/api/exports.md` | — |
+| ✏️ https://interlinedlist.com/help/api/github-integration | `docs/help/api/github-integration.md` | **B4** |
+| ✏️ https://interlinedlist.com/help/api/linkedin-integration | `docs/help/api/linkedin-integration.md` | **D2** |
+| ✅ https://interlinedlist.com/help/api/utility-endpoints | `docs/help/api/utility-endpoints.md` | — |
+| ✅ https://interlinedlist.com/help/api/administration | `docs/help/api/administration.md` | — |
+| 🆕 https://interlinedlist.com/help/api/moderation | `docs/help/api/moderation.md` (new) | **§H / B10** — report/block/mute (add slug to `lib/help-config.ts`) |
+
+---
+
+## General help pages (`docs/help/<slug>.md` → `/help/<slug>`)
+
+| Link | Source |
+|---|---|
+| ✅ https://interlinedlist.com/help | `docs/help/index` (landing) |
+| ✅ https://interlinedlist.com/help/getting-started | `docs/help/getting-started.md` |
+| ✅ https://interlinedlist.com/help/lists | `docs/help/lists.md` |
+| ✅ https://interlinedlist.com/help/messages | `docs/help/messages.md` |
+| ✅ https://interlinedlist.com/help/cross-posting | `docs/help/cross-posting.md` |
+| ✅ https://interlinedlist.com/help/people | `docs/help/people.md` |
+| ✅ https://interlinedlist.com/help/organizations | `docs/help/organizations.md` |
+| ✅ https://interlinedlist.com/help/documents | `docs/help/documents.md` |
+| ✅ https://interlinedlist.com/help/export | `docs/help/export.md` |
+| ✅ https://interlinedlist.com/help/settings | `docs/help/settings.md` |
+| ✅ https://interlinedlist.com/help/account | `docs/help/account.md` |
+| ✅ https://interlinedlist.com/help/branding | `docs/help/branding.md` |
+
+---
+
+## Legal & policy pages
+
+| Link | Source | Notes |
+|---|---|---|
+| ✅ https://interlinedlist.com/terms | `app/terms/page.tsx` | §6 Prohibited Conduct lives here; plan adds a link to Community Guidelines |
+| ✅ https://interlinedlist.com/privacy | `app/privacy/page.tsx` | — |
+| ✏️ https://interlinedlist.com/eula | `app/eula/page.tsx` | **§H / WS4d** — Community Guidelines / zero-tolerance UGC + abuse clause folded in here; this is the **stable URL the iOS terms-gate links to** (Apple Guideline 1.2) |
+
+---
+
+## Notes
+
+- 🆕 pages do not exist yet — they are published by this plan; the rest are live.
+- Help slugs come from `lib/help-config.ts`; the new **moderation** help page
+  requires adding an entry there. **Tag docs (B6) fold into the existing
+  `messages` help page** — no new slug. **Community Guidelines fold into the
+  existing `/eula` page** — no new route.
+- `/api/openapi.json` is regenerated by `npm run docs:all` from
+  `docs/api-reference.md` + the `app/api/**` route tree — re-run it after the
+  WS2/WS3/WS4 endpoint changes so the published spec matches the handlers.

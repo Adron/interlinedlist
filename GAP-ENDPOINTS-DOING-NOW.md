@@ -164,14 +164,13 @@ part Apple actually checks. Add helpers to `lib/moderation/queries.ts`:
 Semantics: **block = bidirectional invisibility + follow severed**; **mute =
 caller stops seeing the muted user, muted user is unaffected**.
 
-**Step 4d — Community Guidelines page (route: `nextjs-developer`).** New
-`app/community-guidelines/page.tsx` at a stable URL (`/community-guidelines`),
-linked from the footer and `app/terms/page.tsx`. Content must satisfy Apple
-Guideline 1.2: zero-tolerance statement for objectionable content/abuse, the
-report mechanism, the block mechanism, and a commitment to act on reports
-(remove content / eject offenders) within 24h. The iOS terms-gate links here.
-Confirm the canonical path with product before publishing (vs `/guidelines` or
-`/community`).
+**Step 4d — Community Guidelines folded into the EULA (route: `nextjs-developer`).**
+Add the Community Guidelines to the **existing** `app/eula/page.tsx` (`/eula`)
+rather than a new page. Add a zero-tolerance section for objectionable
+content/abuse, the report mechanism, the block mechanism, and a commitment to
+act on reports (remove content / eject offenders) within 24h — satisfying Apple
+Guideline 1.2. **`/eula` is the stable URL the iOS terms-gate links to.** Also
+link it from the footer and `app/terms/page.tsx`.
 
 ### WS5 — Docs regeneration & help-page fixes — **Route: `docs-api`**
 
@@ -180,8 +179,9 @@ Confirm the canonical path with product before publishing (vs `/guidelines` or
   github Bearer note, `/api/tags/*`, follow `followedBy`, full moderation
   surface, Community Guidelines URL).
 - Fix `docs/help/api/public-profiles.md` (A1 nested shape; remove the wrong flat
-  example). Add a moderation help page if a help slug is warranted
-  (`lib/help-config.ts`).
+  example). Add a **moderation** help page (`docs/help/api/moderation.md` + slug
+  in `lib/help-config.ts`). **B6 tag docs fold into `docs/help/api/messages.md`**
+  — no new slug.
 - Run `npm run docs:all` to regenerate `docs/openapi.json` (route-generated) and
   the perspective docs; sanity-check the diff.
 
@@ -253,7 +253,7 @@ Confirm the canonical path with product before publishing (vs `/guidelines` or
   handlers (no remaining OpenAPI-vs-help disagreements).
 - Moderation: a user can report content/users, block/unblock + mute/unmute,
   blocked users' content is provably gone from feed/replies/profile/search
-  (e2e-asserted), and `/community-guidelines` is live and linked.
+  (e2e-asserted), and the Community Guidelines (in `/eula`) is live and linked.
 - `tsc` clean, lint clean, unit + e2e boundary specs green.
 - New endpoints carry auth/IDOR (and subscription-403 where applicable) e2e
   assertions matching `tests/e2e/api/*`.
@@ -262,8 +262,8 @@ Confirm the canonical path with product before publishing (vs `/guidelines` or
 
 ## 7. Open confirmations (non-blocking — defaults chosen)
 
-1. **Community Guidelines URL** — defaulting to `/community-guidelines`. OK, or
-   prefer `/guidelines` or `/community`? (iOS needs a stable link.)
+1. ~~**Community Guidelines URL**~~ — **RESOLVED:** folded into the existing
+   `/eula` page (`app/eula/page.tsx`); that's the stable iOS terms-gate link.
 2. **Mute** — included as a full sibling of block. Keep, or cut to block-only
    for the minimum?
 3. **Block scope** — defaulting to *mutual content invisibility + sever follows
