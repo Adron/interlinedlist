@@ -92,6 +92,9 @@ export default async function Footer() {
           <Link href="/privacy" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}>
             Privacy
           </Link>
+          <Link href="/eula" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}>
+            EULA
+          </Link>
           {user ? (
             <>
               <Link

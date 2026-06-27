@@ -20,6 +20,12 @@ export default function TermsPage() {
           Service. These Terms constitute a legally binding agreement between you and InterlinedList
           (&ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;).
         </p>
+        <p>
+          If you use the InterlinedList application for iOS, your use of that application is also
+          governed by our <a href="/eula">End User License Agreement</a>, which includes terms
+          required by Apple. In the event of a conflict between these Terms and the EULA with
+          respect to the iOS application, the EULA controls.
+        </p>
 
         <h2 className="h4 mt-4">2. Description of Service</h2>
         <p>
