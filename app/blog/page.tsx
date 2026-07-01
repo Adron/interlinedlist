@@ -6,8 +6,12 @@ export const metadata: Metadata = {
   title: 'Blog | InterlinedList',
 };
 
-export default function BlogIndexPage() {
-  const posts = getBlogPosts();
+// DB-backed CMS: render on each request so newly published posts appear
+// immediately and the index stays consistent with /blog/[slug].
+export const dynamic = 'force-dynamic';
+
+export default async function BlogIndexPage() {
+  const posts = await getBlogPosts();
 
   return (
     <div

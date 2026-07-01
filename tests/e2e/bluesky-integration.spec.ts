@@ -421,9 +421,10 @@ test.describe('Compose — Bluesky cross-post toggle', () => {
     await expect(page.getByPlaceholder("What's on your mind?")).toHaveValue('', { timeout: 5000 });
 
     // Verify payload contained the Bluesky cross-post flag
-    expect(capturedBody).not.toBeNull();
-    expect(capturedBody?.crossPostToBluesky).toBe(true);
-    expect(capturedBody?.content).toBe('Hello Bluesky from E2E test!');
+    const body = capturedBody as Record<string, unknown> | null;
+    expect(body).not.toBeNull();
+    expect(body?.crossPostToBluesky).toBe(true);
+    expect(body?.content).toBe('Hello Bluesky from E2E test!');
 
     // Success cross-post result shown
     await expect(page.getByText(/Posted to:.*Bluesky/i)).toBeVisible();

@@ -1,4 +1,3 @@
-import ListBreadcrumbs from '@/components/lists/ListBreadcrumbs';
 import { requireAdminAndPublicOwner } from '@/lib/auth/admin-access';
 
 const SUPPORT_LINKS = [
@@ -18,14 +17,8 @@ const SUPPORT_LINKS = [
 export default async function SupportLinksPage() {
   await requireAdminAndPublicOwner();
 
-  const breadcrumbItems = [
-    { label: 'Administration', href: '/admin' },
-    { label: 'Support Links' },
-  ];
-
   return (
-    <div className="container-fluid container-fluid-max py-4">
-      <ListBreadcrumbs items={breadcrumbItems} />
+    <>
       <div className="row mb-4">
         <div className="col-12">
           <h1 className="h4 mb-0">Support Links</h1>
@@ -71,6 +64,6 @@ export default async function SupportLinksPage() {
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

@@ -63,6 +63,7 @@ model User {
   orgLinkedInPageAssignments OrgLinkedInPageAssignment[]
   orgLinkedInAssignments     OrgLinkedInPageAssignment[]       @relation("OrgLinkedInAssigner")
   linkedInPostingTargets     LinkedInPostingTargetPreference[]
+  blogPosts                  BlogPost[]                        @relation("BlogPostAuthor")
 
   @@map("users")
 }
@@ -586,4 +587,23 @@ model LinkedInPostingTargetPreference {
   @@index([pageId])
   @@index([personalPageId])
   @@map("linkedin_posting_target_preferences")
+}
+
+model BlogPost {
+  id          String    @id @default(uuid())
+  slug        String    @unique
+  title       String
+  excerpt     String    @db.Text
+  content     String    @db.Text
+  published   Boolean   @default(false)
+  publishedAt DateTime?
+  authorId    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  author User? @relation("BlogPostAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([published, publishedAt])
+  @@index([authorId])
+  @@map("blog_posts")
 }

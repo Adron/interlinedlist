@@ -1,8 +1,10 @@
 import { notFound } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { getBlogContent, getBlogPosts } from '@/lib/blog';
+import { getBlogContent } from '@/lib/blog';
 import type { Metadata } from 'next';
+
+export const dynamic = 'force-dynamic';
 
 interface BlogPostPageProps {
   params: Promise<{ slug: string }> | { slug: string };
@@ -12,7 +14,7 @@ export async function generateMetadata(
   { params }: BlogPostPageProps,
 ): Promise<Metadata> {
   const { slug } = await Promise.resolve(params);
-  const post = getBlogContent(slug);
+  const post = await getBlogContent(slug);
   return {
     title: post ? `${post.title} | InterlinedList` : 'Blog | InterlinedList',
   };
@@ -20,7 +22,7 @@ export async function generateMetadata(
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const { slug } = await Promise.resolve(params);
-  const post = getBlogContent(slug);
+  const post = await getBlogContent(slug);
 
   if (!post) {
     notFound();
@@ -66,9 +68,4 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       </div>
     </div>
   );
-}
-
-export async function generateStaticParams() {
-  const posts = getBlogPosts();
-  return posts.map((post) => ({ slug: post.slug }));
 }

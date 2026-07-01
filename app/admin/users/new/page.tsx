@@ -11,7 +11,7 @@ export default async function AddUserPage() {
   ];
 
   return (
-    <div className="container-fluid container-fluid-max py-4">
+    <>
       <ListBreadcrumbs items={breadcrumbItems} />
       <div className="row mb-4">
         <div className="col-12">
@@ -26,6 +26,6 @@ export default async function AddUserPage() {
           <AddUserForm />
         </div>
       </div>
-    </div>
+    </>
   );
 }

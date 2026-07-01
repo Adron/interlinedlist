@@ -1,6 +1,5 @@
 import { prisma } from '@/lib/prisma';
 import UserManagement from '@/components/admin/UserManagement';
-import ListBreadcrumbs from '@/components/lists/ListBreadcrumbs';
 import { requireAdminAndPublicOwner } from '@/lib/auth/admin-access';
 
 export default async function AdminPage() {
@@ -46,22 +45,11 @@ export default async function AdminPage() {
   // Get total count
   const total = await prisma.user.count();
 
-  const breadcrumbItems = [{ label: 'Administration' }];
-
   return (
-    <div className="container-fluid container-fluid-max py-4">
-      <ListBreadcrumbs items={breadcrumbItems} />
+    <>
       <div className="row mb-4">
-        <div className="col-12 d-flex justify-content-end gap-2">
-          <a href="/admin/analytics" className="btn btn-outline-primary">
-            <i className="bx bx-bar-chart-alt me-2"></i>Analytics
-          </a>
-          <a href="/admin/support-links" className="btn btn-outline-primary">
-            <i className="bx bx-link me-2"></i>Support Links
-          </a>
-          <a href="/admin/email-logging" className="btn btn-outline-primary">
-            <i className="bx bx-envelope me-2"></i>Email Logging
-          </a>
+        <div className="col-12 d-flex justify-content-between align-items-center gap-2">
+          <h1 className="h4 mb-0">User Management</h1>
           <a href="/admin/users/new" className="btn btn-primary">
             <i className="bx bx-plus me-2"></i>Add User
           </a>
@@ -77,6 +65,6 @@ export default async function AdminPage() {
           />
         </div>
       </div>
-    </div>
+    </>
   );
 }

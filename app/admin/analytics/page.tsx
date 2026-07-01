@@ -1,5 +1,4 @@
 import { prisma } from '@/lib/prisma';
-import ListBreadcrumbs from '@/components/lists/ListBreadcrumbs';
 import { requireAdminAndPublicOwner } from '@/lib/auth/admin-access';
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
 
@@ -108,14 +107,8 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
   topPages.sort((a, b) => b._count.id - a._count.id);
   topReferrers.sort((a, b) => b._count.id - a._count.id);
 
-  const breadcrumbItems = [
-    { label: 'Administration', href: '/admin' },
-    { label: 'Analytics' },
-  ];
-
   return (
-    <div className="container-fluid container-fluid-max py-4">
-      <ListBreadcrumbs items={breadcrumbItems} />
+    <>
       <div className="row mb-4">
         <div className="col-12">
           <h1 className="h4 mb-0">Analytics</h1>
@@ -150,6 +143,6 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
         helpDocsBySlug={helpDocs}
         oauthByProvider={oauthProviders}
       />
-    </div>
+    </>
   );
 }

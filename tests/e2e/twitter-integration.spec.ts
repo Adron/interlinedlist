@@ -334,9 +334,10 @@ test.describe('Compose — Twitter cross-post toggle', () => {
     await expect(page.getByPlaceholder("What's on your mind?")).toHaveValue('', { timeout: 5000 });
 
     // Verify the payload contained the cross-post flag
-    expect(capturedBody).not.toBeNull();
-    expect(capturedBody?.crossPostToTwitter).toBe(true);
-    expect(capturedBody?.content).toBe('Hello Twitter from E2E test!');
+    const body = capturedBody as Record<string, unknown> | null;
+    expect(body).not.toBeNull();
+    expect(body?.crossPostToTwitter).toBe(true);
+    expect(body?.content).toBe('Hello Twitter from E2E test!');
 
     // Success cross-post result is shown
     await expect(page.getByText(/Posted to:.*Twitter \/ X/i)).toBeVisible();

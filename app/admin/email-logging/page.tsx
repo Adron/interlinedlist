@@ -1,6 +1,5 @@
 import { prisma } from '@/lib/prisma';
 import EmailLogTable from '@/components/admin/EmailLogTable';
-import ListBreadcrumbs from '@/components/lists/ListBreadcrumbs';
 import { requireAdminAndPublicOwner } from '@/lib/auth/admin-access';
 
 export default async function EmailLoggingPage() {
@@ -28,14 +27,8 @@ export default async function EmailLoggingPage() {
     createdAt: log.createdAt.toISOString(),
   }));
 
-  const breadcrumbItems = [
-    { label: 'Administration', href: '/admin' },
-    { label: 'Email Logging' },
-  ];
-
   return (
-    <div className="container-fluid container-fluid-max py-4">
-      <ListBreadcrumbs items={breadcrumbItems} />
+    <>
       <div className="row mb-4">
         <div className="col-12">
           <h1 className="h4 mb-0">Email Logging</h1>
@@ -54,6 +47,6 @@ export default async function EmailLoggingPage() {
           />
         </div>
       </div>
-    </div>
+    </>
   );
 }

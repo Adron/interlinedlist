@@ -150,7 +150,7 @@ describe('postToTwitter — single tweet', () => {
     await postToTwitter(makeIdentity(), makeOptions());
 
     const tweetCall = mockFetch.mock.calls.find(
-      ([url]: [string]) => url === 'https://api.twitter.com/2/tweets'
+      ([url]: unknown[]) => url === 'https://api.twitter.com/2/tweets'
     );
     expect(tweetCall).toBeDefined();
     const [, opts] = tweetCall!;
@@ -164,7 +164,7 @@ describe('postToTwitter — single tweet', () => {
     await postToTwitter(makeIdentity({ access_token: 'my-access-token' }), makeOptions());
 
     const tweetCall = mockFetch.mock.calls.find(
-      ([url]: [string]) => url === 'https://api.twitter.com/2/tweets'
+      ([url]: unknown[]) => url === 'https://api.twitter.com/2/tweets'
     );
     const [, opts] = tweetCall!;
     expect(opts.headers['Authorization']).toBe('Bearer my-access-token');
@@ -177,7 +177,7 @@ describe('postToTwitter — single tweet', () => {
     await postToTwitter(makeIdentity(), makeOptions({ content: 'My tweet text' }));
 
     const tweetCall = mockFetch.mock.calls.find(
-      ([url]: [string]) => url === 'https://api.twitter.com/2/tweets'
+      ([url]: unknown[]) => url === 'https://api.twitter.com/2/tweets'
     );
     const [, opts] = tweetCall!;
     const body = JSON.parse(opts.body);
@@ -248,13 +248,13 @@ describe('postToTwitter — image upload', () => {
 
     // Verify that the media upload endpoint was called
     const uploadCall = mockFetch.mock.calls.find(
-      ([url]: [string]) => url === 'https://upload.twitter.com/1.1/media/upload.json'
+      ([url]: unknown[]) => url === 'https://upload.twitter.com/1.1/media/upload.json'
     );
     expect(uploadCall).toBeDefined();
 
     // Verify media_ids were included in the tweet
     const tweetCall = mockFetch.mock.calls.find(
-      ([url]: [string]) => url === 'https://api.twitter.com/2/tweets'
+      ([url]: unknown[]) => url === 'https://api.twitter.com/2/tweets'
     );
     const [, opts] = tweetCall!;
     const body = JSON.parse(opts.body);
@@ -283,7 +283,7 @@ describe('postToTwitter — image upload', () => {
     expect(result.tweetId).toBe('tweet-no-media');
 
     const tweetCall = mockFetch.mock.calls.find(
-      ([url]: [string]) => url === 'https://api.twitter.com/2/tweets'
+      ([url]: unknown[]) => url === 'https://api.twitter.com/2/tweets'
     );
     const [, opts] = tweetCall!;
     const body = JSON.parse(opts.body);
@@ -315,7 +315,7 @@ describe('postToTwitter — image upload', () => {
 
     expect(result.success).toBe(true);
     const tweetCall = mockFetch.mock.calls.find(
-      ([url]: [string]) => url === 'https://api.twitter.com/2/tweets'
+      ([url]: unknown[]) => url === 'https://api.twitter.com/2/tweets'
     );
     const body = JSON.parse(tweetCall![1].body);
     expect(body.media).toBeUndefined();
@@ -350,7 +350,7 @@ describe('postToTwitter — threaded content', () => {
 
     expect(result.success).toBe(true);
     const tweetCalls = mockFetch.mock.calls.filter(
-      ([url]: [string]) => url === 'https://api.twitter.com/2/tweets'
+      ([url]: unknown[]) => url === 'https://api.twitter.com/2/tweets'
     );
     expect(tweetCalls.length).toBeGreaterThan(1);
   });
@@ -377,7 +377,7 @@ describe('postToTwitter — threaded content', () => {
     expect(result.success).toBe(true);
 
     const tweetCalls = mockFetch.mock.calls.filter(
-      ([url]: [string]) => url === 'https://api.twitter.com/2/tweets'
+      ([url]: unknown[]) => url === 'https://api.twitter.com/2/tweets'
     );
 
     if (tweetCalls.length >= 2) {
@@ -459,7 +459,7 @@ describe('postToTwitter — tweet body structure', () => {
     await postToTwitter(makeIdentity(), makeOptions({ imageUrls: [], videoUrls: [] }));
 
     const tweetCall = mockFetch.mock.calls.find(
-      ([url]: [string]) => url === 'https://api.twitter.com/2/tweets'
+      ([url]: unknown[]) => url === 'https://api.twitter.com/2/tweets'
     );
     const body = JSON.parse(tweetCall![1].body);
     expect(body.media).toBeUndefined();
@@ -472,7 +472,7 @@ describe('postToTwitter — tweet body structure', () => {
     await postToTwitter(makeIdentity(), makeOptions());
 
     const tweetCall = mockFetch.mock.calls.find(
-      ([url]: [string]) => url === 'https://api.twitter.com/2/tweets'
+      ([url]: unknown[]) => url === 'https://api.twitter.com/2/tweets'
     );
     const body = JSON.parse(tweetCall![1].body);
     expect(body.reply).toBeUndefined();
